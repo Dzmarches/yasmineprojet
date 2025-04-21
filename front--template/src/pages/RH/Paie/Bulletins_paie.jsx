@@ -1,0 +1,539 @@
+import React, { useState, useEffect } from 'react';
+import excel from '../../../assets/imgs/excel.png';
+import importexel from '../../../assets/imgs/import.png';
+import printer from '../../../assets/imgs/printer.png';
+import add from '../../../assets/imgs/add.png';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Modal, Button } from 'react-bootstrap';
+import * as XLSX from 'xlsx';
+import Select from 'react-select';
+import ProfileEmploye from '../Employes/ProfileEmploye.jsx';
+import rh from '../../../assets/imgs/employe.png';
+import edit from '../../../assets/imgs/edit.png';
+import archive from '../../../assets/imgs/archive.png';
+import recherche from '../../../assets/imgs/recherche.png';
+import axios from 'axios';
+import moment from 'moment';
+import paiment from '../../../assets/imgs/paiement.png'
+import Bulletins_paieEmploye from '../../RH/Paie/Bulteins_paieEmploye.jsx'
+import utilisateur from '../../../assets/imgs/utilisateur.png';
+
+
+const Bulletins_paie = () => {
+
+  const url = "http://localhost:5000"
+  const [data, setdata] = useState([])
+  const [showModal, setShowModal] = useState(false);
+  const [fileName, setFileName] = useState('');
+  const itemsPerPage = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedEmployeId, setSelectedEmployeId] = useState(null);
+  const [selectedOptions, setSelectedOptions] = useState([]);
+  const [showPrintOptions, setShowPrintOptions] = useState(false);
+  const [showPrintOptionsME, setShowPrintOptionsME] = useState(false);
+  const [selectedPrintOption, setSelectedPrintOption] = useState('');
+  const [printOptions, setPrintOptions] = useState([]);
+  const [EmployeConnecte, setEmployeConnecte] = useState(null);
+  const [ModeleDoc, setModeleDoc] = useState([]);
+  const [BTP, setBTP] = useState('');
+  const navigate = useNavigate();
+
+  const idPeriodepai = useParams();
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value);
+  };
+
+  const searchValue = searchTerm.toLowerCase().trim();
+
+  const filteredData = data.filter(item => {
+    const nom = item.User?.nom?.toLowerCase().includes(searchValue);
+    const prenom = item.User?.prenom?.toLowerCase().includes(searchValue);
+    const email = item.User?.email?.toLowerCase().includes(searchValue);
+    const telephone = item.User?.telephone?.includes(searchTerm);
+    const poste = item.Poste?.poste?.toLowerCase().includes(searchValue);
+  
+    const declarationMatch =
+      item.declaration !== undefined &&
+      (
+        (searchValue === 'oui' && item.declaration == 1) ||
+        (searchValue === 'non' && item.declaration == 0)
+      );
+  
+    return nom || prenom || email || telephone || poste || declarationMatch;
+  });
+  
+
+  const handleProfileClick = (id) => {
+    setSelectedEmployeId(id);
+  };
+  const BultainPEClick = (id) => {
+    setSelectedEmployeId(id);
+  };
+
+  const handleDownloadTemplate = () => {
+    const ws = XLSX.utils.aoa_to_sheet([["Nom", "Prénom", "Email"]]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Etudiants");
+    XLSX.writeFile(wb, "etudiants_template.xlsx");
+  };
+  const handleFileChange = (event) => {
+    setFileName(event.target.files[0].name);
+  };
+  const handleImport = () => {
+    alert('Importation en cours...');
+  };
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = data.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(data.length / itemsPerPage);
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+  const pageNumbers = [];
+  for (let i = Math.max(1, currentPage - 2); i <= Math.min(currentPage + 2, totalPages); i++) {
+    pageNumbers.push(i);
+  }
+
+
+  // const handleChangePostes = (selected) => {
+  //   setSelectedOptions(selected);
+  // };
+  // Personnaliser le rendu des options dans le menu déroulant
+  const formatOptionLabel = ({ label, value }, { context }) => {
+    // Si l'option est sélectionnée, appliquer un style bleu
+    if (context === 'menu' && selectedOptions.some((opt) => opt.value === value)) {
+      return <div style={{ color: 'blue' }}>{label}</div>;
+    }
+    // Sinon, retourner le label normal
+    return label;
+
+  };
+  const handleExport = () => {
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Liste des employés");
+    XLSX.writeFile(wb, "liste_employes.xlsx");
+  };
+
+  //-------------------------- call-backend ------------------------------------//
+  useEffect(() => {
+    handleListeEmploye()
+    //  handleListePostes();
+  }, [])
+
+  const handleListeEmploye = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Vous devez être connecté");
+        return;
+      }
+      const response = await axios.get('http://localhost:5000/employes/liste', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      const employeactif=response.data.filter((item)=>item.User?.statuscompte==="activer")
+      setdata(employeactif);
+      // setFilteredData(response.data);
+    } catch (error) {
+      console.log("Erreur lors de la récupération des employes", error)
+    }
+  }
+
+
+
+  //imprimeeeerrrr
+  useEffect(() => {
+    handleListeDE()
+  }, [])
+
+  const handleListeDE = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Vous devez être connecté");
+        return;
+      }
+      const response = await axios.get('http://localhost:5000/attestation/liste',
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+
+      // Transformer les données reçues en format { value: '...', label: '...' }
+      const options = response.data.map((doc) => ({
+        value: doc.id, // Utilisez l'ID ou un autre champ unique comme valeur
+        label: doc.nom, // Utilisez le nom du document comme libellé
+        modele: doc.modeleTexte
+      }));
+
+      setPrintOptions(options); // Mettre à jour l'état des options d'impression
+    } catch (error) {
+      console.log("Erreur lors de la récupération des attestations", error);
+    }
+  };
+  // Gérer le clic sur le bouton "Imprimer"
+  const handlePrintClick = () => {
+    setShowPrintOptions(!showPrintOptions);
+  };
+  const handlePrintClickMe = () => {
+    setShowPrintOptionsME(!showPrintOptionsME);
+  };
+  const handleShowModal = () => setShowModal(true);
+  const handleCloseModal = () => setShowModal(false);
+
+  // Gérer la sélection d'un modèle
+  const handlePrintOptionSelect = (option) => {
+    setSelectedPrintOption(option.value);
+    setShowPrintOptions(false); // Masquer la liste déroulante après la sélection
+    navigate('/documentImprimer', { state: { selectedOption: option } });
+    // alert(`Vous avez sélectionné : ${option.label}`); // Afficher un message (à remplacer par votre logique)
+  };
+
+  const handlePrintOptionSelectME = (option) => {
+    setSelectedPrintOption(option.value);
+    setShowPrintOptionsME(false);
+
+    handlePrint(EmployeConnecte, option.modele, option.label);
+    // navigate('/mesdocs', { state: { selectedOption: option } });
+
+  };
+
+  const handlePrintt = (employe, modeleText, nomDoc) => {
+    if (!employe || !modeleText || !nomDoc) {
+      console.error("Employé ou modèle de texte non défini");
+      return;
+    }
+    const dateToday = moment().format('DD/MM/YYYY');
+
+    const modeleTextupdate = modeleText
+      .replace(/\[nomecole\]/g, employe.User?.Ecoles?.map(ecole => ecole.nomecole).join(', ') || "")
+      .replace(/\[nomecoleP\]/g, employe.User?.EcolePrincipal?.nomecole || "" || "")
+      .replace(/\[nom\]/g, employe.User.nom || "")
+      .replace(/\[prenom\]/g, employe.User.prenom || "")
+      .replace(/\[datenaiss\]/g, employe.User.datenaiss ? moment(employe.datenaiss).format('DD/MM/YYYY') : "")
+      .replace(/\[Lieunais\]/g, employe.User.Lieunais || "")
+      .replace(/\[poste\]/g, employe.Poste?.poste?.toLowerCase() || "")
+      .replace(/\[daterecru\]/g, employe.daterecru ? moment(employe.daterecru).format('DD/MM/YYYY') : "")
+      .replace(/\[dateToday\]/g, dateToday)
+      .replace(/\[N°AS\]/g, employe.NumAS || "");
+    // Créer un iframe pour l'impression
+    console.log(modeleTextupdate)
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+
+    const iframeDocument = iframe.contentWindow.document;
+    iframeDocument.open();
+    // @page{ margin: 0;}
+    iframeDocument.write(`
+        <html>
+          <head>
+            <title>${employe.nom}.${employe.prenom}</title>
+            <style>
+              @media print {
+                body { margin: 0 !important ; padding: 40px !important ; }
+                table {
+                  border-collapse: collapse;
+                  width: 100%;
+                }
+                table, th, td {
+                  border: 1px solid #EBEBEB;
+                }
+              }
+            </style>
+          </head>
+          <body>
+          <body>
+            <div class="containerEditor">
+              <div class="ql-editor">
+                ${modeleTextupdate}
+              </div>
+            </div>
+          </body>
+        </html>
+      `);
+    iframeDocument.close();
+    const originalTitle = document.title;
+    // const nomDocc=nomDoc.replace(/\s+/g, '').toUpperCase();
+    document.title = `${nomDoc.toUpperCase()}_${employe.nom}.${employe.prenom}`;
+    setTimeout(() => {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+      document.title = originalTitle;
+      document.body.removeChild(iframe);
+    }, 1000);
+  };
+
+
+
+
+  const ImprimerBTpaie = async (employe_id, idPeriodepa) => {
+    try {
+      const idPeriodepai = idPeriodepa.id
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Vous devez être connecté ");
+        return;
+      }
+      const response = await axios.get(`http://localhost:5000/BultteinPaie/imprimer/${idPeriodepai}/${employe_id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (response.data) {
+        const bulletinHTML = response.data.bulletin_html;
+        handlePrint(bulletinHTML);
+
+      } else {
+        alert("Vous devez d'abord enregistrer le bulletin de paie");
+      }
+
+    } catch (error) {
+      console.error("Erreur lors de la récupération des informations de l'employé :", error);
+      // alert(error.response?.data?.message || "Une erreur est survenue. Veuillez réessayer.");
+    }
+
+  }
+
+  const handlePrint = (bulletinHTML) => {
+    const printWindow = window.open("", "_blank");
+    printWindow.document.write(bulletinHTML);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  //securisé les images 
+  // const ImageProtegee = ({ imagePath }) => {
+  //     const [imageSrc, setImageSrc] = useState("");
+
+  //     useEffect(() => {
+  //         const fetchImage = async () => {
+  //             try {
+  //                 const response = await fetch(`http://localhost:5000${imagePath}`, {
+  //                     headers: {
+  //                         Authorization: `Bearer ${localStorage.getItem('token')}`
+  //                     }
+  //                 });
+
+  //                 if (!response.ok) {
+  //                     throw new Error("Erreur lors du chargement de l'image");
+  //                 }
+  //                 const imageBlob = await response.blob();
+  //                 setImageSrc(URL.createObjectURL(imageBlob));
+  //             } catch (error) {
+  //                 console.error(error);
+  //             }
+  //         };
+
+  //         fetchImage();
+  //     }, [imagePath]);
+
+  //     return imageSrc ? <img src={imageSrc} alt="Photo de l'employé" width="60px"/> : <p>Chargement...</p>;
+  // };
+
+  return (
+
+    <>
+      <nav>
+        <Link to="/dashboard" className="text-primary">Dashboard</Link>
+        <span> / </span>
+        <Link to="/Gpaiement" className="text-primary">Gestion Paie</Link>
+        <span> / </span>
+        <Link to="/periodes_paie" className="text-primary">Périodes de paie</Link>
+        <span> / </span>
+        <span> Liste des employés avec leur bulletin de paie  </span>
+      </nav>
+      <div className="card card-primary card-outline">
+        <div className="card-header d-flex ">
+          <img src={rh} alt="" width="90px" />
+          <p className="card-title mt-5 ml-2 p-2 text-center" style={{ width: '350px', borderRadius: '50px', border: '1px solid rgb(215, 214, 216)' }}>
+            Liste des  employés
+          </p>
+        </div>
+
+        <div className="card-body">
+          <div className="tab-content" id="custom-content-below-tabContent">
+            <div className="tab-pane fade show active" id="listes" role="tabpanel" aria-labelledby="custom-content-below-home-tab">
+              <section className="content mt-2">
+                <div className="container-fluid">
+                  <div className="row">
+                    <div className="col-12">
+                      <div className="card">
+                        <div className="card-header p-2" style={{ backgroundColor: "#f8f8f8" }}>
+                          <div className='row mt-3'>
+                            <div className="button-container" style={{ marginTop: '20px' }}>
+                            </div>
+                            <div className='col-md-4'>
+
+                            </div>
+                            <div className="col-md-4" style={{ flex: '1', marginRight: '10px' }}>
+                              <div className="input-group mr-2">
+                                <div className="form-outline" data-mdb-input-init> <input
+                                  type="search"
+                                  id="form1"
+                                  className="form-control"
+                                  placeholder="Recherche"
+                                  style={{ height: "38px" }}
+                                  value={searchTerm}
+                                  onChange={handleSearchChange}
+                                />
+                                </div>
+                                <div style={{ background: "rgb(202, 200, 200)", padding: "3px", height: "37px", borderRadius: "2px" }}>
+                                  <img src={recherche} alt="" height="30px" width="30px" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="card-body mt-2">
+                          <table id="example2" className="table table-bordered ">
+                            <thead>
+                              <tr>
+                                <th>Id</th>
+                                <th>Photo</th>
+                                <th>Nom Prénom</th>
+                                <th>Poste attribué</th>
+                                <th>Date du recrutement</th>
+                                <th>Salaire de base</th>
+                                <th>Déclaration CNAS</th>
+                                <th>Action</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {filteredData.slice(indexOfFirstItem, indexOfLastItem).map((item, index) => (
+                                // {currentItems.map((item, index) => (
+                                <tr key={index}>
+                                  <td>{indexOfFirstItem + index + 1}</td>
+                                  <td>
+                                    {/* <ImageProtegee imagePath={item.photo} /> */}
+                                    <img className="ronde" src={item.photo ? url + item.photo : utilisateur} alt="Photo de l'employé" width="30px" />
+                                  </td>
+                                  <td> {item.User?.nom} {item.User?.prenom}</td>
+                                  <td>{item.Poste ? item.Poste.poste : 'Poste non défini'}</td>
+                                  <td>{moment(item.daterecru).format('YYYY-MM-DD')}</td>
+                                  <td>{item.SalairNeg} DZD</td>
+                                  <td>{item.declaration==1?'Oui':'Non'}</td>
+                                  <td>
+                                    {/* <button className='btn btn-outline-secondary' >
+                                      <img src={printer}alt="" width="22px" title=' Imprimer le  Bultein de paie' onClick={() => ImprimerBTpaie(item.id,idPeriodepai)} />
+                                    </button>&nbsp; &nbsp; &nbsp; */}
+
+                                    <button className='btn btn-outline-warning' >
+                                      <img src={paiment} alt="" width="22px" title='Bultein de paie' data-toggle="modal" data-target="#modal-bp" onClick={() => BultainPEClick(item.id)} />
+                                    </button>&nbsp; &nbsp; &nbsp;
+
+                                    {/* <button className='btn btn-outline-primary ' data-toggle="modal" data-target="#modal-default" >
+                                      <img src={rh} alt="" width="22px" title='profile'
+                                        onClick={() => handleProfileClick(item.id)} />
+                                    </button> */}
+                                    {/* <Link className="btn btn-outline-success" to={`/employes/modifier/${item.id}`} style={{ height: "45px" }}>
+                                      <img src={edit} alt="" width="24px" title='modifier' />
+                                    </Link>
+                                    &nbsp; &nbsp; &nbsp;
+                                    <button className='btn btn-outline-warning' >
+                                      <img src={archive} alt="" width="22px" title='Archiver' onClick={() => ArchiverEmploye(item.id)} />
+                                    </button> */}
+
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+              {/* Pagination */}
+              <div className="pagination">
+                <button
+                  className="btn btn-primary"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  Précédent
+                </button>
+                {pageNumbers.map((number) => (
+                  <button
+                    key={number}
+                    className={`btn ${currentPage === number ? 'btn-info' : 'btn-light'}`}
+                    onClick={() => handlePageChange(number)}
+                  >
+                    {number}
+                  </button>
+                ))}
+                <button
+                  className="btn btn-primary"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Suivant
+                </button>
+              </div>
+            </div>
+            <div className="tab-pane fade" id="formulaire" role="tabpanel" aria-labelledby="custom-content-below-profile-tab">
+              Ajouter
+            </div>
+          </div>
+        </div>
+        {/* <ProfileEmploye /> */}
+
+        {/* {selectedEmployeId ? (
+          <Bulletins_paieEmploye employeId={selectedEmployeId} idPeriodepai={idPeriodepai.id}/>
+        ) : (
+          ''
+        )} */}
+        
+        {selectedEmployeId ? (
+          <Bulletins_paieEmploye
+            key={selectedEmployeId}  // ⭐ Ajoutez cette ligne pour forcer le rechargement
+            employeId={selectedEmployeId}
+            idPeriodepai={idPeriodepai.id}
+          />
+        ) : null}
+
+        {/* modal supprimer */}
+        <div className="modal fade" id="modal-delete">
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+
+                <h4 className="modal-title">Confirmer l'archivage</h4>
+                <button type="button" className="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div className="modal-body">
+                <p> Êtes-vous sûr de vouloir archiver cet élément ? </p>
+              </div>
+              <div className="modal-footer justify-content-between">
+                <button type="button" className="btn btn-default" data-dismiss="modal">Annuler</button>
+                <button type="button" className="btn btn-danger">Archiver</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+      </div>
+    </>
+  );
+}
+
+export default Bulletins_paie;
+
+

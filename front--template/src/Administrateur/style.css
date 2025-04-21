@@ -1,0 +1,321 @@
+#dashboard-administrateur .select-search {
+  display: flex;
+  justify-content: center; 
+  align-items: center;
+  border-radius: 8px; 
+}
+
+#dashboard-administrateur .select-search .form-group {
+  width: 30%; 
+} 
+
+#dashboard-administrateur .select-search .input-group {
+  margin-top: 28px;
+  justify-content: right;
+}
+
+@media (min-width: 357px) and (max-width: 768px) {
+  #dashboard-administrateur .team-item {
+    margin-bottom: 30px;
+    background-color: red;
+  }
+
+  #dashboard-administrateur .team-title p {
+    font-size: 12px;
+    margin-top: 55px;
+  }
+
+  #dashboard-administrateur .team-img img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  #dashboard-administrateur .team-icon {
+    display: flex;
+    justify-content: space-evenly;
+  }
+}
+
+/* icon du home */
+#dashboard-administrateur .team-icon {
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  gap: 20px; 
+  margin-top: 20px;
+}
+
+#dashboard-administrateur .team-icon img {
+  width: 38px; 
+  height: auto; 
+  transition: transform 0.3s ease; 
+}
+
+#dashboard-administrateur .team-icon .info-box-icon {
+  width: 60px;
+  height: 60px;
+  border: solid 2px #d3d3d3; /* Changement de couleur */
+}
+
+#dashboard-administrateur .team-icon .info-box-icon:hover {
+  border: 4px solid #cac5b5;
+}
+
+#dashboard-administrateur .team-icon img:hover {
+  transform: scale(1.1); 
+}
+
+/* csss app */
+#dashboard-administrateur .userImg {
+  width: 40%;
+  height: 40%;
+  border-radius: 100%;
+  padding: 16px;
+  border: 3px solid #d3d3d3; /* Changement de couleur */
+  border-style: groove;
+  margin-bottom: 6px;
+  background-color: rgb(250, 230, 192);
+}
+
+#dashboard-administrateur .box-date {
+  background-color: wheat;
+  width: 100%;
+  border-radius: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px double #d3d3d3; /* Changement de couleur */
+  height: 37px;
+}
+
+#dashboard-administrateur .box-date p {
+  font-family: 'Times New Roman';
+  color: #dd00009d;
+  margin: 0; 
+  font-weight: 600;
+}
+
+#dashboard-administrateur .info-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 500px; 
+  border-radius: 5px;
+  border: 0.1px #d3d3d3; /* Changement de couleur */
+  border-style: groove;
+  box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.1), -4px -4px 5px #fcf4db;
+}
+
+#dashboard-administrateur .info-box-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem; 
+  width: 100px;
+  height: 60px;
+  box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.2), -4px -4px 10px rgba(255, 255, 255, 0.5);
+  border: 2px solid #d3d3d3; /* Changement de couleur */
+  border-style: groove;
+  background-color: rgb(250, 249, 244);
+  padding: 10px;
+}
+
+#dashboard-administrateur .info-box-icon img {
+  width: 40px;
+}
+
+#dashboard-administrateur .info-box-icon svg {
+  color: #f5f4f4; 
+}
+
+#dashboard-administrateur .team .team-item {
+  position: relative;
+  padding: 0 25px 25px 25px;
+  border-radius: 10px;
+  transition: 0.5s;
+  background-color: rgb(241, 239, 230);
+  height: 300px;
+}
+
+#dashboard-administrateur .team .team-item .team-img {
+  width: 60%;
+  height: 55%;
+  border-radius: 100%;
+  position: relative;
+  margin-top: 45%;
+  margin-left: 23%;
+  transform: translateY(-50%);
+  margin-bottom: -30%;
+  display: flex;
+  justify-content: center;
+  border: 2px solid #d3d3d3; /* Changement de couleur */
+  border-style: groove;
+  padding: 12px;
+  background: var(--bs-white);
+  transition: 0.5s;
+}
+
+#dashboard-administrateur .team .team-item:hover .team-img {
+  border: 4px solid #ffc300;
+  border-style: dotted;
+  background: 0;
+}
+
+#dashboard-administrateur .team .team-item .team-title p {
+  padding: 10px 0 5px 0;
+  font-family: 'Regular 400 Italic';
+  text-align: center;
+  font-size: 20px;
+  color: rgb(102, 99, 99);
+}
+
+#dashboard-administrateur .team .team-item .team-title h4,
+#dashboard-administrateur .team .team-item .team-title p {
+  transition: 0.5s;
+}
+
+#dashboard-administrateur .team .team-item:hover .team-title h4,
+#dashboard-administrateur .team .team-item:hover .team-title p {
+  color: var(--bs-white);
+}
+
+#dashboard-administrateur .btn-app {
+  border-radius: 3px;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  color: #6c757d;
+  font-size: 12px;
+  height: 55px;
+  margin: 0 0 10px 10px;
+  min-width: 60px;
+  padding: 5px 5px;
+  position: relative;
+  text-align: center;
+}
+
+#dashboard-administrateur .form-control {
+  display: block;
+  width: 100%;
+  height: calc(1.75rem + 2px);
+  padding: 0.15rem 0.75rem;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #495057;
+  background-color: #fff;
+  background-clip: padding-box;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  box-shadow: inset 0 0 0 rgba(0, 0, 0, 0);
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+#dashboard-administrateur .form-label {
+  font-size: smaller;
+  font-weight: bold;
+}
+
+#dashboard-administrateur .input-group-text {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  padding: 0.375rem 0.75rem;
+  margin-bottom: 0;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1;
+  color: #495057;
+  text-align: center;
+  white-space: nowrap;
+  background-color: #e9ecef;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+}
+
+#dashboard-administrateur .custom-title {
+  background-color: #5acbcf; 
+  color: rgb(255, 255, 255);
+  padding: 10px 20px;
+  border-radius: 50px; 
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
+  font-family: ' Times New Roman', Times, serif;
+}
+
+#dashboard-administrateur .step-indicator {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  position: relative;
+}
+
+#dashboard-administrateur .step {
+  text-align: center;
+  flex: 1;
+  position: relative;
+  z-index: 1;
+}
+  
+#dashboard-administrateur .step img {
+    width: 50px; /* Taille réduite de l'image */
+    height: 50px;
+    border-radius: 50%; /* Si l'image doit être circulaire */
+    background-color: #ddd;
+    padding: 5px;
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  #dashboard-administrateur .step.active img {
+    background-color: #007bff;
+    transform: scale(1.1); /* Agrandissement léger pour l'étape active */
+  }
+  
+  #dashboard-administrateur .step p {
+    margin-top: 5px;
+    font-size: 14px;
+    color: #666;
+  }
+  
+  /* Ligne entre les étapes */
+  #dashboard-administrateur .step-indicator::before {
+    content: "";
+    position: absolute;
+    top: 37%;
+    left: 10%;
+    width: 80%;
+    height: 4px;
+    background-color: #ddd;
+    z-index: 0; /* Derrière les images */
+  }
+  
+  /* Mise à jour de la ligne quand l'étape est active */
+  #dashboard-administrateur .step.active ~ .step-indicator::before {
+    background-color: #007bff;
+  }
+  
+  #dashboard-administrateur .right{
+    background-color: transparent;
+  }
+
+  .right {
+    background-color: transparent;
+  }
+  .custom-modal-header .btn-close {
+    background-color: transparent !important;
+    border: none;
+    /* Remplacer l'image de fond par un SVG noir pour l'icône de fermeture */
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='black' viewBox='0 0 16 16'%3e%3cpath d='M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e") !important;
+    background-repeat: no-repeat;
+    background-size: 1em 1em;
+    width: 1em;
+    height: 1em;
+    opacity: 1;
+  }
+  
+  

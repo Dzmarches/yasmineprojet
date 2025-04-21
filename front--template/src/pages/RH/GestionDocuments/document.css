@@ -1,0 +1,96 @@
+
+.jodit-container {
+  min-height: 29.7cm !important;/* Hauteur d'une feuille A4 */
+  max-height: 29.7cm !important;
+  overflow: scroll !important; 
+  /* padding: 3px !important; */
+  /* background-color: red !important; */
+  overflow-y: auto !important; 
+    overflow-x: hidden !important;
+}
+
+.jodit-workplace {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background-color: rgb(219, 216, 216) !important;
+    /* padding: 15px!important; */
+}
+
+.jodit-wysiwyg {
+  width: 8.27in !important;;  /* Largeur A4 */
+  min-height: 11.69in !important;; /* Hauteur A4 */
+  padding: 1in !important;
+  background-color: white; 
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3); 
+  border-radius: 5px !important;
+  margin: 15px 0 15px 0!important;
+ 
+}
+/* Ajustement des images dans l'éditeur */
+.jodit-wysiwyg img {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* Barre d'outils fixée en haut */
+.jodit-toolbar__box {
+  /* display: flex !important; */
+  /* justify-content: center!important; */
+  position: sticky!important;
+  top: 0 !important;
+  z-index: 100 !important;
+  background-color: #f3f3f3;
+  border-bottom: 1px solid #ccc;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+.jodit_fullsize .jodit-wysiwyg {
+  margin-top: 150px!important;
+
+}
+.jodit_fullsize .jodit-container {
+  min-height: 29.7cm !important;/* Hauteur d'une feuille A4 */
+  max-height: 29.7cm !important;
+  overflow: scroll !important; 
+  padding: 3px !important;
+  /* background-color: red !important; */
+  overflow-y: auto !important; 
+    overflow-x: hidden !important;
+}
+
+/* Styles spécifiques au mode plein écran */
+/* .jodit_fullsize .jodit-wysiwyg {
+  margin: 20px auto !important;
+  width: auto !important;
+  min-height: calc(100vh - 100px) !important; 
+  background-color: #fff !important;
+ 
+} */
+
+/* Par exemple, on peut aussi rétablir ou ajuster la marge de la barre d’outils */
+/* .jodit_fullsize .jodit-toolbar__box {
+  margin-bottom: 10px !important;
+} */
+@media print {
+  @page { margin: 0 !important;}
+    body { margin: 0 ; padding: 40px  !important; }
+    table {
+      border-collapse: collapse  !important;;
+      width: 100%  !important;;
+    }
+    table, th, td {
+      border: 1px solid #EBEBEB  !important;;
+    }
+  }
+
+  button[data-ref="upload"] {
+    display: none !important;
+  }
+  
+  
+
+
+
+
+
+

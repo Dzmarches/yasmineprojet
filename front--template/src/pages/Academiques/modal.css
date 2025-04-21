@@ -1,0 +1,210 @@
+/* Style uniquement pour la modal */
+/* Style uniquement pour la modal */
+.modal-custom {
+    max-width: 500px; /* Ajustez la largeur de la modal */
+    margin: 1.75rem auto; /* Centrer la modal */
+}
+
+.modal-custom-content {
+    border-radius: 10px; /* Coins arrondis */
+    overflow: hidden; /* Empêcher le contenu de déborder */
+}
+
+.modal-custom .modal-header {
+    background-color: #5ACBCF;
+    color: white;
+    text-align: center;
+    font-weight: bold;
+    padding: 15px;
+}
+
+.modal-custom .modal-title {
+    margin: 0;
+    padding: 0;
+    font-size: 18px;
+}
+
+.modal-custom .modal-body {
+    padding: 20px;
+}
+
+.modal-custom .modal-body .form-group {
+    margin-bottom: 15px; /* Espacement entre les inputs */
+    margin-left: -70px;
+}
+
+.modal-custom .modal-body .form-control {
+    width: 90%; /* Assurez-vous que les inputs prennent toute la largeur */
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+.modal-custom .modal-body .form-control:focus {
+    border-color: #007BFF;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+.modal-custom .modal-body .react-select__control {
+    width: 100%; /* Assurez-vous que le Select prend toute la largeur */
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-shadow: none;
+}
+
+.modal-custom .modal-body .react-select__control--is-focused {
+    border-color: #007BFF;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+.modal-custom .modal-footer {
+    border-top: 1px solid #E0E0E0;
+    padding: 15px;
+    text-align: right;
+}
+
+.modal-custom .modal-footer button {
+    background-color: #5ACBCF;
+    border-radius: 5px;
+    color: white;
+    font-weight: bold;
+    padding: 8px 20px;
+    border: none;
+    cursor: pointer;
+}
+
+.modal-custom .modal-footer button:hover {
+    background-color: #4cb1b1;
+}
+
+.modal-custom .modal-footer button:focus {
+    outline: none;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.modal-custom .modal-body .input-group {
+    background-color: #EBEBEB;
+    border-radius: 10px;
+    margin: 10px 0;
+    padding: 10px;
+}
+
+.modal-custom .modal-body .input {
+    background-color: #F0F2F8;
+    padding: 10px 15px;
+    border-radius: 50px;
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    height: 40px;
+    margin-bottom: 15px;
+}
+
+.modal-custom .modal-body .input input {
+    padding: 15px;
+    font-size: 16px;
+    border-radius: 35px;
+    border: 2px solid #E0E0E0;
+    outline: none;
+    background-color: #F9F9F9;
+    width: 100%;
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.05);
+    transition: 0.3s ease-in-out;
+    height: 45px;
+    text-align: center;
+}
+
+.modal-custom .modal-body .input input:focus {
+    border-color: #007BFF;
+    box-shadow: 0 10px 20px rgba(0, 123, 255, 0.2);
+}
+
+.modal-custom .modal-footer button {
+    background-color: #5ACBCF;
+    border-radius: 50px;
+    color: white;
+    font-weight: bold;
+}
+
+.modal-custom .modal-footer button:hover {
+    background-color: #4cb1b1;
+}
+
+.modal-custom .modal-footer button:focus {
+    outline: none;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+}
+
+.modal-custom .modal-footer button img {
+    width: 20px;
+    height: 20px;
+    margin-right: 5px;
+}
+
+/* Styles pour react-select dans la modal */
+.modal-custom .react-select__multi-value {
+    background-color: #5ACBCF;
+    border-radius: 10px;
+}
+
+.modal-custom .react-select__multi-value__label {
+    color: white;
+}
+
+.modal-custom .react-select__multi-value__remove {
+    color: white;
+}
+
+.modal-custom .react-select__placeholder {
+    color: #A9A9A9;
+}
+/* Styles généraux pour la page (ne pas toucher à la modal) */
+/* .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    background-color: #f8f8f8;
+    padding: 10px;
+}
+
+.card-header .card-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: #333;
+    border-radius: 50px;
+    padding: 10px 20px;
+    margin-left: 10px;
+    background-color: #E8E8E8;
+} */
+
+/* .card-body {
+    padding: 20px;
+} */
+
+.table th, .table td {
+    text-align: center;
+    vertical-align: middle;
+}
+
+
+.react-select__control {
+    border: 2px solid #E0E0E0; /* Bordure */
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.05); /* Ombre */
+}
+
+.react-select__multi-value {
+    background-color: #5ACBCF; /* Couleur de fond des valeurs sélectionnées */
+    border-radius: 10px; /* Coins arrondis */
+}
+
+.react-select__multi-value__label {
+    color: white; /* Couleur du texte des valeurs sélectionnées */
+}
+
+.react-select__multi-value__remove {
+    color: white; /* Couleur du texte pour le bouton de suppression */
+}
+
+.react-select__placeholder {
+    color: #A9A9A9; /* Couleur du texte du placeholder */
+}
