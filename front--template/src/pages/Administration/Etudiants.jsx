@@ -24,6 +24,7 @@ import ProfileEmploye from './profil';
 import './PrintStyles.css';
 // Définir les colonnes par défaut en dehors du composant
 const defaultColumns = [
+  { key: 'photo', label: 'photo' },
   { key: 'nom', label: 'Nom & Prénom' },
   { key: 'prenom', label: 'Nom & Prénom (Arabe)' },
   { key: 'numinscription', label: 'Numéro d\'inscription' },
@@ -33,6 +34,8 @@ const defaultColumns = [
 ];
 
 const Etudiants = () => {
+
+
   const [ecoleInfo, setEcoleInfo] = useState(null);
   const [showCard, setShowCard] = useState(false);
   const [selectedEleve, setSelectedEleve] = useState(null);
@@ -41,6 +44,7 @@ const Etudiants = () => {
   const [showModal, setShowModal] = useState(false);
   const [fileName, setFileName] = useState('');
   const [niveaux, setNiveaux] = useState([]);
+  const [ecole, setEcoles] = useState([]);
   const [sections, setSections] = useState([]);
   const [infos, setInfos] = useState(null);
   const [eleves, setEleves] = useState([]);
@@ -55,7 +59,9 @@ const Etudiants = () => {
   const [showPrintOptionsME, setShowPrintOptionsME] = useState(false);
   const [selectedPrintOption, setSelectedPrintOption] = useState('');
   const [printOptions, setPrintOptions] = useState([]);
-
+  const [selectedEcole, setSelectedEcole] = useState(null);
+  const [filteredEleves, setFilteredEleves] = useState([]);
+  const [filteredEcoles, setFilteredEcoles] = useState([]);
   // Combiner les colonnes par défaut et les colonnes supplémentaires
   const columns = [...defaultColumns, ...additionalColumns];
 
@@ -87,11 +93,19 @@ const Etudiants = () => {
     alert('Importation en cours...');
   };
 
+  // const indexOfLastItem = currentPage * itemsPerPage;
+  // const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  // const currentItems = Array.isArray(eleves) ? eleves.slice(indexOfFirstItem, indexOfLastItem) : [];
+
+  // const totalPages = Math.ceil(eleves.length / itemsPerPage);
+
+  const displayedEleves = filteredEleves.length > 0 ? filteredEleves : eleves;
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = Array.isArray(eleves) ? eleves.slice(indexOfFirstItem, indexOfLastItem) : [];
-
-  const totalPages = Math.ceil(eleves.length / itemsPerPage);
+  const currentItems = Array.isArray(filteredEleves)
+    ? filteredEleves.slice(indexOfFirstItem, indexOfLastItem)
+    : [];
+  const totalPages = Math.ceil(displayedEleves.length / itemsPerPage);
 
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
@@ -158,9 +172,14 @@ const Etudiants = () => {
           },
         });
 
+        // if (response.data && response.data.listeEleves) {
+        //   console.log("✅ Réponse reçue :", response.data);
+        //   setEleves(response.data.listeEleves);
+        //   setFilteredEleves(response.data.listeEleves); // Initialisez filteredEleves
+        // } 
         if (response.data && response.data.listeEleves) {
-          console.log("✅ Réponse reçue :", response.data);
           setEleves(response.data.listeEleves);
+          setFilteredEleves(response.data.listeEleves); // Initialiser filteredEleves
         } else {
           console.error('Aucun élève trouvé');
         }
@@ -364,8 +383,90 @@ const Etudiants = () => {
     }
   };
 
+
+  useEffect(() => {
+    const fetchEcoles = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('Aucun token trouvé. Veuillez vous connecter.');
+          return;
+        }
+
+        const response = await axios.get('http://localhost:5000/ecoles', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        // Vérifier que les données contiennent bien les champs nécessaires
+        const ecolesWithDefaults = response.data.map(ecole => ({
+          ...ecole,
+          nomecole: ecole.nomecole || '', // Valeur par défaut si undefined
+          nom_arecole: ecole.nom_arecole || '', // Valeur par défaut si undefined
+        }));
+
+        setEcoles(ecolesWithDefaults);
+        setFilteredEcoles(ecolesWithDefaults);
+      } catch (error) {
+        console.error('Erreur lors de la récupération des écoles', error);
+      }
+    };
+    fetchEcoles();
+  }, []);
+  const filterElevesByEcole = async (ecoleId) => {
+    if (!ecoleId) {
+      setFilteredEleves(eleves); // Réinitialiser à la liste complète
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `http://localhost:5000/eleves/ecole/${ecoleId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      console.log("liste eleves avec ecole", response.data.listeEleves);
+      setFilteredEleves(response.data.listeEleves || []);
+    } catch (error) {
+      console.error("Erreur lors du filtrage par école", error);
+      setFilteredEleves([]);
+    }
+  };
+
   return (
     <>
+
+      <style>
+        {`
+        .td-photo {
+          padding: 0;
+          transition: transform 0.5s ease;
+        }
+
+        .td-photo .photo-circle {
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+          overflow: hidden;
+          margin: auto;
+          transition: transform 0.5s ease;
+        }
+
+        .td-photo .photo-circle img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: transform 0.5s ease;
+        }
+
+        .td-photo:hover .photo-circle {
+          transform: scale(2.5);
+          z-index: 20;
+          position: relative;
+        }
+      `}
+      </style>
       <nav>
         <Link to="/dashboard" className="text-primary">Accueil</Link>
         <span> / </span>
@@ -389,7 +490,7 @@ const Etudiants = () => {
                       <div className="card">
                         <div className="card-header" style={{ backgroundColor: 'rgb(238, 237, 237)' }} >
                           <div className="row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-                            <div className="col-md-4" style={{ flex: '1', marginRight: '10px' }}>
+                            <div className="col-md-3" style={{ flex: '1', marginRight: '10px' }}>
                               <select
                                 name="niveau"
                                 className="form-control"
@@ -406,7 +507,7 @@ const Etudiants = () => {
                                 )}
                               </select>
                             </div>
-                            <div className="col-md-4" style={{ flex: '1', marginRight: '10px' }}>
+                            <div className="col-md-3" style={{ flex: '1', marginRight: '10px' }}>
                               <select
                                 name="sections"
                                 className="form-control"
@@ -423,7 +524,7 @@ const Etudiants = () => {
                                 )}
                               </select>
                             </div>
-                            <div className="col-md-4" style={{ flex: '1', marginRight: '10px' }}>
+                            <div className="col-md-3" style={{ flex: '1', marginRight: '10px' }}>
                               <Select
                                 id="infos"
                                 value={infos}
@@ -431,6 +532,31 @@ const Etudiants = () => {
                                 options={infosOptions}
                                 placeholder="Élève sans infos"
                               />
+                            </div>
+                            <div className="col-md-3" style={{ flex: '1', marginRight: '10px' }}>
+                              <select
+                                name="ecole"
+                                className="form-control"
+                                required
+                                style={{ height: '50px', borderRadius: '8px', backgroundColor: '#F8F8F8' }}
+                                onChange={(e) => {
+                                  const ecoleId = e.target.value;
+                                  setSelectedEcole(ecoleId);
+                                  filterElevesByEcole(ecoleId);
+                                }}
+                                value={selectedEcole || ''}
+                              >
+                                <option value="">Sélectionnez une école</option>
+                                {ecole.length > 0 ? (
+                                  ecole.map((item) => (
+                                    <option key={item.id} value={item.id}>
+                                      {item.nomecole}
+                                    </option>
+                                  ))
+                                ) : (
+                                  <option value="" disabled>Aucune école disponible</option>
+                                )}
+                              </select>
                             </div>
                           </div>
                           <div className='row'>
@@ -532,6 +658,7 @@ const Etudiants = () => {
                                 {columns.map((column, index) => (
                                   <th key={index}>{column.label}</th>
                                 ))}
+                                <th>Ecole</th>
                                 <th style={{ width: '250px' }}>Action</th>
                               </tr>
                             </thead>
@@ -540,30 +667,73 @@ const Etudiants = () => {
                                 <tr key={eleve.id}>
                                   <td>{indexOfFirstItem + index + 1}</td>
                                   {columns.map((column, colIndex) => (
-                                    <td key={colIndex}>
-                                      {eleve[column.key] || (eleve.Eleve && eleve.Eleve[column.key]) || 'N/A'}
+                                    <td key={colIndex} className={column.key === 'photo' ? 'td-photo' : ''}>
+                                      {column.key === 'photo' ? (
+                                        <div className="photo-circle">
+                                          <img
+                                            src={
+                                              eleve[column.key]
+                                                ? `http://localhost:5000${eleve[column.key]}`
+                                                : eleve.Eleve?.[column.key]
+                                                  ? `http://localhost:5000${eleve.Eleve[column.key]}`
+                                                  : 'http://localhost:5000/images/Eleve/default.png'
+                                            }
+                                            alt="photo élève"
+                                          />
+                                        </div>
+                                      ) : (
+                                        eleve[column.key] ||
+                                        (eleve.Eleve && eleve.Eleve[column.key]) ||
+                                        'N/A'
+                                      )}
                                     </td>
+
                                   ))}
+
+                                  <td>
+                                    {eleve.ecoleName}
+                                    {eleve.ecoleInfo?.logo && (
+                                      <img
+                                        src={`http://localhost:5000${eleve.ecoleInfo.logo}`}
+                                        alt="logo école"
+                                        width="20"
+                                        style={{ marginLeft: '10px' }}
+                                      />
+                                    )}
+                                  </td>
+
                                   <td style={{ width: '250px' }}>
-                                    {/* <button
-                                      className="btn btn-outline-primary ml-2"
-                                      onClick={() => handleShowProfileModal(eleve.id)}
+                                    <button
+                                      className="btn btn-outline-success btn-sm p-1 me-1 ml-1"
+                                      style={{ minWidth: '28px', minHeight: '28px' }}
+                                      onClick={() => handleEdit(eleve.id)}
                                     >
-                                      <img src={User} />
-                                    </button> */}
-                                    <button className="btn btn-outline-success btn-sm p-1 me-1 ml-1" style={{ minWidth: '28px', minHeight: '28px' }} onClick={() => handleEdit(eleve.id)}>
                                       <img src={edite} alt="modifier" width="10px" title="Modifier" />
                                     </button>
-                                    <button className="btn btn-outline-danger btn-sm p-1 me-1 ml-1" style={{ minWidth: '28px', minHeight: '28px' }} onClick={() => handleDelete(eleve.id)}>
+
+                                    <button
+                                      className="btn btn-outline-danger btn-sm p-1 me-1 ml-1"
+                                      style={{ minWidth: '28px', minHeight: '28px' }}
+                                      onClick={() => handleDelete(eleve.id)}
+                                    >
                                       <img src={delet} alt="Supprimer" width="10px" />
                                     </button>
-                                    <button className="btn btn-outline-info btn-sm p-1 me-1 ml-1" style={{ minWidth: '28px', minHeight: '28px' }} onClick={() => handleShowHealthModal(eleve.id)}>
+
+                                    <button
+                                      className="btn btn-outline-info btn-sm p-1 me-1 ml-1"
+                                      style={{ minWidth: '28px', minHeight: '28px' }}
+                                      onClick={() => handleShowHealthModal(eleve.id)}
+                                    >
                                       <img src={sante} width="10px" />
                                     </button>
-                                    <button className="btn btn-outline-secondary btn-sm p-1 ml-1" style={{ minWidth: '28px', minHeight: '28px' }} onClick={() => handleShowCard(eleve)}>
-                                      <img src={studentcard} alt="" width="10px" />
-                                    </button>
 
+                                    <button
+                                      className="btn btn-outline-secondary btn-sm p-1 ml-1"
+                                      style={{ minWidth: '28px', minHeight: '28px' }}
+                                      onClick={() => handleShowCard(eleve)}
+                                    >
+                                      <img src={studentcard} alt="Carte étudiant" width="10px" />
+                                    </button>
                                   </td>
                                 </tr>
                               ))}
@@ -723,7 +893,89 @@ const Etudiants = () => {
         </Modal.Footer>
       </Modal>
 
-      {/* <Modal show={showProfileModal} onHide={handleCloseProfileModal} size="lg">
+      {showCard && selectedEleve && (
+        <div className="modal show d-block" tabIndex="-1">
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header d-flex justify-content-between align-items-center">
+                {/* Logo à droite */}
+                {ecoleInfo?.logo && (
+                  <img
+                    src={`http://localhost:5000${ecoleInfo.logo}`}
+                    alt={`Logo de ${ecoleInfo.nomecole}`}
+                    style={{
+                      maxWidth: '50px',
+                      maxHeight: '50px',
+                      order: 2
+                    }}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                )}
+
+                {/* Nom de l'école au centre */}
+                <h1 className="text-center mx-auto" style={{ order: 1 }}>
+                  {ecoleInfo?.nomecole || "N/A"}
+                </h1>
+
+                {/* Bouton fermer */}
+                <button
+                  type="button"
+                  className="close"
+                  onClick={handleCloseCard}
+                  style={{ order: 3 }}
+                >
+                  &times;
+                </button>
+              </div>
+
+              <div className="modal-body d-flex">
+                {/* Informations élève à gauche */}
+                <div className="card p-3 flex-grow-1">
+                  <h4>{selectedEleve.nom || "Nom inconnu"}</h4>
+                  <p>Date de naissance: {selectedEleve.dateNaissance || "N/A"}</p>
+                  <p>Section: {selectedEleve.section || "N/A"}</p>
+                  <p>Année scolaire: {selectedEleve.anneeScolaire || "2024 - 2025"}</p>
+                  <p>Nom d'utilisateur: {selectedEleve.username || "N/A"}</p>
+                </div>
+
+                <div className="ml-3 d-flex flex-column justify-content-center">
+                  <QRCode
+                    value={JSON.stringify({
+                      nom: selectedEleve.nom,
+                      classe: selectedEleve.classe,
+                      section: selectedEleve.section
+                    })}
+                    size={80}
+                    level="L"
+                  />
+                </div>
+
+                {/* QR Code à droite */}
+                {/* <div className="ml-3 d-flex flex-column justify-content-center">
+                  <QRCode
+                    value={`https://votresite.com/eleve/${selectedEleve.id}`}
+                    size={128}
+                  />
+                </div> */}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+    </>
+  );
+}
+
+export default Etudiants;
+
+
+
+{/* <Modal show={showProfileModal} onHide={handleCloseProfileModal} size="lg">
         <Modal.Header closeButton>
           <Button variant="transparent" onClick={() => window.print()}>
             <img src={printer} alt="" width={30} />
@@ -888,83 +1140,3 @@ const Etudiants = () => {
           </Button>
         </Modal.Footer>
       </Modal> */}
-
-      {showCard && selectedEleve && (
-        <div className="modal show d-block" tabIndex="-1">
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header d-flex justify-content-between align-items-center">
-                {/* Logo à droite */}
-                {ecoleInfo?.logo && (
-                  <img
-                    src={`http://localhost:5000${ecoleInfo.logo}`}
-                    alt={`Logo de ${ecoleInfo.nomecole}`}
-                    style={{
-                      maxWidth: '50px',
-                      maxHeight: '50px',
-                      order: 2
-                    }}
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                )}
-
-                {/* Nom de l'école au centre */}
-                <h1 className="text-center mx-auto" style={{ order: 1 }}>
-                  {ecoleInfo?.nomecole || "N/A"}
-                </h1>
-
-                {/* Bouton fermer */}
-                <button
-                  type="button"
-                  className="close"
-                  onClick={handleCloseCard}
-                  style={{ order: 3 }}
-                >
-                  &times;
-                </button>
-              </div>
-
-              <div className="modal-body d-flex">
-                {/* Informations élève à gauche */}
-                <div className="card p-3 flex-grow-1">
-                  <h4>{selectedEleve.nom || "Nom inconnu"}</h4>
-                  <p>Date de naissance: {selectedEleve.dateNaissance || "N/A"}</p>
-                  <p>Section: {selectedEleve.section || "N/A"}</p>
-                  <p>Année scolaire: {selectedEleve.anneeScolaire || "2024 - 2025"}</p>
-                  <p>Nom d'utilisateur: {selectedEleve.username || "N/A"}</p>
-                </div>
-
-                <div className="ml-3 d-flex flex-column justify-content-center">
-                  <QRCode
-                    value={JSON.stringify({
-                      nom: selectedEleve.nom,
-                      classe: selectedEleve.classe,
-                      section: selectedEleve.section
-                    })}
-                    size={80}
-                    level="L"
-                  />
-                </div>
-
-                {/* QR Code à droite */}
-                {/* <div className="ml-3 d-flex flex-column justify-content-center">
-                  <QRCode
-                    value={`https://votresite.com/eleve/${selectedEleve.id}`}
-                    size={128}
-                  />
-                </div> */}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-
-    </>
-  );
-}
-
-export default Etudiants;

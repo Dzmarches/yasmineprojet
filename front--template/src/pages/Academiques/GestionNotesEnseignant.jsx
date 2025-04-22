@@ -67,7 +67,7 @@ const GestionNotesEnseignant = () => {
                         cycle: niveau.cycle || 'Non spécifié'
                     }))
                     : [];
-                //console.log('cycle', niveauxAvecCycle);
+                console.log('cycle', niveauxAvecCycle);
                 setNiveaux(niveauxAvecCycle);
             } catch (error) {
                 console.error("Erreur lors de la récupération des niveaux:", error);
@@ -91,6 +91,7 @@ const GestionNotesEnseignant = () => {
                         `http://localhost:5000/enseignant/${enseignantId}/niveaux/${selectedNiveau}/sections`,
                         { headers: { Authorization: `Bearer ${token}` } }
                     );
+                    console.log("classe", response.data)
                     setSections(response.data);
                 } catch (error) {
                     console.error("Erreur lors de la récupération des sections:", error);
@@ -222,10 +223,13 @@ const GestionNotesEnseignant = () => {
             };
 
             const [matiereId, champ] = fieldId.split('_');
+            const currentMatiere = matieres.find(m => m.id == matiereId);
+            const isMath = currentMatiere ? isMathSubject(currentMatiere) : false;
             const isPrimaire = selectedCycle === 'Primaire';
             const isCem = selectedCycle === 'Cem';
             const isLycée = selectedCycle === 'Lycée';
 
+            // ----- LOGIQUE PRIMAIRE -----
             // ----- LOGIQUE PRIMAIRE -----
             if (isPrimaire) {
                 const exp = parseFloat(updatedEleveNotes[`${matiereId}_expression_orale`] || 0);
@@ -236,15 +240,42 @@ const GestionNotesEnseignant = () => {
                 let total = 0;
                 let count = 0;
 
-                if (exp > 0) { total += exp; count++; }
-                if (lec > 0) { total += lec; count++; }
-                if (prod > 0) { total += prod; count++; }
+                // Vérifiez si la matière est Math
+                const isMath = currentMatiere ? isMathSubject(currentMatiere) : false;
 
-                if (count > 0) {
-                    const moyenneEval = total / count;
-                    updatedEleveNotes[`${matiereId}_moyenne_eval`] = roundToTwo(moyenneEval);
+                if (isMath) {
+                    const calcul = parseFloat(updatedEleveNotes[`${matiereId}_calcul`] || 0);
+                    const grandeurs_mesures = parseFloat(updatedEleveNotes[`${matiereId}_grandeurs_mesures`] || 0);
+                    const organisation_donnees = parseFloat(updatedEleveNotes[`${matiereId}_organisation_donnees`] || 0);
+                    const espace_geometrie = parseFloat(updatedEleveNotes[`${matiereId}_espace_geometrie`] || 0);
+
+                    // Calculer la moyenne pour les mathématiques
+                    let totalMath = 0;
+                    let countMath = 0;
+
+                    if (calcul > 0) { totalMath += calcul; countMath++; }
+                    if (grandeurs_mesures > 0) { totalMath += grandeurs_mesures; countMath++; }
+                    if (organisation_donnees > 0) { totalMath += organisation_donnees; countMath++; }
+                    if (espace_geometrie > 0) { totalMath += espace_geometrie; countMath++; }
+
+                    if (countMath > 0) {
+                        const moyenneEvalMath = totalMath / countMath;
+                        updatedEleveNotes[`${matiereId}_moyenne_eval`] = roundToTwo(moyenneEvalMath);
+                    } else {
+                        updatedEleveNotes[`${matiereId}_moyenne_eval`] = '';
+                    }
                 } else {
-                    updatedEleveNotes[`${matiereId}_moyenne_eval`] = '';
+                    // Logique pour les autres matières
+                    if (exp > 0) { total += exp; count++; }
+                    if (lec > 0) { total += lec; count++; }
+                    if (prod > 0) { total += prod; count++; }
+
+                    if (count > 0) {
+                        const moyenneEval = total / count;
+                        updatedEleveNotes[`${matiereId}_moyenne_eval`] = roundToTwo(moyenneEval);
+                    } else {
+                        updatedEleveNotes[`${matiereId}_moyenne_eval`] = '';
+                    }
                 }
 
                 const moyenne_eval_valide = updatedEleveNotes[`${matiereId}_moyenne_eval`] !== '';
@@ -383,12 +414,23 @@ const GestionNotesEnseignant = () => {
         });
     };
 
+    const isMathSubject = (matiere) => {
+        const mathKeywords = ['maths', 'math', 'mathématique', 'mathématiques', 'الرياضيات'];
+        const matiereName = matiere.nom?.toLowerCase() || '';
+        const matiereNameAr = matiere.nomarabe || '';
+        return mathKeywords.some(keyword =>
+            matiereName.includes(keyword.toLowerCase()) ||
+            matiereNameAr.includes(keyword)
+        );
+    };
     const getColumnsByCycle = (cycle) => {
         switch (cycle) {
             case 'Primaire':
                 return [
                     {
-                        id: 'eval_continue', label: 'التقويم المستمر / Évaluation continue', subColumns: [
+                        id: 'eval_continue',
+                        label: 'التقويم المستمر / Évaluation continue',
+                        subColumns: [
                             { id: 'expression_orale', label: 'التعبير و التواصل الشفوي / Expression et communication orale' },
                             { id: 'lecture', label: 'القراءة و المحفوظات / Lecture et archives' },
                             { id: 'production_ecrite', label: 'الإنتاج الكتابي / Production écrite' }
@@ -425,6 +467,24 @@ const GestionNotesEnseignant = () => {
         }
     };
 
+    const getMathColumnsForPrimaire = () => {
+        return [
+            {
+                id: 'eval_continue_math',
+                label: 'التقويم المستمر / Évaluation continue (Maths)',
+                subColumns: [
+                    { id: 'calcul', label: 'الحساب /10' },
+                    { id: 'grandeurs_mesures', label: 'المقادير و القياس /10' },
+                    { id: 'organisation_donnees', label: 'تنظيم المعطيات /10' },
+                    { id: 'espace_geometrie', label: 'الفضاء و الهندسة /10' }
+                ]
+            },
+            { id: 'moyenne_eval_math', label: 'معدل التقويم المستمر / Moyenne évaluation continue' },
+            { id: 'examens_math', label: 'الإختبارات / Examens' },
+            { id: 'moyenne_math', label: 'معدل / Moyenne' },
+            { id: 'remarque_math', label: 'Remarque' }
+        ];
+    };
     const rawCycle = niveaux.find(n => n.id === selectedNiveau)?.cycle || '';
     const selectedCycle = rawCycle.charAt(0).toUpperCase() + rawCycle.slice(1).toLowerCase();
     // console.log('cycle trouvé', selectedCycle);
@@ -608,20 +668,31 @@ const GestionNotesEnseignant = () => {
                                         <tr>
                                             <th rowSpan="2">#</th>
                                             <th rowSpan="2">Nom complet</th>
-                                            {matieres.map(matiere => (
-                                                <th
-                                                    key={matiere.id}
-                                                    colSpan={columns.reduce((acc, col) =>
-                                                        acc + (col.subColumns ? col.subColumns.length : 1), 0)}
-                                                >
-                                                    {matiere.nomarabe} {'  '} {matiere.nom}
+                                            {matieres.map(matiere => {
+                                                const isMath = isMathSubject(matiere);
+                                                const columnsToUse = isMath && selectedCycle === 'Primaire'
+                                                    ? getMathColumnsForPrimaire()
+                                                    : getColumnsByCycle(selectedCycle);
 
-                                                </th>
-                                            ))}
+                                                return (
+                                                    <th
+                                                        key={matiere.id}
+                                                        colSpan={columnsToUse.reduce((acc, col) =>
+                                                            acc + (col.subColumns ? col.subColumns.length : 1), 0)}
+                                                    >
+                                                        {matiere.nomarabe} {'  '} {matiere.nom}
+                                                    </th>
+                                                );
+                                            })}
                                         </tr>
                                         <tr>
-                                            {matieres.map(matiere => (
-                                                columns.map(column => {
+                                            {matieres.map(matiere => {
+                                                const isMath = isMathSubject(matiere);
+                                                const columnsToUse = isMath && selectedCycle === 'Primaire'
+                                                    ? getMathColumnsForPrimaire()
+                                                    : getColumnsByCycle(selectedCycle);
+
+                                                return columnsToUse.map(column => {
                                                     if (column.subColumns) {
                                                         return column.subColumns.map(subColumn => (
                                                             <th key={`${matiere.id}_${subColumn.id}`}>
@@ -634,8 +705,8 @@ const GestionNotesEnseignant = () => {
                                                             {column.label}
                                                         </th>
                                                     );
-                                                })
-                                            ))}
+                                                });
+                                            })}
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -644,15 +715,20 @@ const GestionNotesEnseignant = () => {
                                                 <tr key={eleve.id}>
                                                     <td>{index + 1}</td>
                                                     <td>{eleve.User?.prenom} {eleve.User?.nom}</td>
-                                                    {matieres.map(matiere => (
-                                                        columns.map(column => {
+                                                    {matieres.map(matiere => {
+                                                        const isMath = isMathSubject(matiere);
+                                                        const columnsToUse = isMath && selectedCycle === 'Primaire'
+                                                            ? getMathColumnsForPrimaire()
+                                                            : getColumnsByCycle(selectedCycle);
+
+                                                        return columnsToUse.map(column => {
                                                             if (column.subColumns) {
                                                                 return column.subColumns.map(subColumn => (
                                                                     <td key={`${matiere.id}_${subColumn.id}`}>
                                                                         <Form.Control
                                                                             type="number"
                                                                             min="0"
-                                                                            max="20"
+                                                                            max="10" // Note sur 10 pour les sous-composantes des maths
                                                                             step="0.25"
                                                                             value={notes[eleve.id]?.[`${matiere.id}_${subColumn.id}`] || ''}
                                                                             onChange={(e) =>
@@ -667,49 +743,58 @@ const GestionNotesEnseignant = () => {
                                                                     </td>
                                                                 ));
                                                             }
+
+                                                            const fieldId = isMath && selectedCycle === 'Primaire'
+                                                                ? `${matiere.id}_${column.id.replace('_math', '')}`
+                                                                : `${matiere.id}_${column.id}`;
+
                                                             return (
                                                                 <td key={`${matiere.id}_${column.id}`}>
                                                                     <Form.Control
-                                                                        type={column.id === 'remarque' ? 'text' : 'number'}
-                                                                        min={column.id === 'remarque' ? undefined : '0'}
-                                                                        max={column.id === 'remarque' ? undefined : '20'}
-                                                                        step={column.id === 'remarque' ? undefined : '0.25'}
-                                                                        value={notes[eleve.id]?.[`${matiere.id}_${column.id}`] || ''}
+                                                                        type={column.id.includes('remarque') ? 'text' : 'number'}
+                                                                        min={column.id.includes('remarque') ? undefined : '0'}
+                                                                        max={column.id.includes('remarque') ? undefined : '20'}
+                                                                        step={column.id.includes('remarque') ? undefined : '0.25'}
+                                                                        value={notes[eleve.id]?.[fieldId] || ''}
                                                                         onChange={(e) =>
                                                                             handleNoteChange(
                                                                                 eleve.id,
-                                                                                `${matiere.id}_${column.id}`,
+                                                                                fieldId,
                                                                                 e.target.value
                                                                             )
                                                                         }
                                                                         placeholder={
-                                                                            column.id === 'remarque' ? 'Remarque' :
-                                                                                column.id === 'coefficient' ? 'Coeff' : 'Note'
+                                                                            column.id.includes('remarque') ? 'Remarque' :
+                                                                                column.id.includes('coefficient') ? 'Coeff' : 'Note'
                                                                         }
                                                                         readOnly={[
                                                                             'moyenne_eval',
+                                                                            'moyenne_eval_math',
                                                                             'moyenne',
+                                                                            'moyenne_math',
                                                                             'moyenne_total',
-                                                                        ].includes(column.id)}
+                                                                        ].some(term => column.id.includes(term))}
                                                                         className={
                                                                             [
                                                                                 'moyenne_eval',
+                                                                                'moyenne_eval_math',
                                                                                 'moyenne',
+                                                                                'moyenne_math',
                                                                                 'moyenne_total',
-                                                                            ].includes(column.id) ? 'bg-light' : ''
+                                                                            ].some(term => column.id.includes(term)) ? 'bg-light' : ''
                                                                         }
                                                                     />
                                                                 </td>
                                                             );
-                                                        })
-                                                    ))}
+                                                        });
+                                                    })}
                                                 </tr>
                                             ))
                                         ) : (
                                             <tr>
                                                 <td
                                                     colSpan={
-                                                        2 + matieres.length * columns.reduce((acc, col) =>
+                                                        2 + matieres.length * getColumnsByCycle(selectedCycle).reduce((acc, col) =>
                                                             acc + (col.subColumns ? col.subColumns.length : 1), 0)
                                                     }
                                                     className="text-center text-muted"

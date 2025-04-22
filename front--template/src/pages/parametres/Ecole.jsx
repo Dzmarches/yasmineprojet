@@ -19,39 +19,39 @@ const Ecole = () => {
     const location = useLocation(); // Récupère l'état envoyé par navigate()
     const [ecoleConnecte, setEcoleConnecte] = useState(null);
 
-    useEffect(() => {
-        const token = localStorage.getItem("token");
+    // useEffect(() => {
+    //     const token = localStorage.getItem("token");
 
-        if (!token) {
-            console.error('Aucun token trouvé. Veuillez vous connecter.');
-            return;
-        }
+    //     if (!token) {
+    //         console.error('Aucun token trouvé. Veuillez vous connecter.');
+    //         return;
+    //     }
 
-        // Récupérer les écoles depuis la base de données
-        const fetchEcoles = async () => {
-            try {
-                const response = await axios.get('http://localhost:5000/ecoles', {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
+    //     // Récupérer les écoles depuis la base de données
+    //     const fetchEcoles = async () => {
+    //         try {
+    //             const response = await axios.get('http://localhost:5000/ecoles', {
+    //                 headers: {
+    //                     Authorization: `Bearer ${token}`,
+    //                 },
+    //             });
 
-                // Vérifier que les données contiennent bien les champs nécessaires
-                const ecolesWithDefaults = response.data.map(ecole => ({
-                    ...ecole,
-                    nomecole: ecole.nomecole || '', // Valeur par défaut si undefined
-                    nom_arecole: ecole.nom_arecole || '', // Valeur par défaut si undefined
-                }));
+    //             // Vérifier que les données contiennent bien les champs nécessaires
+    //             const ecolesWithDefaults = response.data.map(ecole => ({
+    //                 ...ecole,
+    //                 nomecole: ecole.nomecole || '', // Valeur par défaut si undefined
+    //                 nom_arecole: ecole.nom_arecole || '', // Valeur par défaut si undefined
+    //             }));
 
-                setEcoles(ecolesWithDefaults);
-                setFilteredEcoles(ecolesWithDefaults);
-            } catch (error) {
-                console.error('Erreur lors de la récupération des écoles', error);
-            }
-        };
+    //             setEcoles(ecolesWithDefaults);
+    //             setFilteredEcoles(ecolesWithDefaults);
+    //         } catch (error) {
+    //             console.error('Erreur lors de la récupération des écoles', error);
+    //         }
+    //     };
 
-        fetchEcoles();
-    }, []);
+    //     fetchEcoles();
+    // }, []);
     // Récupérer les écoles depuis la base de données
     useEffect(() => {
         const fetchEcoles = async () => {

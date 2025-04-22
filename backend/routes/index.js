@@ -35,6 +35,7 @@ const app = express();
 
 // Servir les fichiers statiques du dossier public/images/Ecole
 app.use('/images/Ecole', express.static(path.join(__dirname, '../public/images/Ecole')));
+app.use('/images/Eleve', express.static(path.join(__dirname, '../public/images/Eleve')));
 app.use('/images', express.static(path.join(__dirname, '../public/images')));
 
 // Middleware pour sécuriser toutes les routes sauf /Login et /Register

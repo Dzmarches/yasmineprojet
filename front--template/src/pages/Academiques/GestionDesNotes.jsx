@@ -605,7 +605,7 @@ const GestionDesNotes = () => {
                                             onClick={handleOpenMatieresModal}
                                         >
                                             <i className="fas fa-book mr-2"></i>
-                                            Durée des matières
+                                            Coef des matières
                                         </button>
                                         <button className="btn btn-app p-1" onClick={handleShowModalRemarque}>
                                             <img src={add} alt="" width="30px" /><br />

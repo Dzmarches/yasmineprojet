@@ -50,6 +50,7 @@ const Niveaux = () => {
     };
 
     const fetchNiveaux = async () => {
+        setIsLoading(true);
         try {
             const token = localStorage.getItem('token');
             if (!token) {
@@ -64,12 +65,15 @@ const Niveaux = () => {
             setNiveaux(response.data);
         } catch (error) {
             console.error('Erreur lors de la récupération des niveaux', error);
+        } finally {
+            setIsLoading(false);
         }
+
     };
 
     useEffect(() => {
-        fetchMatieres();
         fetchNiveaux();
+        fetchMatieres();
     }, []);
 
     // Filtrer les niveaux en fonction de la recherche
@@ -179,56 +183,6 @@ const Niveaux = () => {
             setError("Impossible de charger les données du niveau");
         }
     };
-
-
-    // const handleSubmit = async (e) => {
-    //     e.preventDefault();
-
-    //     if (!nomNiveau || !cycle || !ecoleId) {
-    //         setError('Tous les champs sont obligatoires, sauf ecoleeId qui peut être null.');
-    //         return;
-    //     }
-
-    //     try {
-    //         const token = localStorage.getItem('token');
-    //         if (!token) {
-    //             setError('Aucun token trouvé. Veuillez vous connecter.');
-    //             return;
-    //         }
-
-    //         const niveauData = {
-    //             nomniveau: nomNiveau,
-    //             nomniveuarab: nomNiveauArabe,
-    //             cycle: cycle,
-    //             statutInscription: statutInscription,
-    //             ecoleId: ecoleId,
-    //             ecoleeId: ecoleeId === 'null' ? null : parseInt(ecoleeId, 10),
-    //             niveauMatiere: selectedMatiere.map(matiere => matiere.value),
-    //         };
-
-    //         if (selectedNiveau) {
-    //             await axios.put(
-    //                 `http://localhost:5000/niveaux/${selectedNiveau.id}`,
-    //                 niveauData,
-    //                 { headers: { Authorization: `Bearer ${token}` } }
-    //             );
-    //             setSuccess('Niveau modifié avec succès!');
-    //         } else {
-    //             await axios.post(
-    //                 'http://localhost:5000/niveaux',
-    //                 niveauData,
-    //                 { headers: { Authorization: `Bearer ${token}` } }
-    //             );
-    //             setSuccess('Niveau ajouté avec succès!');
-    //         }
-
-    //         await fetchNiveaux();
-    //         handleCloseModal();
-    //     } catch (error) {
-    //         console.error("Erreur:", error);
-    //         setError(error.response?.data?.message || "Erreur lors de l'opération");
-    //     }
-    // };
 
     const handleSubmit = async (e) => {
         e.preventDefault();

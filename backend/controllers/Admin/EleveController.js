@@ -1021,3 +1021,36 @@ export const deleteEleve = async (req, res) => {
         res.status(500).json({ error: 'Erreur lors de l\'archivage de l\'élève' });
     }
 };
+
+// controllers/eleveController.js
+export const getElevesByEcole = async (req, res) => {
+    try {
+      const { ecoleeId } = req.params;
+  
+      console.log("ecoleeId reçu dans les params:", ecoleeId);
+  
+      const eleves = await User.findAll({
+        where: {
+          type: 'Eleve',
+        },
+        include: [
+          {
+            model: UserEcole,
+            where: { ecoleeId }, // ← lien via la table de jointure
+            attributes: [], // Pas besoin de renvoyer les données de jointure
+          },
+          {
+            model: Eleve,
+            include: [Parent]
+          }
+        ]
+      });
+  
+      res.status(200).json({ listeEleves: eleves });
+    } catch (error) {
+      console.error("Erreur:", error);
+      res.status(500).json({ message: "Erreur serveur" });
+    }
+};
+  
+  
