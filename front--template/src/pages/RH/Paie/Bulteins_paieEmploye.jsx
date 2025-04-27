@@ -16,6 +16,7 @@ const Bulteins_paieEmploye = ({ employeId, idPeriodepai }) => {
   const [isRecordExists, setIsRecordExists] = useState(false);
   const [loading, setLoading] = useState(true);
   const [PRetard, setPRetard] = useState(true);
+  const [JoursFeries, setJoursFeries] = useState([]);
 
   const PourcentageRS = 0.09;
   const PourcentageAbbatement = 0.4;
@@ -66,6 +67,31 @@ const Bulteins_paieEmploye = ({ employeId, idPeriodepai }) => {
     setUserModified((prev) => ({ ...prev, [name]: true }));
   };
 
+  const ListeJoursFeries = async () => {
+    try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            alert("Vous devez être connecté");
+            return;
+        }
+        const response = await axios.get(`http://localhost:5000/joursferies/liste/`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+        });
+        if (response.status === 200 && Array.isArray(response.data)) {
+          setJoursFeries(response.data);
+        } else {
+            console.error("Les données ne sont pas un tableau !");
+        }
+    } catch (error) {
+        console.log(error);
+    }
+};
+useEffect(() => {
+    ListeJoursFeries();
+}, []);
 
   function calculerDureeHeures(debut, fin) {
     if (!debut || !fin) return 0;
@@ -94,11 +120,71 @@ const Bulteins_paieEmploye = ({ employeId, idPeriodepai }) => {
     return h * 60 + m + s / 60;
   }
 
+  //compaere les heures
+
+  function heureToSecondes(heure) {
+    if (!heure) return 0;
+    const [h, m, s] = heure.split(":").map(Number);
+    return h * 3600 + m * 60 + s;
+  }
+  
+  function comparerHeuresSortie(heurePointage, heureNormale) {
+    return heureToSecondes(heurePointage) > heureToSecondes(heureNormale) 
+      ? heureNormale 
+      : heurePointage;
+  }
+  function comparerHeuresEntree(heurePointage, heureNormale) {
+    return heureToSecondes(heurePointage) < heureToSecondes(heureNormale) 
+      ? heureNormale 
+      : heurePointage;
+  }
+
+
+  //les jours feries 
+  
+  function joursFeriesNonPointes(listePointages, listeJoursFeries, dateDebut, dateFin, employeId) {
+    const dateDeb = new Date(dateDebut);
+    const dateFin_ = new Date(dateFin);
+  
+    console.log('la liste qui vien ddeautre',listePointages)
+    // Extraire les dates formatées des jours fériés
+    const joursFeries = listeJoursFeries.map(jf =>
+      new Date(jf.date).toISOString().split('T')[0]
+    );
+  
+    // Extraire les dates où l'employé a pointé
+    const datesPointées = new Set(
+      listePointages
+        .filter(p => p.employe_id  === employeId)
+        .map(p => new Date(p.date).toISOString().split('T')[0])
+    );
+  
+    console.log("Dates pointées (formatées) :", [...datesPointées]);
+
+    let joursFeriesNonPointes = 0;
+  
+    for (let d = new Date(dateDeb); d <= dateFin_; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().split('T')[0];
+      const jour = d.getDay(); // 0 = dimanche, ..., 6 = samedi
+  
+      const estJourFerie = joursFeries.includes(dateStr);
+      const aPointe = datesPointées.has(dateStr);
+      console.log('aPointe',aPointe)
+      const estJourTravail = jour !== 5 && jour !== 6; // Exclure vendredi (5) et samedi (6)
+  
+      if (estJourFerie && !aPointe && estJourTravail) {
+        joursFeriesNonPointes++;
+      }
+    }
+    return joursFeriesNonPointes;
+  }
+  
+  
+  
+
   const calculer = () => {
     if (!employe || !employe.Primes) return;
-
     const nbrJT = parseFloat(employe.nbrJourTravail);
-
 
     //trouver heure travail e l'employe dans la journnée
     let totalHeuresTravailleesMois = 0;
@@ -106,22 +192,56 @@ const Bulteins_paieEmploye = ({ employeId, idPeriodepai }) => {
     const dureeApresMidiNormale = calculerDureeHeures(employe.HeureEAM, employe.HeureSAM);
     let totalHeuresNormales = dureeMatinNormale + dureeApresMidiNormale;
 
+
+// Filtrer pour garder uniquement les jours de la semaine (dimanche à jeudi) et exclure vendredi et samedi
+const pointagesFiltrésW = listepointages.filter(pointage => {
+  const datePointage = new Date(pointage.date);  // Crée un objet Date à partir de la date du pointage
+  const jourSemaine = datePointage.getDay();    // Utilise la méthode getDay() pour obtenir le jour de la semaine
+  // getDay() retourne un nombre entre 0 (dimanche) et 6 (samedi)
+  return jourSemaine !== 5 && jourSemaine !== 6; // Exclure vendredi (5) et samedi (6)
+});
+
     //trouver le jours present selon pointage
-    const joursTravailles = listepointages.filter(pointage => {
-      const { HeureEMP, HeureSMP, HeureEAMP, HeureSAMP, statut } = pointage;
+    const joursTravailles = pointagesFiltrésW.filter(pointage => {
+      const { HeureEMP, HeureSMP, HeureEAMP, HeureSAMP, statut ,date} = pointage;
       // if (statut !== 'present' && statut !== 'retard') return false;
+
+     
+      const heureSAMP = comparerHeuresSortie(HeureSAMP, employe.HeureSAM);
+      const heureSMP = comparerHeuresSortie(HeureSMP, employe.HeureSM);
+      const heureEMP = comparerHeuresEntree(HeureEMP, employe.HeureEM);
+      const heureEAMP = comparerHeuresEntree(HeureEAMP, employe.HeureEAM);
+
       if (statut !== 'present') return false;
-      const dureeMatin = calculerDureeHeures(HeureEMP, HeureSMP);
-      const dureeApresMidi = calculerDureeHeures(HeureEAMP, HeureSAMP);
+
+      const dureeMatin = calculerDureeHeures(heureEMP, heureSMP);
+      const dureeApresMidi = calculerDureeHeures(heureEAMP, heureSAMP);
+
       const totalJour = dureeMatin + dureeApresMidi;
+
+      console.log('totalJour',totalJour);
+
       totalHeuresTravailleesMois += totalJour;
+      console.log('totalHeuresTravailleesMois',totalHeuresTravailleesMois)
       // On considère que la journée est comptée si l'employé a fait assez d'heures
       return totalJour >= totalHeuresNormales;
+
     }).length;
 
     const nombrepresentfixe = (totalHeuresTravailleesMois / totalHeuresNormales).toFixed(1);
+
+    //jours feriés
+    const nbJoursFeriesAjoutes = joursFeriesNonPointes(listepointages,JoursFeries,
+      periodePaie.dateDebut,periodePaie.dateFin,employe.id
+    );
+    
+    console.log("Jours fériés à ajouter :", nbJoursFeriesAjoutes);
+    // console.log("periodePaie:", periodePaie.dateDebut,periodePaie.dateFin);
+
     console.log('nombrepresentfixe', nombrepresentfixe);
     console.log('nombre de jour ', joursTravailles);
+    console.log('totalHeuresNormales ', totalHeuresNormales);
+    console.log('totalHeuresTravailleesMois', totalHeuresTravailleesMois);
 
   
     // Fonction pour trouver la déduction en fonction du retard
@@ -147,7 +267,8 @@ const Bulteins_paieEmploye = ({ employeId, idPeriodepai }) => {
             return test
           } else if (item.statut === "journée") {
             // console.log('journée');
-            return heuresJourEmploye;
+            // return heuresJourEmploye;
+            return 1;
           }
         }
       }
@@ -174,7 +295,7 @@ const Bulteins_paieEmploye = ({ employeId, idPeriodepai }) => {
     const heuresRetards = userModified.heureRetard ? parseFloat(formdata.heureRetard || 0) : totalADeduire;
    
 
-    let nombrepresent = customRound(nombrepresentfixe) +parseFloat(formdata.CA) ;
+    let nombrepresent = customRound(nombrepresentfixe) +parseFloat(formdata.CA)+parseFloat(nbJoursFeriesAjoutes) ;
 
     if (heuresRetards) {
       nombrepresent = parseFloat(nombrepresent) + (parseFloat(JrRards) - parseFloat(heuresRetards))

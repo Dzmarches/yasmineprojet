@@ -17,10 +17,8 @@ const RessourcesHumaines = () => {
   const [absent, setabsent] = useState(null);
   const [present, setpresent] = useState(null);
 
-
-
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchEmployes = async () => {
       try {
         const token = localStorage.getItem("token");
         if (!token) {
@@ -28,34 +26,80 @@ const RessourcesHumaines = () => {
           return;
         }
 
-        const [employes, pointages] = await Promise.all([
-          axios.get(`http://localhost:5000/employes/liste`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get(`http://localhost:5000/pointage/liste`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
+        const response = await axios.get(`http://localhost:5000/employes/liste`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-        const employePactif = employes.data.filter((item) => item.User?.statuscompte === "activer")
+        const employesData = response.data || [];
+        const employePactif = employesData.filter(
+          (item) => item.User?.statuscompte === "activer"
+        );
+
         setemployes(employePactif.length);
-
-        const employeabsent = pointages.data.filter((item) => item.statut === "absent");
-        setabsent(employeabsent.length)
-
-        const employepresent = pointages.data.filter((item) => item.statut === "present");
-        setpresent(employepresent.length)
-
-        const employeretard = pointages.data.filter((item) => item.statut === "retard");
-        setretard(employeretard.length)
-
       } catch (error) {
-        console.error("Erreur lors de la récupération des données", error);
+        console.error("Erreur lors de la récupération des employés :", error);
       }
     };
-    fetchData();
 
+    fetchEmployes();
   }, []);
+
+    const fetchPointages = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          alert("Vous devez être connecté pour accéder à ces informations.");
+          return;
+        }
+        const response = await axios.get(`http://localhost:5000/pointage/liste`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const pointagesData = response.data || [];
+
+        const employeabsent = pointagesData.filter((item) => item.statut === "absent");
+        setabsent(employeabsent.length);
+
+        const employepresent = pointagesData.filter((item) => item.statut === "present");
+        setpresent(employepresent.length);
+
+        const employeretard = pointagesData.filter((item) => item.statut === "retard");
+        setretard(employeretard.length);
+      } catch (error) {
+        console.error("Erreur lors de la récupération des pointages :", error);
+      }
+    };
+
+  useEffect(() => {
+    fetchPointages();
+  }, []);
+  const handleMarkAbsences = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Vous devez être connecté pour accéder à ces informations.");
+        return;
+      }
+      const response = await axios.post(
+        `http://localhost:5000/pointage/marquerabsences`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      alert(response.data.message || "Absences marquées avec succès !");
+      await fetchPointages();
+    
+
+    } catch (error) {
+      console.error("Erreur lors de l'insertion des pointages :", error);
+      if (error.response?.data?.message) {
+        alert("Erreur : " + error.response.data.message);
+      } else {
+        alert("Une erreur est survenue lors du marquage des absences.");
+      }
+    }
+  };
 
   const styles = {
 
@@ -178,12 +222,13 @@ const RessourcesHumaines = () => {
       </nav>
       <section className="content mt-4">
         <div className="container-fluid">
+
           <div className="row g-3">
             {[
               { label: "Employés", value: employes },
               { label: "Présents", value: present },
               { label: "En Retards", value: retard },
-              { label: "Absents", value: absent }, 
+              { label: "Absents", value: absent },
             ].map((item, index) => (
               <div className="col-12 col-sm-6 col-md-3" key={index}>
                 <div className="info-box  p-2 bg-white rounded hover-effect">
@@ -198,6 +243,17 @@ const RessourcesHumaines = () => {
               </div>
             ))}
           </div>
+
+          {/* Bouton pour marquer les absences */}
+          <div className="row g-3 mt-3">
+            <div className="col-12">
+              <button className="btn btn-danger" onClick={handleMarkAbsences}>
+                Marquer les absences
+              </button>
+
+            </div>
+          </div>
+
         </div>
       </section>
 

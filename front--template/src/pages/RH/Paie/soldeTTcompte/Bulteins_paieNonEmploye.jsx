@@ -16,6 +16,8 @@ const Bulteins_paieEmploye = ({ employeId, idPeriodepai }) => {
   const [isRecordExists, setIsRecordExists] = useState(false);
   const [loading, setLoading] = useState(true);
   const [PRetard, setPRetard] = useState(true);
+  const [JoursFeries, setJoursFeries] = useState([]);
+  
 
   const PourcentageRS = 0.09;
   const PourcentageAbbatement = 0.4;
@@ -97,6 +99,95 @@ const Bulteins_paieEmploye = ({ employeId, idPeriodepai }) => {
     return h * 60 + m + s / 60;
   }
 
+  
+  const ListeJoursFeries = async () => {
+    try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            alert("Vous devez être connecté");
+            return;
+        }
+        const response = await axios.get(`http://localhost:5000/joursferies/liste/`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+        });
+        if (response.status === 200 && Array.isArray(response.data)) {
+          setJoursFeries(response.data);
+        } else {
+            console.error("Les données ne sont pas un tableau !");
+        }
+    } catch (error) {
+        console.log(error);
+    }
+};
+useEffect(() => {
+    ListeJoursFeries();
+}, []);
+
+
+  //compaere les heures
+
+  function heureToSecondes(heure) {
+    if (!heure) return 0; // Return 0 if heure is null or undefined
+    const [h, m, s] = heure.split(":").map(Number);
+    return h * 3600 + m * 60 + s;
+}
+  
+  function comparerHeuresSortie(heurePointage, heureNormale) {
+    return heureToSecondes(heurePointage) > heureToSecondes(heureNormale) 
+      ? heureNormale 
+      : heurePointage;
+  }
+  function comparerHeuresEntree(heurePointage, heureNormale) {
+    return heureToSecondes(heurePointage) < heureToSecondes(heureNormale) 
+      ? heureNormale 
+      : heurePointage;
+  }
+
+  //les jours feries 
+  
+  function joursFeriesNonPointes(listePointages, listeJoursFeries, dateDebut, dateFin, employeId) {
+    const dateDeb = new Date(dateDebut);
+    const dateFin_ = new Date(dateFin);
+  
+    console.log('la liste qui vien ddeautre',listePointages)
+    // Extraire les dates formatées des jours fériés
+    const joursFeries = listeJoursFeries.map(jf =>
+      new Date(jf.date).toISOString().split('T')[0]
+    );
+  
+    // Extraire les dates où l'employé a pointé
+    const datesPointées = new Set(
+      listePointages
+        .filter(p => p.employe_id  === employeId)
+        .map(p => new Date(p.date).toISOString().split('T')[0])
+    );
+  
+    console.log("Dates pointées (formatées) :", [...datesPointées]);
+
+    let joursFeriesNonPointes = 0;
+  
+    for (let d = new Date(dateDeb); d <= dateFin_; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().split('T')[0];
+      const jour = d.getDay(); // 0 = dimanche, ..., 6 = samedi
+  
+      const estJourFerie = joursFeries.includes(dateStr);
+      console.log('estJourFerie',estJourFerie)
+      const aPointe = datesPointées.has(dateStr);
+      console.log('aPointe',aPointe)
+      const estJourTravail = jour !== 5 && jour !== 6; // Exclure vendredi (5) et samedi (6)
+  
+      if (estJourFerie && !aPointe && estJourTravail) {
+        joursFeriesNonPointes++;
+        console.log(`Jour férié non pointé : ${dateStr}`);
+        console.log('joursFeriesNonPointes',joursFeriesNonPointes)
+      }
+    }
+    return joursFeriesNonPointes;
+  }
+  
   const calculer = () => {
     if (!employe || !employe.Primes) return;
 
@@ -106,8 +197,6 @@ const Bulteins_paieEmploye = ({ employeId, idPeriodepai }) => {
 
     const mca = userModified.MCA ? parseFloat(formdata.MCA || 0) : (bcca * formdata.CA).toFixed(2);
 
-
-
     //trouver heure travail e l'employe dans la journnée
     let totalHeuresTravailleesMois = 0;
     const dureeMatinNormale = calculerDureeHeures(employe.HeureEM, employe.HeureSM);
@@ -115,25 +204,70 @@ const Bulteins_paieEmploye = ({ employeId, idPeriodepai }) => {
     let totalHeuresNormales = dureeMatinNormale + dureeApresMidiNormale;
 
 
+    // Filtrer pour garder uniquement les jours de la semaine (dimanche à jeudi) et exclure vendredi et samedi
+const pointagesFiltrésW = listepointages.filter(pointage => {
+  const datePointage = new Date(pointage.date);  // Crée un objet Date à partir de la date du pointage
+  const jourSemaine = datePointage.getDay();    // Utilise la méthode getDay() pour obtenir le jour de la semaine
+  // getDay() retourne un nombre entre 0 (dimanche) et 6 (samedi)
+  return jourSemaine !== 5 && jourSemaine !== 6; // Exclure vendredi (5) et samedi (6)
+});
 
     //trouver le jours present selon pointage
-    const joursTravailles = listepointages.filter(pointage => {
-      const { HeureEMP, HeureSMP, HeureEAMP, HeureSAMP, statut } = pointage;
+    const joursTravailles = pointagesFiltrésW.filter(pointage => {
+      const { HeureEMP, HeureSMP, HeureEAMP, HeureSAMP, statut ,date} = pointage;
       // if (statut !== 'present' && statut !== 'retard') return false;
+
+     
+      console.log('les pointages',pointagesFiltrésW);
+      console.log('les HeureEMP',HeureEMP);
+      console.log('les HeureSMP',HeureSMP);
+      console.log('les HeureEAMP',HeureEAMP);
+      console.log('les HeureSAMP',HeureSAMP);
+
+      const heureSAMP = comparerHeuresSortie(HeureSAMP, employe.HeureSAM);
+      const heureSMP = comparerHeuresSortie(HeureSMP, employe.HeureSM);
+      // const heureEMP = comparerHeuresEntree(HeureEMP, employe.HeureEM);
+      // const heureEAMP = comparerHeuresEntree(HeureEAMP, employe.HeureEAM);
+
+const heureEMP =  employe.HeureEM;
+      const heureEAMP = employe.HeureEAM;
+     
+
+      console.log('heureSAMPc',heureSAMP);
+      console.log('heureSMPc',heureSMP);
+      console.log('heureEMPc',heureEMP);
+      console.log('heureEAMPc',heureEAMP);
+
       if (statut !== 'present') return false;
-      const dureeMatin = calculerDureeHeures(HeureEMP, HeureSMP);
-      const dureeApresMidi = calculerDureeHeures(HeureEAMP, HeureSAMP);
+
+      const dureeMatin = calculerDureeHeures(heureEMP, heureSMP);
+      console.log('dureeMatin',dureeMatin)
+      const dureeApresMidi = calculerDureeHeures(heureEAMP, heureSAMP);
+      console.log('dureapremidi',dureeApresMidi)
+
       const totalJour = dureeMatin + dureeApresMidi;
+
+      console.log('totalJour___________',totalJour);
+
       totalHeuresTravailleesMois += totalJour;
+      console.log('totalHeuresTravailleesMois',totalHeuresTravailleesMois)
       // On considère que la journée est comptée si l'employé a fait assez d'heures
       return totalJour >= totalHeuresNormales;
+
     }).length;
 
+    let nombrepresentfixe;
 
-    // const nombrepresentfixe = (totalHeuresTravailleesMois / totalHeuresNormales).toFixed(1);
+     nombrepresentfixe = (totalHeuresTravailleesMois / totalHeuresNormales).toFixed(1);
+     console.log('nombrepresentfixe',nombrepresentfixe);
+     console.log('totalHeuresTravailleesMois',totalHeuresTravailleesMois);
+     console.log('totalHeuresNormales',totalHeuresNormales);
 
-    let nombrepresentfixe = (totalHeuresTravailleesMois / totalHeuresNormales).toFixed(1);
-    
+    //jours feriés
+    const nbJoursFeriesAjoutes = joursFeriesNonPointes(listepointages,JoursFeries,
+      periodePaie.dateDebut,periodePaie.dateFin,employe.id
+    );
+  
     if (isNaN(nombrepresentfixe)) {
       nombrepresentfixe = 0; 
     }
@@ -162,7 +296,9 @@ const Bulteins_paieEmploye = ({ employeId, idPeriodepai }) => {
             return test
           } else if (item.statut === "journée") {
             // console.log('journée');
-            return heuresJourEmploye;
+            return 1;
+          }else{
+            console.log('hello')
           }
         }
       }
@@ -171,29 +307,52 @@ const Bulteins_paieEmploye = ({ employeId, idPeriodepai }) => {
 
     let totalADeduire = 0;
     let JTR = 0;
+
     listepointages.forEach(pointage => {
       const { HeureEMP, HeureSMP, HeureEAMP, HeureSAMP, statut } = pointage;
       if (statut !== 'retard') return;
-      const dureeMatin = calculerDureeHeures(HeureEMP, HeureSMP);
-      const dureeApresMidi = calculerDureeHeures(HeureEAMP, HeureSAMP);
-      const dureeTotaleRetard = totalHeuresNormales - (dureeMatin + dureeApresMidi);
-      console.log('dureeTotaleRetard', dureeTotaleRetard);
 
+      const dureeMatin = calculerDureeHeures(HeureEMP, HeureSMP);
+      console.log('dureeMatinR',dureeMatin);
+      const dureeApresMidi = calculerDureeHeures(HeureEAMP, HeureSAMP);
+      console.log('dureeApresMidiR',dureeApresMidi);
+
+      //verifier combien du retard fait dans la journné
+      const dureeTotaleRetard = totalHeuresNormales - (dureeMatin + dureeApresMidi);
+      console.log('totalHeuresNormales',totalHeuresNormales)
+      console.log('dureeTotaleRetardR', dureeTotaleRetard);
+
+
+     
       //appliquer selon le bréme
       const heuresADeduire = getDeductionFromBareme(dureeTotaleRetard, PRetard, totalHeuresNormales);
-      totalADeduire += parseFloat(heuresADeduire);
-      JTR += (1 - heuresADeduire);
+      // console.log('heuresADeduireR',heuresADeduire)
+      // totalADeduire += parseFloat(heuresADeduire);
+      // console.log('totalADeduireR',totalADeduire)
+
+      // JTR += (1 - heuresADeduire);
+      // console.log('JTRR',JTR)
+      if (heuresADeduire > 0) {
+        totalADeduire += parseFloat(heuresADeduire);
+        console.log('totalADeduireR', totalADeduire);
+
+        JTR += 1 - heuresADeduire;
+        console.log('JTRR', JTR);
+      } else {
+        console.log("Aucune heure à déduire, pas de modification du total");
+      }
     });
 
     const JrRards = listepointages.filter(pointage => pointage.statut === 'retard').length;
     const heuresRetards = userModified.heureRetard ? parseFloat(formdata.heureRetard || 0) : totalADeduire;
 
-
-    let nombrepresent = customRound(nombrepresentfixe);
+    let nombrepresent = customRound(nombrepresentfixe)+parseFloat(nbJoursFeriesAjoutes);
 
     if (heuresRetards) {
+      console.log('heuresRetards existe')
       nombrepresent = parseFloat(nombrepresent) + (parseFloat(JrRards) - parseFloat(heuresRetards))
     } else {
+      console.log('heuresRetards existe pas')
       nombrepresent = parseFloat(nombrepresent) + (parseFloat(JrRards))
 
     }
@@ -794,7 +953,7 @@ const Bulteins_paieEmploye = ({ employeId, idPeriodepai }) => {
               </tr>
             </tfoot>
           </table>
-          <h4 class="text-end mt-3"><strong>Net à payer : ${formdata.SalairNet} DZD</strong></h4>
+          <h4 class="text-end mt-3"><strong>Solde tout compte : ${formdata.SalairNet} DZD</strong></h4>
           
     <!-- Première table --> 
           <table class="table table-bordered" style="margin-bottom: 3px; font-size: 12px;">

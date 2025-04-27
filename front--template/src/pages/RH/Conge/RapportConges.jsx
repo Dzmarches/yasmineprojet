@@ -33,6 +33,67 @@ const RapportConges = () => {
     const [endDate, setEndDate] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [AttenteC, setAttenteC] = useState('');
+    const [employees, setEmployees] = useState([]);
+    const [selectedEmployees, setSelectedEmployees] = useState([]);
+    const [filteredCA, setFilteredCA] = useState([]); // Pointages filtrés
+
+
+
+
+    const [selectedEcole, setSelectedEcole] = useState(null);
+    const [filteredEcoles, setFilteredEcoles] = useState([]);
+    const [ecole, setEcoles] = useState([]);
+    useEffect(() => {
+        const fetchEcoles = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    console.error('Aucun token trouvé. Veuillez vous connecter.');
+                    return;
+                }
+
+                const response = await axios.get('http://localhost:5000/ecoles', {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                // Vérifier que les données contiennent bien les champs nécessaires
+                const ecolesWithDefaults = response.data.map(ecole => ({
+                    ...ecole,
+                    nomecole: ecole.nomecole || '', // Valeur par défaut si undefined
+                    nom_arecole: ecole.nom_arecole || '', // Valeur par défaut si undefined
+                }));
+                setEcoles(ecolesWithDefaults);
+                setFilteredEcoles(ecolesWithDefaults);
+            } catch (error) {
+                console.error('Erreur lors de la récupération des écoles', error);
+            }
+        };
+        fetchEcoles();
+    }, []);
+
+    // Récupérer la liste des employés
+    useEffect(() => {
+        const fetchEmployees = async () => {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                alert("Vous devez être connecté");
+                return;
+            }
+            const response = await axios.get('http://localhost:5000/employes/liste', {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+            });
+            const employeeOptions = response.data.map(emp => ({
+                value: emp.id,
+                label: `${emp.User.nom} ${emp.User.prenom}`
+            }));
+            setEmployees(employeeOptions);
+        };
+        fetchEmployees();
+    }, []);
 
     const url = 'http://localhost:5000'
     //afficher les colonnes
@@ -88,16 +149,14 @@ const RapportConges = () => {
             if (response.status === 200) {
                 if (Array.isArray(response.data)) {
                     setData(response.data);
-                    console.log('response.data', response.data)
-                    const demandeAttente = response.data.filter((att) => att.statut === "En attente").length
-                    setAttenteC(demandeAttente);
-
+                    setFilteredCA(response.data);
                 } else {
                     console.error("Les données ne sont pas un tableau !");
                 }
             }
         } catch (error) {
             console.log(error);
+            setFilteredCA([]);
         }
     };
 
@@ -106,22 +165,60 @@ const RapportConges = () => {
 
 
     // Filtrage des données
-    const filteredData = data.filter(item => {
-        const itemDateDebut = moment(item.dateDebut).format('YYYY-MM-DD');
-        const itemDateFin = moment(item.dateFin).format('YYYY-MM-DD');
-        const matchesSearchTerm =
-            // (item.Employe && item.Employe.nom.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            // (item.Employe && item.Employe.prenom.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (item.type_demande && item.type_demande.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (item.statut && item.statut.toLowerCase().includes(searchTerm.toLowerCase()));
+    // const filteredData = data.filter(item => {
+    //     const itemDateDebut = moment(item.dateDebut).format('YYYY-MM-DD');
+    //     const itemDateFin = moment(item.dateFin).format('YYYY-MM-DD');
+    //     const matchesSearchTerm =
+    //         // (item.Employe && item.Employe.nom.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    //         // (item.Employe && item.Employe.prenom.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    //         (item.type_demande && item.type_demande.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    //         (item.statut && item.statut.toLowerCase().includes(searchTerm.toLowerCase()));
 
-        const matchesDateRange =
-            (!startDate || itemDateDebut >= startDate) &&
-            (!endDate || itemDateFin <= endDate);
-        return matchesSearchTerm && matchesDateRange;
-    });
+    //     const matchesDateRange =
+    //         (!startDate || itemDateDebut >= startDate) &&
+    //         (!endDate || itemDateFin <= endDate);
+    //     return matchesSearchTerm && matchesDateRange;
+    // });
+    const applyFilters = () => {
+        let filtered = data.filter(item => {
+            // Filtre par employés sélectionnés
+            const isEmployeeMatch = selectedEmployees.length > 0
+                ? selectedEmployees.some(emp => emp.value === item.Employe.id)
+                : true;
 
-    const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
+            // Filtre par date
+            const isDateMatch = (!startDate || moment(item.date).isSameOrAfter(moment(startDate))) &&
+                (!endDate || moment(item.date).isSameOrBefore(moment(endDate)));
+
+            // Filtre par recherche
+            const isSearchMatch = searchTerm === '' ||
+                (item.Employe.User?.nom && item.Employe.User?.nom.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
+                (item.Employe.User?.prenom && item.Employe.User?.prenom.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
+                (item.Employe.Poste.poste && item.Employe.Poste.poste.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
+                (item.HeureSMP && item.HeureSMP.includes(searchTerm)) ||
+                (item.HeureEAMP && item.HeureEAMP.includes(searchTerm)) ||
+                (item.HeureEMP && item.HeureEMP.includes(searchTerm)) ||
+                (item.HeureSAMP && item.HeureSAMP.includes(searchTerm)) ||
+                (item.statut && item.statut.includes(searchTerm));
+
+            // Filtre par école
+            const matchesEcole = !selectedEcole ||
+                (item.Employe?.User?.Ecoles.some(ecole => ecole.id === parseInt(selectedEcole))) ||
+                (item.Employe?.User?.Ecoles[0]?.id === parseInt(selectedEcole));
+
+
+            return isEmployeeMatch && isDateMatch && isSearchMatch && matchesEcole;
+        });
+
+        setFilteredCA(filtered);
+        setCurrentPage(1); // Réinitialiser la pagination quand les filtres changent
+    };
+    useEffect(() => {
+        applyFilters();
+    }, [selectedEmployees, startDate, endDate, data, searchTerm, selectedEcole, ecole]);
+
+
+    const currentItems = filteredCA.slice(indexOfFirstItem, indexOfLastItem);
 
     // Composant pour basculer la visibilité des colonnes
     const ColumnVisibilityFilter = ({ columnVisibility, setColumnVisibility }) => {
@@ -274,7 +371,7 @@ const RapportConges = () => {
         })));
 
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "des congés et absences des employés");
+        XLSX.utils.book_append_sheet(wb, ws, "congés et absences");
         XLSX.writeFile(wb, "liste.xlsx");
     };
 
@@ -311,7 +408,7 @@ const RapportConges = () => {
                             </a>
                         </div>
                     </div>
-                    <div className="row">
+                    {/* <div className="row">
                         <div className="select-search col-12">
                             <div className="col-6">
 
@@ -334,11 +431,11 @@ const RapportConges = () => {
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
+                        </div> */}
+                    {/* </div> */}
 
                     {/* Filtres par date */}
-                    <div className="row mt-3">
+                    {/* <div className="row mt-3">
                         <div className="col-6">
                             <label htmlFor="">Date debut</label>
                             <input
@@ -356,6 +453,96 @@ const RapportConges = () => {
                                 value={endDate}
                                 onChange={(e) => setEndDate(e.target.value)}
                             />
+                        </div>
+                    </div> */}
+                </div>
+                {/* Section Filtres */}
+                <div className="filters-section mb-4 p-3 bg-light rounded">
+                    <div className="row align-items-end">
+                        {/* Dates */}
+                        <div className="col-md-5">
+                            <div className="row">
+                                <div className="col-md-6">
+                                    <div className="form-group">
+                                        <label className="font-weight-bold">Date Début</label>
+                                        <input
+                                            type="date"
+                                            className="form-control border-primary"
+                                            value={startDate}
+                                            onChange={(e) => setStartDate(e.target.value)}
+                                            style={{ height: "40px" }}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="col-md-6">
+                                    <div className="form-group">
+                                        <label className="font-weight-bold">Date Fin</label>
+                                        <input
+                                            type="date"
+                                            className="form-control border-primary"
+                                            value={endDate}
+                                            onChange={(e) => setEndDate(e.target.value)}
+                                            style={{ height: "40px" }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Sélection Employés */}
+                        <div className="col-md-4">
+                            <div className="form-group">
+                                <label className="font-weight-bold">Employés</label>
+                                <Select
+                                    options={employees}
+                                    onChange={setSelectedEmployees}
+                                    placeholder="Sélectionner un ou plusieurs employés"
+                                    isClearable
+                                    isMulti
+                                    className="react-select-container"
+                                    classNamePrefix="react-select"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Recherche */}
+                        <div className="col-md-3">
+                            <div className="form-group">
+                                <label className="font-weight-bold">Recherche</label>
+                                <div className="input-group search-box">
+                                    <input
+                                        type="search"
+                                        className="form-control"
+                                        placeholder="Nom, poste, heure..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        aria-label="Recherche"
+                                        style={{ height: "40px" }}
+                                    />
+                                    <div className="input-group-append">
+                                        <span className="input-group-text bg-white">
+                                            <img src={recherche} alt="Rechercher" style={{ height: "20px", width: "20px", opacity: 0.7 }} />
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="col-md-4" style={{ width: '100%' }}>
+                            <select
+                                name="ecole"
+                                className="form-control"
+                                required
+                                style={{ height: '38px', borderRadius: '8px', backgroundColor: '#F8F8F8' }}
+                                onChange={(e) => setSelectedEcole(e.target.value)}
+                                value={selectedEcole || ''}
+                            >
+                                <option value="">Sélectionnez une école</option>
+                                {ecole.map((item) => (
+                                    <option key={item.id} value={item.id}>
+                                        {item.nomecole}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -383,7 +570,7 @@ const RapportConges = () => {
                                 {columnVisibility.statut && (
                                     <th>Statut {AttenteC > 0 && (<span className="badge bg-danger ms-2"> {AttenteC}</span>)}</th>
                                 )}
-
+                                <th>Ecole</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -448,30 +635,9 @@ const RapportConges = () => {
                                     </td>)}
 
                                     {columnVisibility.statut && (
-                                        <td>
-                                            <span
-                                                style={{
-                                                    backgroundColor:
-                                                        item.statut === 'Accepté'
-                                                            ? 'green'
-                                                            : item.statut === 'En attente'
-                                                                ? 'orange'
-                                                                : item.statut === 'Refusé'
-                                                                    ? 'red'
-                                                                    : 'gray',
-                                                    color: 'white',
-                                                    borderRadius: '15px',
-                                                    padding: '1px 10px',
-                                                    display: 'inline-block',
-                                                    width: "90px",
-                                                    textAlign: 'center',
-                                                }}
-                                            >
-                                                {item.statut}
-                                            </span>
-                                        </td>
+                                        <td><strong>{item.statut}</strong></td>
                                     )}
-
+                                    <td>{item.Employe?.User?.Ecoles ? item.Employe?.User?.Ecoles[0]?.nomecole : ''}</td>
                                 </tr>
                             ))}
                         </tbody>

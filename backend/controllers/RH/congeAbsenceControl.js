@@ -20,7 +20,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename)
 
 
-
 // export const ajouterCA = async (req, res) => {
 //   try {
 //     const employe_id = 2;
@@ -83,8 +82,6 @@ const __dirname = path.dirname(__filename)
 //   }
 // };
 
-
-
 export const ajouterCA = async (req, res) => {
   try {
     const employe_id = req.employe_id;
@@ -106,7 +103,7 @@ export const ajouterCA = async (req, res) => {
       statut:"En attente"
   } })
 
-    console.log('FindCAAttente',FindCAAttente)
+    // console.log('FindCAAttente',FindCAAttente)
 
     if(FindCAAttente){
       return res.status(203).json({ message: 'Vous avez déjà une demande de congé annuel en attente' });
@@ -170,9 +167,7 @@ export const ajouterCA = async (req, res) => {
   }
 };
 export const mesCA = async (req, res) => {
-
   try {
-
     const userconnect = req.user.id;
     const ecoleId = req.user.ecoleId;
     const ecoleeId = req.user.ecoleeId;
@@ -209,7 +204,6 @@ export const mesCA = async (req, res) => {
 }
 
 export const detailDemande = async (req, res) => {
-
   const { id } = req.params;
   try {
     const demande = await CongeAbsence.findByPk(id);
@@ -754,10 +748,6 @@ export const ListeCAnnuel = async (req, res) => {
     const ecoleeId = req.user.ecoleeId;
     const roles = req.user.roles;
 
-    console.log("ecoleIdd", ecoleId);
-    console.log("ecoleeIdd", ecoleeId);
-    console.log("rolee", roles);
-
     const isAdminPrincipal = roles.includes("AdminPrincipal");
     const isAdministrateur = roles.includes("Administrateur");
 
@@ -767,6 +757,16 @@ export const ListeCAnnuel = async (req, res) => {
       console.log("Administrateur détecté");
       liste = await CongeAnnuel.findAll({
         where: { archiver: 0 },
+        include: [
+          {
+            model: EcolePrincipal,
+            attributes: ["nomecole"],
+          },
+          {
+            model: Ecole,
+            attributes: ["nomecole"],
+          },
+        ],
       });
     } else if (isAdminPrincipal) {
       console.log("AdminPrincipal détecté");
@@ -775,6 +775,10 @@ export const ListeCAnnuel = async (req, res) => {
         include: [
           {
             model: EcolePrincipal,
+            attributes: ["nomecole"],
+          },
+          {
+            model: Ecole,
             attributes: ["nomecole"],
           },
         ],

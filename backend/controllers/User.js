@@ -11,7 +11,7 @@ import Permission from "../models/Permission.js";
 import dotenv from "dotenv";
 import { exec } from "child_process";  // <-- Import nécessaire pour utiliser exec
 import fetch from "node-fetch"; // si vous n'utilisez pas Node 18+ qui a fetch intégré
-import {Op} from 'sequelize';
+import { Op } from 'sequelize';
 
 dotenv.config();
 
@@ -81,7 +81,7 @@ export const getUserPermissionss = async (req, res) => {
   try {
     // Récupérer les permissions de l'utilisateur connecté
     const connectedUserId = req.user.id; // Supposons que l'ID de l'utilisateur connecté est dans le token
-    
+
     console.log("🔹 User ID connecté:", connectedUserId);
     console.log("🔹 Role ID connecté:", req.user.roleIds[0]); // RoleId de l'utilisateur connecté
 
@@ -124,57 +124,57 @@ export const getUserPermissionss = async (req, res) => {
 
 export const getUsersList = async (req, res) => {
   try {
-      const token = req.headers.authorization?.split(" ")[1];
-      if (!token) {
-          return res.status(403).json({ message: "Token manquant" });
-      }
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(403).json({ message: "Token manquant" });
+    }
 
-      // Vérifier et décoder le token avec jsonwebtoken
-      const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    // Vérifier et décoder le token avec jsonwebtoken
+    const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
-      const userRole = decodedToken.roles?.[0]; // Supposons que le premier rôle est principal
-      const userEcoleId = decodedToken.ecoleId;
+    const userRole = decodedToken.roles?.[0]; // Supposons que le premier rôle est principal
+    const userEcoleId = decodedToken.ecoleId;
 
-      let whereCondition = {};
+    let whereCondition = {};
 
-      if (userRole === "AdminPrincipal") {
-          whereCondition = { ecoleId: userEcoleId };
-      } else if (userRole === "Admin") {
-          whereCondition = { ecoleeId: req.body.ecoleeId };
-      }
+    if (userRole === "AdminPrincipal") {
+      whereCondition = { ecoleId: userEcoleId };
+    } else if (userRole === "Admin") {
+      whereCondition = { ecoleeId: req.body.ecoleeId };
+    }
 
-      const users = await User.findAll({
-          where: whereCondition,
+    const users = await User.findAll({
+      where: whereCondition,
+      include: [
+        {
+          model: Role,
+          through: { attributes: [] },
           include: [
-              {
-                  model: Role,
-                  through: { attributes: [] },
-                  include: [
-                      {
-                          model: Permission,
-                          through: { attributes: [] },
-                      },
-                  ],
-              },
+            {
+              model: Permission,
+              through: { attributes: [] },
+            },
           ],
-      });
+        },
+      ],
+    });
 
-      const formattedUsers = users.map((user) => ({
-          id: user.id,
-          nom: user.nom,
-          prenom: user.prenom,
-          email: user.email,
-          roles: user.Roles.map((role) => ({
-              id: role.id,
-              name: role.name,
-              permissions: role.Permissions.map((permission) => permission.name),
-          })),
-      }));
+    const formattedUsers = users.map((user) => ({
+      id: user.id,
+      nom: user.nom,
+      prenom: user.prenom,
+      email: user.email,
+      roles: user.Roles.map((role) => ({
+        id: role.id,
+        name: role.name,
+        permissions: role.Permissions.map((permission) => permission.name),
+      })),
+    }));
 
-      res.status(200).json(formattedUsers);
+    res.status(200).json(formattedUsers);
   } catch (error) {
-      console.error("Erreur lors de la récupération des utilisateurs:", error);
-      res.status(500).json({ message: "Erreur serveur lors de la récupération des utilisateurs." });
+    console.error("Erreur lors de la récupération des utilisateurs:", error);
+    res.status(500).json({ message: "Erreur serveur lors de la récupération des utilisateurs." });
   }
 };
 
@@ -248,168 +248,168 @@ export const Login = async (req, res) => {
   const { username, password, latitude, longitude } = req.body;
 
   try {
-      // 1. Recherche de l'utilisateur avec ses relations de base
-      const user = await User.findOne({
-          where: { username },
-          include: [
-              {
-                  model: UserEcole,
-                  include: [{ model: Ecole, attributes: ["id", "nomecole"] }],
-                  attributes: ["ecoleeId"],
-                  required: false
-              },
-              {
-                  model: Role,
-                  attributes: ["id", "name"],
-                  through: { attributes: [] },
-                  required: false
-              },
-          ],
-      });
+    // 1. Recherche de l'utilisateur avec ses relations de base
+    const user = await User.findOne({
+      where: { username },
+      include: [
+        {
+          model: UserEcole,
+          include: [{ model: Ecole, attributes: ["id", "nomecole"] }],
+          attributes: ["ecoleeId"],
+          required: false
+        },
+        {
+          model: Role,
+          attributes: ["id", "name"],
+          through: { attributes: [] },
+          required: false
+        },
+      ],
+    });
 
-      if (!user) {
-          return res.status(401).json({ message: "Nom d'utilisateur ou mot de passe incorrect." });
-      }
+    if (!user) {
+      return res.status(401).json({ message: "Nom d'utilisateur ou mot de passe incorrect." });
+    }
 
-      // 2. Vérification du mot de passe
-      const match = await bcrypt.compare(password, user.password);
-      if (!match) {
-          return res.status(401).json({ message: "Nom d'utilisateur ou mot de passe incorrect." });
-      }
+    // 2. Vérification du mot de passe
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) {
+      return res.status(401).json({ message: "Nom d'utilisateur ou mot de passe incorrect." });
+    }
 
+
+    try {
+      // 3. Tentative de récupération des informations de connexion (optionnelles)
+      const ip = await getClientIp(req);
+      let locationInfo = {};
 
       try {
-          // 3. Tentative de récupération des informations de connexion (optionnelles)
-          const ip = await getClientIp(req);
-          let locationInfo = {};
-          
-          try {
-              const location = await getLocationFromIp(ip);
-              locationInfo = {
-                  city: location?.city || "Inconnu",
-                  region: location?.region || "Inconnu"
-              };
-          } catch (ipError) {
-              console.warn("Erreur lors de la récupération de la localisation IP:", ipError);
-          }
-
-          let macAddress = null;
-          try {
-              macAddress = await getMacAddress(ip);
-          } catch (macError) {
-              console.warn("Erreur lors de la récupération de l'adresse MAC:", macError);
-          }
-
-    // 3. Récupération des informations de connexion
-    // const ip = await getClientIp(req);
-    // const macAddress = await getMacAddress(ip);
-    // const location = await getLocationFromIp(ip);
-    // const city = location?.city || "Inconnu";
-    // const region = location?.region || "Inconnu";
-
-    // 4. Mise à jour des informations de connexion
-    await User.update(
-      {
-        // lastLogin: new Date(),
-        // lastIp: ip,
-        // lastMac: macAddress,
-        // lastLocation: `${city}, ${region}`,
-        // latitude,
-        // longitude,
-      },
-      { where: { id: user.id } }
-    );
-
-
-          // 4. Mise à jour des informations de connexion (même si partielles)
-          await User.update(
-              {
-                  lastLogin: new Date(),
-                  lastIp: ip || null,
-                  lastMac: macAddress || null,
-                  lastLocation: locationInfo.city && locationInfo.region 
-                      ? `${locationInfo.city}, ${locationInfo.region}` 
-                      : null,
-                  latitude: latitude || null,
-                  longitude: longitude || null,
-              },
-              { where: { id: user.id } }
-          );
-      } catch (infoError) {
-          console.warn("Erreur lors de la collecte des informations de connexion:", infoError);
-          // On continue même si les informations de connexion n'ont pas pu être récupérées
-          await User.update(
-              {
-                  lastLogin: new Date(),
-              },
-              { where: { id: user.id } }
-          );
+        const location = await getLocationFromIp(ip);
+        locationInfo = {
+          city: location?.city || "Inconnu",
+          region: location?.region || "Inconnu"
+        };
+      } catch (ipError) {
+        console.warn("Erreur lors de la récupération de la localisation IP:", ipError);
       }
 
-      // Le reste du code reste inchangé...
-      const ecoleeId = user.UserEcoles?.length > 0 
-          ? user.UserEcoles[0].dataValues.ecoleeId 
-          : null;
+      let macAddress = null;
+      try {
+        macAddress = await getMacAddress(ip);
+      } catch (macError) {
+        console.warn("Erreur lors de la récupération de l'adresse MAC:", macError);
+      }
 
-      const userRolesWithPermissions = await UserRole.findAll({
-          where: { userId: user.id },
-          include: [{
-              model: Permission,
-              attributes: ['name'],
-              required: false,
-              where: {
-                  id: { [Op.not]: null }
-              }
-          }]
-      });
+      // 3. Récupération des informations de connexion
+      // const ip = await getClientIp(req);
+      // const macAddress = await getMacAddress(ip);
+      // const location = await getLocationFromIp(ip);
+      // const city = location?.city || "Inconnu";
+      // const region = location?.region || "Inconnu";
 
-      const permissions = userRolesWithPermissions
-          .filter(ur => ur.Permission !== null)
-          .map(ur => ur.Permission.name)
-          .filter(name => name);
-
-      const roles = user.Roles 
-          ? user.Roles.filter(role => role !== null).map(role => role.name) 
-          : [];
-      
-      const roleIds = user.Roles 
-          ? user.Roles.filter(role => role !== null).map(role => role.id) 
-          : [];
-
-      const token = jwt.sign(
-          {
-              userId: user.id,
-              username: user.username,
-              ecoleId: user.ecoleId,
-              ecoleeId,
-              roles,
-              roleIds,
-              permissions,
-          },
-          process.env.ACCESS_TOKEN_SECRET,
-          { expiresIn: "2d" }
+      // 4. Mise à jour des informations de connexion
+      await User.update(
+        {
+          // lastLogin: new Date(),
+          // lastIp: ip,
+          // lastMac: macAddress,
+          // lastLocation: `${city}, ${region}`,
+          // latitude,
+          // longitude,
+        },
+        { where: { id: user.id } }
       );
 
-      res.json({
-          token,
-          username: user.username,
-          userId: user.id,
-          ecoleId: user.ecoleId,
-          ecoleeId,
-          roles,
-          roleIds,
-          permissions,
-          redirectTo: roles.includes("Administrateur") 
-              ? "/dashboardadministrateur" 
-              : "/dashboard",
-      });
+
+      // 4. Mise à jour des informations de connexion (même si partielles)
+      await User.update(
+        {
+          lastLogin: new Date(),
+          lastIp: ip || null,
+          lastMac: macAddress || null,
+          lastLocation: locationInfo.city && locationInfo.region
+            ? `${locationInfo.city}, ${locationInfo.region}`
+            : null,
+          latitude: latitude || null,
+          longitude: longitude || null,
+        },
+        { where: { id: user.id } }
+      );
+    } catch (infoError) {
+      console.warn("Erreur lors de la collecte des informations de connexion:", infoError);
+      // On continue même si les informations de connexion n'ont pas pu être récupérées
+      await User.update(
+        {
+          lastLogin: new Date(),
+        },
+        { where: { id: user.id } }
+      );
+    }
+
+    // Le reste du code reste inchangé...
+    const ecoleeId = user.UserEcoles?.length > 0
+      ? user.UserEcoles[0].dataValues.ecoleeId
+      : null;
+
+    const userRolesWithPermissions = await UserRole.findAll({
+      where: { userId: user.id },
+      include: [{
+        model: Permission,
+        attributes: ['name'],
+        required: false,
+        where: {
+          id: { [Op.not]: null }
+        }
+      }]
+    });
+
+    const permissions = userRolesWithPermissions
+      .filter(ur => ur.Permission !== null)
+      .map(ur => ur.Permission.name)
+      .filter(name => name);
+
+    const roles = user.Roles
+      ? user.Roles.filter(role => role !== null).map(role => role.name)
+      : [];
+
+    const roleIds = user.Roles
+      ? user.Roles.filter(role => role !== null).map(role => role.id)
+      : [];
+
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        username: user.username,
+        ecoleId: user.ecoleId,
+        ecoleeId,
+        roles,
+        roleIds,
+        permissions,
+      },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "2d" }
+    );
+
+    res.json({
+      token,
+      username: user.username,
+      userId: user.id,
+      ecoleId: user.ecoleId,
+      ecoleeId,
+      roles,
+      roleIds,
+      permissions,
+      redirectTo: roles.includes("Administrateur")
+        ? "/dashboardadministrateur"
+        : "/dashboard",
+    });
 
   } catch (error) {
-      console.error("Erreur lors du login:", error);
-      res.status(500).json({ 
-          message: "Une erreur est survenue lors de la connexion.",
-          error: process.env.NODE_ENV === 'development' ? error.message : null
-      });
+    console.error("Erreur lors du login:", error);
+    res.status(500).json({
+      message: "Une erreur est survenue lors de la connexion.",
+      error: process.env.NODE_ENV === 'development' ? error.message : null
+    });
   }
 };
 
@@ -436,7 +436,7 @@ export const getMe = async (req, res) => {
     if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé.' });
 
     const ecoleeId = user.UserEcoles?.length > 0 ? user.UserEcoles[0].dataValues.ecoleeId : null;
-
+    console.log('user connecter', user);
     res.status(200).json({
       userId: user.id,
       username: user.username,

@@ -8,7 +8,7 @@ import moment from 'moment';
 import * as XLSX from 'xlsx';
 import { Modal, Button, Form } from 'react-bootstrap';
 import Cart from './pointageLocalisation/Cart';
-
+import recherche from '../../assets/imgs/recherche.png';
 
 const RapportPointage = () => {
     const [employees, setEmployees] = useState([]);
@@ -23,6 +23,38 @@ const RapportPointage = () => {
     const [heuresSupplementaires, setHeuresSupplementaires] = useState([]);
 
 
+
+    const [selectedEcole, setSelectedEcole] = useState(null);
+    const [filteredEcoles, setFilteredEcoles] = useState([]);
+    const [ecole, setEcoles] = useState([]);
+    useEffect(() => {
+        const fetchEcoles = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    console.error('Aucun token trouvé. Veuillez vous connecter.');
+                    return;
+                }
+
+                const response = await axios.get('http://localhost:5000/ecoles', {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                // Vérifier que les données contiennent bien les champs nécessaires
+                const ecolesWithDefaults = response.data.map(ecole => ({
+                    ...ecole,
+                    nomecole: ecole.nomecole || '', // Valeur par défaut si undefined
+                    nom_arecole: ecole.nom_arecole || '', // Valeur par défaut si undefined
+                }));
+                setEcoles(ecolesWithDefaults);
+                setFilteredEcoles(ecolesWithDefaults);
+            } catch (error) {
+                console.error('Erreur lors de la récupération des écoles', error);
+            }
+        };
+        fetchEcoles();
+    }, []);
 
     // Récupérer la liste des employés
     useEffect(() => {
@@ -48,7 +80,7 @@ const RapportPointage = () => {
     }, []);
 
     // Récupérer tous les pointages
- 
+
     const fetchPointages = async () => {
         const token = localStorage.getItem("token");
         const response = await axios.get('http://localhost:5000/pointage/ListepointageRapport', {
@@ -143,18 +175,18 @@ const RapportPointage = () => {
         fetchPointages();
     }, [EcolePosition]);
 
-    // Filtrer les pointages en fonction des sélections
-    useEffect(() => {
-        const filtered = allPointages.filter(item => {
-            const isEmployeeMatch = selectedEmployees.length > 0
-                ? selectedEmployees.some(emp => emp.value === item.Employe.id)
-                : true; // Si aucun employé n'est sélectionné, inclure tous les pointages
-            const isDateMatch = (!startDate || moment(item.date).isSameOrAfter(moment(startDate))) &&
-                (!endDate || moment(item.date).isSameOrBefore(moment(endDate)));
-            return isEmployeeMatch && isDateMatch;
-        });
-        setFilteredPointages(filtered);
-    }, [selectedEmployees, startDate, endDate, allPointages]);
+    // // Filtrer les pointages en fonction des sélections
+    // useEffect(() => {
+    //     const filtered = allPointages.filter(item => {
+    //         const isEmployeeMatch = selectedEmployees.length > 0
+    //             ? selectedEmployees.some(emp => emp.value === item.Employe.id)
+    //             : true; // Si aucun employé n'est sélectionné, inclure tous les pointages
+    //         const isDateMatch = (!startDate || moment(item.date).isSameOrAfter(moment(startDate))) &&
+    //             (!endDate || moment(item.date).isSameOrBefore(moment(endDate)));
+    //         return isEmployeeMatch && isDateMatch;
+    //     });
+    //     setFilteredPointages(filtered);
+    // }, [selectedEmployees, startDate, endDate, allPointages]);
 
     // Gérer l'impression
     const handlePrint = () => {
@@ -319,7 +351,7 @@ const RapportPointage = () => {
             const token = localStorage.getItem("token");
             const heuresSup = parseInt(formData.heuresupP) || 0;
             const typeHeureSup = formData.IdHeureSup;
-    
+
             if (heuresSup > 0 && !typeHeureSup) {
                 alert("Veuillez sélectionner un type d'heure supplémentaire lorsque le nombre d'heures est supérieur à 0");
                 return;
@@ -350,9 +382,9 @@ const RapportPointage = () => {
                 setAllPointages(updatedPointages);
                 // setFilteredPointages(updatedPointages);
                 fetchPointages();
-                
-                
-                
+
+
+
             }
         } catch (error) {
             console.error("Erreur lors de la modification du pointage :", error);
@@ -484,6 +516,59 @@ const RapportPointage = () => {
         pageNumbers.push(i);
     }
 
+    const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
+    useEffect(() => {
+        const timerId = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 500);
+
+        return () => {
+            clearTimeout(timerId);
+        };
+    }, [searchTerm]);
+
+    // Utilisez debouncedSearchTerm dans applyFilters au lieu de searchTerm
+
+    const applyFilters = () => {
+        let filtered = allPointages.filter(item => {
+            // Filtre par employés sélectionnés
+            const isEmployeeMatch = selectedEmployees.length > 0
+                ? selectedEmployees.some(emp => emp.value === item.Employe.id)
+                : true;
+
+            // Filtre par date
+            const isDateMatch = (!startDate || moment(item.date).isSameOrAfter(moment(startDate))) &&
+                (!endDate || moment(item.date).isSameOrBefore(moment(endDate)));
+
+            // Filtre par recherche
+            const isSearchMatch = searchTerm === '' ||
+                (item.Employe.User?.nom && item.Employe.User?.nom.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
+                (item.Employe.User?.prenom && item.Employe.User?.prenom.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
+                (item.Employe.Poste.poste && item.Employe.Poste.poste.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
+                (item.HeureSMP && item.HeureSMP.includes(searchTerm)) ||
+                (item.HeureEAMP && item.HeureEAMP.includes(searchTerm)) ||
+                (item.HeureEMP && item.HeureEMP.includes(searchTerm)) ||
+                (item.HeureSAMP && item.HeureSAMP.includes(searchTerm)) ||
+                (item.statut && item.statut.includes(searchTerm));
+
+            // Filtre par école
+            const matchesEcole = !selectedEcole ||
+                (item.Employe?.User?.Ecoles.some(ecole => ecole.id === parseInt(selectedEcole))) ||
+                (item.Employe?.User?.Ecoles[0]?.id === parseInt(selectedEcole));
+
+
+            return isEmployeeMatch && isDateMatch && isSearchMatch && matchesEcole;
+        });
+
+        setFilteredPointages(filtered);
+        setCurrentPage(1); // Réinitialiser la pagination quand les filtres changent
+    };
+    useEffect(() => {
+        applyFilters();
+    }, [selectedEmployees, startDate, endDate, allPointages, searchTerm,selectedEcole, ecole]);
+
     return (
         <>
             <nav>
@@ -498,33 +583,94 @@ const RapportPointage = () => {
                     <h5>Rapport du Pointage</h5>
                 </div>
                 <div className="card-body">
-                    <div className="row mb-3 ">
-                        <div className="col-md-6">
-                            <label>Date Debut</label>
-                            <input
-                                type="date"
-                                className='form-control'
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                            />
-                        </div>
-                        <div className="col-md-6">
-                            <label>Date Fin</label>
-                            <input
-                                type="date"
-                                className='form-control'
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                            />
-                        </div>
-                        <div className="col-md-12 mt-5">
-                            <Select
-                                options={employees}
-                                onChange={setSelectedEmployees}
-                                placeholder="Sélectionner un ou plusieurs employés"
-                                isClearable
-                                isMulti
-                            />
+                    {/* Section Filtres */}
+                    <div className="filters-section mb-4 p-3 bg-light rounded">
+                        <div className="row align-items-end">
+                            {/* Dates */}
+                            <div className="col-md-5">
+                                <div className="row">
+                                    <div className="col-md-6">
+                                        <div className="form-group">
+                                            <label className="font-weight-bold">Date Début</label>
+                                            <input
+                                                type="date"
+                                                className="form-control border-primary"
+                                                value={startDate}
+                                                onChange={(e) => setStartDate(e.target.value)}
+                                                style={{ height: "40px" }}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <div className="form-group">
+                                            <label className="font-weight-bold">Date Fin</label>
+                                            <input
+                                                type="date"
+                                                className="form-control border-primary"
+                                                value={endDate}
+                                                onChange={(e) => setEndDate(e.target.value)}
+                                                style={{ height: "40px" }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Sélection Employés */}
+                            <div className="col-md-4">
+                                <div className="form-group">
+                                    <label className="font-weight-bold">Employés</label>
+                                    <Select
+                                        options={employees}
+                                        onChange={setSelectedEmployees}
+                                        placeholder="Sélectionner un ou plusieurs employés"
+                                        isClearable
+                                        isMulti
+                                        className="react-select-container"
+                                        classNamePrefix="react-select"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Recherche */}
+                            <div className="col-md-3">
+                                <div className="form-group">
+                                    <label className="font-weight-bold">Recherche</label>
+                                    <div className="input-group search-box">
+                                        <input
+                                            type="search"
+                                            className="form-control"
+                                            placeholder="Nom, poste, heure..."
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            aria-label="Recherche"
+                                            style={{ height: "40px" }}
+                                        />
+                                        <div className="input-group-append">
+                                            <span className="input-group-text bg-white">
+                                                <img src={recherche} alt="Rechercher" style={{ height: "20px", width: "20px", opacity: 0.7 }} />
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="col-md-4" style={{ width: '100%' }}>
+                                <select
+                                    name="ecole"
+                                    className="form-control"
+                                    required
+                                    style={{ height: '38px', borderRadius: '8px', backgroundColor: '#F8F8F8' }}
+                                    onChange={(e) => setSelectedEcole(e.target.value)}
+                                    value={selectedEcole || ''}
+                                >
+                                    <option value="">Sélectionnez une école</option>
+                                    {ecole.map((item) => (
+                                        <option key={item.id} value={item.id}>
+                                            {item.nomecole}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div className="row mb-3">
@@ -537,6 +683,10 @@ const RapportPointage = () => {
                             </button>
                         </div>
                     </div>
+
+
+
+
                     <ColumnVisibilityFilter columnVisibility={columnVisibility} setColumnVisibility={setColumnVisibility} />
                     <div style={{ overflowX: 'auto', overflowY: 'hidden', scrollBehavior: 'smooth', }}>
                         <table className="table table-bordered mt-3">
@@ -546,12 +696,13 @@ const RapportPointage = () => {
                                     <th>nom et Pénom</th>
                                     <th>Poste</th>
                                     {columnVisibility.date && <th>Date</th>}
-                                    {columnVisibility.heureEntreeMatin && <th>Heure d'entrée Matin</th>}
-                                    {columnVisibility.heureSortieMatin && <th>Heure de sortie Matin</th>}
-                                    {columnVisibility.heureEntreeApresMidi && <th>Heure d'entrée Après-Midi</th>}
-                                    {columnVisibility.heureSortieApresMidi && <th>Heure de sortie Après-Midi</th>}
+                                    {columnVisibility.heureEntreeMatin && <th>Heure Entrée<br />(matin)</th>}
+                                    {columnVisibility.heureSortieMatin && <th>Heure Sortie <br /> (matin)</th>}
+                                    {columnVisibility.heureEntreeApresMidi && <th>Heure Entrée<br /> (après-midi)</th>}
+                                    {columnVisibility.heureSortieApresMidi && <th>Heure Sortie<br /> (après-midi)</th>}
                                     {columnVisibility.statut && <th>Statut</th>}
                                     {columnVisibility.heureSupplementaire && <th>Heure Supplémentaire</th>}
+                                    <th>Ecole</th>
                                     {columnVisibility.commentaire && <th>Commentaire</th>}
                                     <th>Type pointage</th>
                                     {columnVisibility.action && <th>Actions</th>}
@@ -680,6 +831,7 @@ const RapportPointage = () => {
                                         {columnVisibility.heureSupplementaire && <td>{item.heuresupP} <br />
                                             <small style={{ color: 'green' }}>{item.HeuresSup?.nom}</small>
                                         </td>}
+                                        <td>{item.Employe?.User?.Ecoles ? item.Employe?.User?.Ecoles[0]?.nomecole : ''}</td>
                                         {columnVisibility.commentaire && <td>{item.justificationret}</td>}
                                         <td>{item.type_pointage}</td>
                                         {columnVisibility.action && <td>

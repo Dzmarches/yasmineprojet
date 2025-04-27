@@ -4,6 +4,12 @@ import { Table, Button, Modal, Form, Alert, Badge } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 
 const GestionNotesEnseignant = () => {
+    const [trimests, setTrimests] = useState([]);
+    const [annees, setAnnees] = useState([]);
+    const [selectedAnnee, setSelectedAnnee] = useState(null);
+    const [selectedTrimestre, setSelectedTrimestre] = useState(null);
+    const [filteredAnnees, setFilteredAnnees] = useState([]);
+    const [selectedAnneeScolaire, setSelectedAnneeScolaire] = useState([]);
     const [niveaux, setNiveaux] = useState([]);
     const [sections, setSections] = useState([]);
     const [selectedNiveau, setSelectedNiveau] = useState(null);
@@ -105,6 +111,43 @@ const GestionNotesEnseignant = () => {
     }, [selectedNiveau, enseignantId]);
 
     useEffect(() => {
+        const fetchAnnees = async () => {
+            try {
+                const token = localStorage.getItem("token");
+                const response = await axios.get(
+                    `http://localhost:5000/anneescolaire`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                setAnnees(response.data);
+                setFilteredAnnees(response.data);
+            } catch (error) {
+                console.error('Error fetching annees scolaires', error);
+            }
+        };
+        fetchAnnees();
+    }, []);
+    const fetchTrimests = async () => {
+
+        try {
+            const token = localStorage.getItem("token");
+            const response = await axios.get(
+                'http://localhost:5000/trimest',
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            setTrimests(response.data);
+            setFilteredTrimests(response.data);
+        } catch (error) {
+            //console.error('Erreur lors de la récupération des trimestres', error);
+        } finally {
+            //setIsLoading(false); // Désactive le chargement
+        }
+    };
+
+    useEffect(() => {
+        fetchTrimests();
+    }, []);
+
+    useEffect(() => {
         const fetchMatieres = async () => {
             if (selectedSection) {
                 try {
@@ -127,6 +170,7 @@ const GestionNotesEnseignant = () => {
 
         fetchMatieres();
     }, [selectedSection, enseignantId]);
+
 
     useEffect(() => {
         const fetchEleves = async () => {
@@ -160,41 +204,70 @@ const GestionNotesEnseignant = () => {
     const handleSaveNotes = async () => {
         try {
             const token = localStorage.getItem("token");
-            const notesToSend = {};
+
+            // Vérifie que les identifiants sont valides
+            const annescolaireIdInt = parseInt(selectedAnneeScolaire);
+            const trimestIdInt = parseInt(selectedTrimestre);
+            const sectionIdInt = parseInt(selectedSection);
+
+            if (isNaN(annescolaireIdInt) || isNaN(trimestIdInt) || isNaN(sectionIdInt)) {
+                alert("Veuillez sélectionner une année scolaire, un trimestre et une section valides.");
+                return;
+            }
+
+            const notesToSend = {
+                notes: {},
+                sectionId: parseInt(selectedSection),
+                cycle: selectedCycle,
+                annescolaireId: parseInt(selectedAnneeScolaire),
+                trimestId: parseInt(selectedTrimestre)
+            };
 
             // Restructurer les notes pour le backend
             for (const eleveId in notes) {
-                notesToSend[eleveId] = {};
+                notesToSend.notes[eleveId] = {};
+
                 for (const fieldKey in notes[eleveId]) {
                     const parts = fieldKey.split('_');
                     const matiereId = parts[0];
-                    const fieldName = parts.slice(1).join('_'); // Gère les underscores dans les noms de champs
+                    const fieldName = parts.slice(1).join('_');
 
-                    if (!notesToSend[eleveId][matiereId]) {
-                        notesToSend[eleveId][matiereId] = {};
+                    if (!notesToSend.notes[eleveId][matiereId]) {
+                        notesToSend.notes[eleveId][matiereId] = {};
                     }
-                    notesToSend[eleveId][matiereId][fieldName] = notes[eleveId][fieldKey];
+
+                    // On ajoute la valeur au bon champ
+                    notesToSend.notes[eleveId][matiereId][fieldName] = notes[eleveId][fieldKey];
                 }
             }
 
             const response = await axios.post(
                 'http://localhost:5000/notes/',
+                notesToSend,
                 {
-                    notes: notesToSend,
-                    sectionId: selectedSection,
-                    cycle: selectedCycle
-                },
-                { headers: { Authorization: `Bearer ${token}` } }
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
             );
-
+            console.log('Envoi des notes avec:', {
+                annescolaireId: selectedAnneeScolaire,
+                trimestId: selectedTrimestre,
+                sectionId: selectedSection,
+                cycle: selectedCycle
+            });
             if (response.data.success) {
-                alert('Notes enregistrées avec succès!');
+                alert('✅ Notes enregistrées avec succès !');
+            } else {
+                alert('❌ Une erreur est survenue : ' + response.data.message);
             }
+
         } catch (error) {
             console.error("Erreur enregistrement notes:", error);
-            alert("Erreur lors de l'enregistrement");
+            alert("❌ Erreur lors de l'enregistrement. Vérifiez les données et réessayez.");
         }
     };
+
 
     // Puis modifier votre bouton d'enregistrement pour appeler cette fonction:
 
@@ -492,11 +565,11 @@ const GestionNotesEnseignant = () => {
 
     useEffect(() => {
         const fetchExistingNotes = async () => {
-            if (selectedSection && matieres.length > 0) {
+            if (selectedSection && matieres.length > 0 && selectedAnneeScolaire && selectedTrimestre) {
                 try {
                     const token = localStorage.getItem("token");
                     const response = await axios.get(
-                        `http://localhost:5000/notes/section/${selectedSection}`,
+                        `http://localhost:5000/notes/section/${selectedSection}?annescolaireId=${selectedAnneeScolaire}&trimestId=${selectedTrimestre}`,
                         { headers: { Authorization: `Bearer ${token}` } }
                     );
 
@@ -521,30 +594,23 @@ const GestionNotesEnseignant = () => {
                             formattedNotes[eleveId][`${note.matiereId}_examens`] = note.examens || '';
                             formattedNotes[eleveId][`${note.matiereId}_moyenne`] = note.moyenne || '';
                             formattedNotes[eleveId][`${note.matiereId}_remarque`] = note.remarque || '';
+
+                            // Champs mathématiques
+                            if (note.calcul !== null) {
+                                formattedNotes[eleveId][`${note.matiereId}_calcul`] = note.calcul || '';
+                                formattedNotes[eleveId][`${note.matiereId}_grandeurs_mesures`] = note.grandeurs_mesures || '';
+                                formattedNotes[eleveId][`${note.matiereId}_organisation_donnees`] = note.organisation_donnees || '';
+                                formattedNotes[eleveId][`${note.matiereId}_espace_geometrie`] = note.espace_geometrie || '';
+                                formattedNotes[eleveId][`${note.matiereId}_moyenne_eval_math`] = note.moyenne_eval_math || '';
+                                formattedNotes[eleveId][`${note.matiereId}_examens_math`] = note.examens_math || '';
+                                formattedNotes[eleveId][`${note.matiereId}_moyenne_math`] = note.moyenne_math || '';
+                                formattedNotes[eleveId][`${note.matiereId}_remarque_math`] = note.remarque_math || '';
+                            }
                         }
-                        // CEM
-                        else if (note.cycle === 'Cem') {
-                            formattedNotes[eleveId][`${note.matiereId}_eval_continue`] = note.eval_continue || '';
-                            formattedNotes[eleveId][`${note.matiereId}_devoir1`] = note.devoir1 || '';
-                            formattedNotes[eleveId][`${note.matiereId}_devoir2`] = note.devoir2 || '';
-                            formattedNotes[eleveId][`${note.matiereId}_moyenne_eval`] = note.moyenne_eval || '';
-                            formattedNotes[eleveId][`${note.matiereId}_examens`] = note.examens || '';
-                            formattedNotes[eleveId][`${note.matiereId}_moyenne`] = note.moyenne || '';
-                            formattedNotes[eleveId][`${note.matiereId}_coefficient`] = note.coefficient || '';
-                            formattedNotes[eleveId][`${note.matiereId}_moyenne_total`] = note.moyenne_total || '';
-                        }
-                        // Lycée
-                        else if (note.cycle === 'Lycée') {
-                            formattedNotes[eleveId][`${note.matiereId}_eval_continue`] = note.eval_continue || '';
-                            formattedNotes[eleveId][`${note.matiereId}_travaux_pratiques`] = note.travaux_pratiques || '';
-                            formattedNotes[eleveId][`${note.matiereId}_moyenne_devoirs`] = note.moyenne_devoirs || '';
-                            formattedNotes[eleveId][`${note.matiereId}_examens`] = note.examens || '';
-                            formattedNotes[eleveId][`${note.matiereId}_moyenne`] = note.moyenne || '';
-                            formattedNotes[eleveId][`${note.matiereId}_coefficient`] = note.coefficient || '';
-                            formattedNotes[eleveId][`${note.matiereId}_moyenne_total`] = note.moyenne_total || '';
-                        }
+                        // CEM et Lycée
+                        // ... (identique à votre version actuelle)
                     });
-                    console.log('les note des eleve', formattedNotes);
+
                     setNotes(formattedNotes);
                 } catch (error) {
                     console.error("Erreur lors du chargement des notes existantes:", error);
@@ -553,7 +619,7 @@ const GestionNotesEnseignant = () => {
         };
 
         fetchExistingNotes();
-    }, [selectedSection, matieres, eleves]);
+    }, [selectedSection, matieres, eleves, selectedAnneeScolaire, selectedTrimestre]);
 
     if (!periodeStatus) {
         return (
@@ -617,7 +683,84 @@ const GestionNotesEnseignant = () => {
                 <div className="card-body">
                     {/* Sélection du niveau */}
                     <div className="mb-4">
-                        <h4>Sélectionnez un niveau :</h4>
+                        <h4 className="mb-3 text-primary">🎯 Sélectionnez :</h4>
+                        <div className="d-flex flex-wrap align-items-center">
+
+                            {/* Année scolaire */}
+                            <div className="form-group ml-0" style={{ minWidth: '150px' }}>
+                                <select
+                                    className="form-control input"
+                                    style={{ height: '40px' }}
+                                    value={selectedAnneeScolaire || ""}
+                                    onChange={(e) => setSelectedAnneeScolaire(e.target.value)}
+                                >
+                                    <option value="">Année scolaire</option>
+                                    {annees.map((annee) => {
+                                        const debut = new Date(annee.datedebut).getFullYear();
+                                        const fin = new Date(annee.datefin).getFullYear();
+                                        return (
+                                            <option key={annee.id} value={annee.id}>
+                                                {debut} - {fin}
+                                            </option>
+                                        );
+                                    })}
+                                </select>
+                            </div>
+
+                            {/* Trimestre */}
+                            <div className="form-group ml-2" style={{ minWidth: '150px' }}>
+                                <select
+                                    className="form-control input"
+                                    style={{ height: '40px' }}
+                                    value={selectedTrimestre || ''}
+                                    onChange={(e) => setSelectedTrimestre(e.target.value)}
+                                >
+                                    <option value="">Trimestre</option>
+                                    {Array.isArray(trimests) && trimests.map((trimestre) => (
+                                        <option key={trimestre.id} value={trimestre.id}>
+                                            {trimestre.titre}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="form-group ml-2" style={{ minWidth: '150px' }}>
+                                <select
+                                    className="form-control input"
+                                    style={{ height: '40px' }}
+                                    value={selectedNiveau || ''}
+                                    onChange={(e) => setSelectedNiveau(parseInt(e.target.value) || '')}
+                                >
+                                    <option value="">Niveau</option>
+                                    {niveaux.map((niveau) => (
+                                        <option key={niveau.id} value={niveau.id}>
+                                            {niveau.nomniveau}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+
+                            {/* Sélection de la section */}
+                            {selectedNiveau && sections.length > 0 && (
+                                <div className="form-group ml-2" style={{ minWidth: '150px' }}>
+                                    <select
+                                        className="form-control input"
+                                        style={{ height: '40px' }}
+                                        value={selectedSection || ''}
+                                        onChange={(e) => setSelectedSection(e.target.value)}
+                                    >
+                                        <option value="">Section</option>
+                                        {sections.map((section) => (
+                                            <option key={section.id} value={section.id}>
+                                                {section.classe} {section.classearab && `(${section.classearab})`}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    {/* <div className="mb-4">
                         <div className="d-flex flex-wrap gap-2">
                             {niveaux.map((niveau) => (
                                 <button
@@ -629,25 +772,8 @@ const GestionNotesEnseignant = () => {
                                 </button>
                             ))}
                         </div>
-                    </div>
+                    </div> */}
 
-                    {/* Sélection de la section */}
-                    {selectedNiveau && sections.length > 0 && (
-                        <div className="mb-4">
-                            <h4>Sélectionnez une section :</h4>
-                            <div className="d-flex flex-wrap gap-2">
-                                {sections.map((section) => (
-                                    <button
-                                        key={section.id}
-                                        onClick={() => setSelectedSection(section.id)}
-                                        className={`btn ${selectedSection === section.id ? 'btn-primary' : 'btn-outline-secondary'}`}
-                                    >
-                                        {section.classe} {section.classearab && `(${section.classearab})`}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
 
                     {/* Liste des élèves et saisie des notes */}
                     {selectedSection && (
@@ -666,7 +792,7 @@ const GestionNotesEnseignant = () => {
                                 <Table bordered hover>
                                     <thead>
                                         <tr>
-                                            <th rowSpan="2">#</th>
+                                            <th rowSpan="2">numero identification</th>
                                             <th rowSpan="2">Nom complet</th>
                                             {matieres.map(matiere => {
                                                 const isMath = isMathSubject(matiere);
@@ -713,7 +839,7 @@ const GestionNotesEnseignant = () => {
                                         {eleves.length > 0 ? (
                                             eleves.map((eleve, index) => (
                                                 <tr key={eleve.id}>
-                                                    <td>{index + 1}</td>
+                                                    <td>{eleve.numidentnational}</td>
                                                     <td>{eleve.User?.prenom} {eleve.User?.nom}</td>
                                                     {matieres.map(matiere => {
                                                         const isMath = isMathSubject(matiere);

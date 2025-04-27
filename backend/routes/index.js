@@ -23,6 +23,9 @@ import periodeRoutes from './Admin/periodeRoutes.js';
 import emploiDuTempsRoutes from './Admin/emploiDuTempsRoutes.js';
 import periodenotesRoute from './Admin/periodeNoteRoutes.js';
 import noteRoute from './Admin/NoteRoute.js';
+import anneeScolaireRoutes from './Admin/AnnéeScolaireRoutes.js';
+
+import moyenneGeneraleRoutes from './Admin/moyenneGeneraleRoutes.js';
 
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -81,6 +84,7 @@ app.use('/periodes', periodeRoutes);
 app.use('/emploi-du-temps',emploiDuTempsRoutes );
 app.use('/periodenotes', periodenotesRoute);
 app.use('/notes',noteRoute);
-
+app.use('/anneescolaire', anneeScolaireRoutes);
+app.use('/moyenne', moyenneGeneraleRoutes);
 
 export default app;

@@ -1,8 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import exportt from '../../../assets/imgs/excel.png';
-import print from '../../../assets/imgs/printer.png';
 import edit from '../../../assets/imgs/edit.png';
-import add from '../../../assets/imgs/add.png';
 import deletee from '../../../assets/imgs/delete.png';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
@@ -10,10 +7,7 @@ import moment from 'moment';
 import Select from 'react-select';
 import { Modal, Button } from 'react-bootstrap';
 import recherche from '../../../assets/imgs/recherche.png';
-import excel from '../../../assets/imgs/excel.png';
-import archive from '../../../assets/imgs/archive.png';
-import paimentt from '../../../assets/imgs/paiementt.png';
-import paiement from '../../../assets/imgs/paiement.png';
+import paimentt from '../../../assets/imgs/en-retard.png';
 import * as XLSX from 'xlsx';
 
 const ParametreRetard = () => {
@@ -110,7 +104,8 @@ const ParametreRetard = () => {
                         "Content-Type": "application/json",
                     },
                 });
-                alert('Période de paie modifiée avec succès');
+                alert('modifiée avec succès');
+
             } else {
                 response = await axios.post('http://localhost:5000/ParametreRetard/ajouter', formData, {
                     headers: {
@@ -118,9 +113,10 @@ const ParametreRetard = () => {
                         "Content-Type": "application/json",
                     },
                 });
-                alert('Période de paie ajoutée avec succès');
+                alert('ajoutée avec succès');
+
             }
-            setFormData({ HE :null,Rmax:null, Rmin:null, statut:"",});
+            setFormData({ HE :null,Rmax:"", Rmin:"", statut:"",});
             setIsEditMode(false);
             setEditId(null);
             setSelectedOption("");
@@ -207,16 +203,16 @@ const ParametreRetard = () => {
             <nav>
                 <Link to="/dashboard" className="text-primary">Dashboard</Link>
                 <span> / </span>
-                <Link to="/Gpaiement" className="text-primary">Gestion Paie</Link>
+                <Link to="/parameterepaie" className="text-primary">Paramètres de paie</Link>
                 <span> / </span>
-                <span>Périodes de paie</span>
+                <span>Paramétrer les retards</span>
             </nav>
 
             <div className="card card-primary card-outline">
                 <div className="card-header d-flex">
                     <img src={paimentt} className='mt-2' width="60px" height="80px" />
                     <p className="card-title mt-5 ml-2 p-2 text-center" style={{ width: '350px', borderRadius: '50px', border: '1px solid rgb(215, 214, 216)' }}>
-                        Périodes de paie
+                       Paramétrer les retards
                     </p>
                 </div>
                 <div className="card-body">
@@ -233,8 +229,9 @@ const ParametreRetard = () => {
                                                             <div className="row">
                                                               
                                                                 <div className="col-md-3">
-                                                                    <label>Retard Min *</label>
-                                                                    <input type="time" className="form-control" name="Rmin" value={formData.Rmin} onChange={handleChange} />
+                                                                    <label>Retard Min  *</label>
+                                                                    <input type="time" className="form-control" name="Rmin" value={formData.Rmin}
+                                                                     onChange={handleChange}  />
                                                                     {errors.Rmin && <span className="text-danger">{errors.Rmin}</span>}
                                                                 </div>
 
@@ -309,8 +306,8 @@ const ParametreRetard = () => {
                                                         <thead>
                                                             <tr>
                                                                 <th>Id</th>
-                                                                <th>Retard Min</th>
-                                                                <th>Retard Max</th>
+                                                                <th>Retard Min {('(<)')}</th>
+                                                                <th>Retard Max {('(>=)')}</th>
                                                                 <th>Equivalent temps à déduire</th>
                                                                 <th>École Principale</th>
                                                                 <th>Action</th>

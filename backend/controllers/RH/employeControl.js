@@ -46,14 +46,14 @@ export const AjouterEmploye = async (req, res) => {
       dateabt,notify,tauxabt,abattement,declaration
     } = req.body;
 
-   
+    
     let dateabtt;
     // Convert empty/string 'null' to actual null
     if (!dateabt || dateabt === 'null' || dateabt === 'Invalid date') {
       dateabtt = null;
     }
   
-    console.log("Received dateabt:", dateabtt); 
+    // console.log("Received dateabt:", dateabtt); 
 
     // Validate dateabt
  
@@ -134,7 +134,7 @@ export const AjouterEmploye = async (req, res) => {
       }
     }); 
     
-    console.log("✅ Enregistrement Ecole_SEcole_Role vérifié/créé pour employe.");
+    // console.log("✅ Enregistrement Ecole_SEcole_Role vérifié/créé pour employe.");
 
 
     // console.log("newEploye", newEmploye)
@@ -163,7 +163,7 @@ export const AjouterEmploye = async (req, res) => {
   } catch (error) {
     // En cas d'erreur, annulation de la transaction
     await transaction.rollback();
-    console.error("Erreur lors de la création :", error);
+    // console.error("Erreur lors de la création :", error);
     return res.status(500).json({ message: "Erreur serveur lors de la création", error: error.message });
   }
 };
@@ -184,7 +184,6 @@ export const ListeEmploye = async (req, res) => {
           {
             model: User,
             required: true,
-
             include: [
               { model: EcolePrincipal, where: { id: ecoleId } },
               { model: Ecole, through: UserEcole }
@@ -213,7 +212,7 @@ export const ListeEmploye = async (req, res) => {
         });
 
       } else {
-        // console.log('Autre rôle détecté');
+        // console.log('Autre rôle détecté',req.user.role);
         listeEmployes = await Employe.findAll({
           where: { archiver: 0, },
           include: [
@@ -222,6 +221,7 @@ export const ListeEmploye = async (req, res) => {
               where: { ecoleId: ecoleId },
               include: [
                 { model: EcolePrincipal },
+                { model: Ecole, through: UserEcole }
               ]
             },
             { model: Poste, attributes: ['poste'] },
@@ -238,7 +238,7 @@ export const ListeEmploye = async (req, res) => {
     return res.status(200).json(listeEmployes);
 
   } catch (error) {
-    console.error(error);
+    // console.error(error);
     return res.status(500).json({ message: "Erreur serveur" });
   }
 };
@@ -339,7 +339,7 @@ export const ModifierEmploye = async (req, res) => {
   const { id } = req.params;
   const transaction = await sequelize.transaction();
   const file = req.file;
-  // console.log('file', file);
+ 
   try {
     const existingEmploye = await Employe.findByPk(id);
     if (!existingEmploye) {
@@ -366,18 +366,22 @@ export const ModifierEmploye = async (req, res) => {
       nbrHeureLegale, nbrJourTravail, Numpai, disponibilites,
       dateabt,notify,tauxabt,abattement,declaration, dateAD,statuscompte
     } = req.body;
-    
   
     let dateabtt;
     // Convert empty/string 'null' to actual null
     if (!dateabt || dateabt === 'null' || dateabt === 'Invalid date') {
       dateabtt = null;
+    }else{
+      dateabtt=dateabt;
     }
 
     let dateADD;
     // Convert empty/string 'null' to actual null
     if (!dateAD || dateAD === 'null' || dateAD === 'Invalid date') {
       dateADD = null;
+    }else{
+      dateADD=dateAD;
+
     }
 
     // Vérification si le nom d'utilisateur existe déjà (sauf pour l'employé actuel)
@@ -447,7 +451,7 @@ export const ModifierEmploye = async (req, res) => {
       const filePath = `/images/employes/${file.filename}`;
       updatedEmployeData.photo = filePath;
 
-      console.log('path de file is ', filePath)
+      // console.log('path de file is ', filePath)
       // Supprimez l'ancien fichier si nécessaire
       // if (existingEmploye.photo) {
       //   const oldFilePath = path.join(__dirname, '../../public', existingEmploye.photo);

@@ -1,4 +1,4 @@
-import Anneescolaire from '../models/Admin/Anneescolaire.js';
+import Anneescolaire from '../../models/Admin/Anneescolaires.js';
 
 // Récupérer toutes les années scolaires non archivées
 export const getAnneesScolaires = async (req, res) => {

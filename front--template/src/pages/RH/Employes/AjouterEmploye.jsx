@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Select from 'react-select';
 import { nationalites, Paiement } from './OptionSelect';
 import edite from '../../../assets/imgs/edit.png';
@@ -22,6 +22,7 @@ const AjouterModifierEmploye = () => {
   const [selectedPosteId, setSelectedPosteId] = useState(null); // État pour stocker l'ID du poste sélectionné
   const [selectedServiceId, setSelectedServiceId] = useState(null); // État pour stocker l'ID du service sélectionné
 
+  const navigate=useNavigate();
 
   const handleChangePaiement = PaimentOption => { setPaiment(PaimentOption); };
   // chap obligatoires
@@ -184,10 +185,11 @@ const AjouterModifierEmploye = () => {
             'Content-Type': 'multipart/form-data',
           },
         });
-
         if (response.status === 201) {
           // toast.success("Formulaire soumis avec succès! !");
-          alert("Formulaire soumis avec succès! !")
+          alert("Formulaire soumis avec succès! !");
+          navigate('/employes');
+          
 
         }
 
@@ -200,10 +202,10 @@ const AjouterModifierEmploye = () => {
           // setError(error.response.data.message); // Affichez le message d'erreur dans l'UI
         } else if (error.request) {
           // Erreur lors de l'envoi de la requête (ex. serveur non accessible)
-          console.error('Erreur réseau:', error.request);
+          alert('Erreur réseau:', error.request);
         } else {
           // Autres erreurs
-          console.error('Erreur inconnue:', error.message);
+          alert('Erreur inconnue:', error.message);
         }
       }
     }
@@ -705,6 +707,7 @@ const AjouterModifierEmploye = () => {
                         <option value="paiement en espéces">paiement en espéces</option>
                         <option value="virement bancaire">virement bancaire</option>
                         <option value="CCP">CCP</option>
+                        <option value="Chèques">Chèques</option>
                       </select>
                     </div>
 
@@ -744,14 +747,14 @@ const AjouterModifierEmploye = () => {
                   </div>
                   <div className="row mt-3 mb-5">
                     <div className="col-md-3">
-                      <label>Heure d'entrée du matin *</label>
+                      <label>Heure Entrée (matin) *</label>
                       <input type="time" className="form-control custom-input" name='HeureEM'
                         value={values.HeureEM}
                         onChange={handleChange} />
                       {errors.HeureEM && <div className="text-danger">{errors.HeureEM}</div>}
                     </div>
                     <div className="col-md-3">
-                      <label>Heure de sortie du matin *</label>
+                      <label>Heure Sortie (matin) *</label>
                       <input type="time" className="form-control custom-input" name='HeureSM'
                         value={values.HeureSM}
                         onChange={handleChange} />
@@ -759,7 +762,7 @@ const AjouterModifierEmploye = () => {
                     </div>
 
                     <div className="col-md-3">
-                      <label>Heure d'entrée de l'après-midi *</label>
+                      <label>Heure Entrée (après-midi)*</label>
                       <input type="time" className="form-control custom-input" name='HeureEAM'
                         value={values.HeureEAM}
                         onChange={handleChange} />
@@ -767,7 +770,7 @@ const AjouterModifierEmploye = () => {
 
                     </div>
                     <div className="col-md-3">
-                      <label>Heure de sortie de l'après-midi *</label>
+                      <label>Heure Sortie (après-midi) *</label>
                       <input type="time" className="form-control custom-input" name='HeureSAM'
                         value={values.HeureSAM}
                         onChange={handleChange} />
@@ -846,7 +849,7 @@ const AjouterModifierEmploye = () => {
                         </div>
 
                         <div className="col-md-3">
-                          <label htmlFor="dateabt" className="fw-bold">Date d'abattement</label>
+                          <label htmlFor="dateabt" className="fw-bold">Date de fin de l’abattement</label>
                           <input
                             type="date"
                             id="dateabt"

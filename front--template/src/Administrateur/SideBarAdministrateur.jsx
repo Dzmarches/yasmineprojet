@@ -19,10 +19,12 @@ import { AiFillReconciliation } from 'react-icons/ai';
 import { RiHome2Line } from 'react-icons/ri';
 import { TfiAnnouncement } from "react-icons/tfi";
 import axios from 'axios';
+import {useAuth } from '../components/AuthContext';
 
 const SideBarAdministrateur = () => {
   const [openSection, setOpenSection] = useState(null);
   const username = localStorage.getItem('username') || 'Administrateur';
+  const { user } = useAuth(); 
   const navigate = useNavigate();
 
   const today = new Date();
@@ -58,7 +60,10 @@ const SideBarAdministrateur = () => {
         <div className="use-panel mt-2 d-flex flex-column align-items-center">
           <img src={logo} className="userImg" alt="User Image" width={50} />
           <div className="info text-center">
-            <a href="#" className="d-block">{username}</a>
+            <a href="#" className="d-block">{user ? user.username : 'Utilisateur'}</a>
+          </div>
+          <div className="info text-center">
+            <a href="#" className="d-block">{user && user.roles ? user.roles.join(', ') : 'Aucun rôle'}</a>
           </div>
         </div>
 

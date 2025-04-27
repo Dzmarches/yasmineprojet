@@ -21,7 +21,7 @@ const getEmployeId = async (req, res, next) => {
         const userconnect = req.user.id; // Récupère l'ID de l'utilisateur connecté
         const findEmploye = await Employe.findOne({ where: { userId: userconnect } });
 
-        console.log('findEmploye',findEmploye)
+        // console.log('findEmploye',findEmploye)
         if (!findEmploye) {
             return res.status(404).json({ message: "Employé non trouvé" });
         }

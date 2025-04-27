@@ -86,51 +86,44 @@ const GestionPaiement = () => {
         },
         { 
             id: 2, 
-            to: "/heuresSup", 
-            img: time, 
-            title: "Heures supplémentaires", 
-            permission: "Ressources Humaines-gestion de la paye-Voir" 
-        },
-        { 
-            id: 3, 
             to: "/affecterPE", 
             img: affecter, 
             title: "Affecter les primes", 
             permission: "Ressources Humaines-gestion de la paye-Voir" 
         },
         { 
-            id: 4, 
+            id: 3, 
             to: "/periodes_paie", 
             img: paiementt, 
             title: "Périodes de paie", 
             permission: "Ressources Humaines-gestion de la paye-Voir" 
         },
         { 
-            id: 5, 
+            id: 4, 
             to: "/JournalPaie", 
             img: JournalPaie, 
             title: "Journal de paie", 
             permission: "Ressources Humaines-gestion de la paye-Voir" 
         },
         { 
-            id: 6, 
+            id: 5, 
             to: "/VoirFichesPaie", 
             img:fichepaie, 
             title: "voir et imprimer les fiches de paie", 
             permission: "Ressources Humaines-gestion de la paye-Voir" 
         },
         { 
-            id: 7, 
-            to: "/parametreRetard", 
-            img:parametre, 
-            title: "paramétrer les retards", 
-            permission: "Ressources Humaines-gestion de la paye-Voir" 
-        },
-        { 
-            id: 8, 
+            id: 6, 
             to: "/soldeCompte", 
             img:stcc, 
             title: "solde tout Compte", 
+            permission: "Ressources Humaines-gestion de la paye-Voir" 
+        },
+        { 
+            id: 7, 
+            to: "/parameterepaie", 
+            img:parametre, 
+            title: "parameters", 
             permission: "Ressources Humaines-gestion de la paye-Voir" 
         },
        

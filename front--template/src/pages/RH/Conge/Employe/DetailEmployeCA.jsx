@@ -4,7 +4,7 @@ import conge from '../../../../assets/imgs/leave.png';
 import moment from 'moment';
 import fichier from '../../../../assets/imgs/fichier.png';
 
-const DetailEmployeCA = ({ demandeId}) => {
+const DetailEmployeCA = ({ demandeId }) => {
 
     const url = 'http://localhost:5000'
 
@@ -19,13 +19,14 @@ const DetailEmployeCA = ({ demandeId}) => {
                         return;
                     }
                     const response = await axios.get(`http://localhost:5000/congeAbsence/demandeDetail/${demandeId}`
-                        ,{
-                        headers:{   Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data',}}
+                        , {
+                            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data', }
+                        }
 
                     );
                     console.log(response.data)
                     setDemandeDetails(response.data);
-                   
+
                 } catch (error) {
                     console.error("Erreur lors de la récupération des détails de la demande:", error);
                 }
@@ -41,7 +42,7 @@ const DetailEmployeCA = ({ demandeId}) => {
     };
 
 
-    
+
 
     return (
         <div className="modal fade" id="detailemployeca" tabIndex="-1" aria-labelledby="modal-default-label" aria-hidden="true">
@@ -90,58 +91,56 @@ const DetailEmployeCA = ({ demandeId}) => {
 
                                 <div className="col-md-3 mb-1">
                                     <label htmlFor="dateFin" >Nombre du jour a consommé</label>
-                                    <p>{demandeDetails ? moment(demandeDetails.dateFin).diff(moment(demandeDetails.dateDebut), 'days') +1: "Chargement..."}</p>
+                                    <p>{demandeDetails ? moment(demandeDetails.dateFin).diff(moment(demandeDetails.dateDebut), 'days') + 1 : "Chargement..."}</p>
                                 </div>
                                 <div className="col-md-3 mb-1">
                                     <label htmlFor="commentaire">Jour restant </label>
                                     <p>{demandeDetails ? demandeDetails.jour_restant : "Chargement..."}</p>
                                 </div>
                                 <div className="col-md-6 mb-1">
-                               
-    <label htmlFor="justif">Ma justification</label>
-    <div
-        style={{
-            width: "80px",
-            height: "80px",
-            border: "2px solid gray",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            overflow: "hidden",
-            cursor: "pointer",
-            padding: "5px",
-        }}
-        onClick={() => {
-            if (demandeDetails) {
-                window.open(url + demandeDetails.fichier, "_blank");
-            }
-        }}
-    >
-        {demandeDetails && demandeDetails.fichier ? (
-            isImage(demandeDetails.fichier) ? (
-                <img
-                    src={url + demandeDetails.fichier}
-                    alt="image"
-                    style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                    }}
-                />
-            ) : (
-                <img
-                    src= {fichier}
-                    alt="Document"
-                    style={{
-                        width: "50px",
-                        height: "50px",
-                    }}
-                />
-            )
-        ) : null}
+                                    <label htmlFor="justif">Ma justification</label>
+                                    <div
+                                        style={{
+                                            width: "80px",
+                                            height: "80px",
+                                            border: "2px solid gray",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            overflow: "hidden",
+                                            cursor: "pointer",
+                                            padding: "5px",
+                                        }}
+                                        onClick={() => {
+                                            if (demandeDetails) {
+                                                window.open(url + demandeDetails.fichier, "_blank");
+                                            }
+                                        }}
+                                    >
+                                        {demandeDetails && demandeDetails.fichier ? (
+                                            isImage(demandeDetails.fichier) ? (
+                                                <img
+                                                    src={url + demandeDetails.fichier}
+                                                    alt="image"
+                                                    style={{
+                                                        width: "100%",
+                                                        height: "100%",
+                                                        objectFit: "cover",
+                                                    }}
+                                                />
+                                            ) : (
+                                                <img
+                                                    src={fichier}
+                                                    alt="Document"
+                                                    style={{
+                                                        width: "50px",
+                                                        height: "50px",
+                                                    }}
+                                                />
+                                            )
+                                        ) : null}
 
-</div>
-
+                                    </div>
                                 </div>
                             </div>
 
@@ -158,7 +157,7 @@ const DetailEmployeCA = ({ demandeId}) => {
                                 </div>
                             </div>
 
-                            
+
 
                             <div className="row">
                                 <div className="col-12 text-center mt-4 ">

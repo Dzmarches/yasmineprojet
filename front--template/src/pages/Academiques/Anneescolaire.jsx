@@ -27,16 +27,21 @@ const Anneescolaire = () => {
     const currentItems = filteredAnnees.slice(indexOfFirstItem, indexOfLastItem);
     const totalPages = Math.ceil(filteredAnnees.length / itemsPerPage);
 
+    const fetchAnnees = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            const response = await axios.get(
+                `http://localhost:5000/anneescolaire`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            setAnnees(response.data);
+            setFilteredAnnees(response.data);
+        } catch (error) {
+            console.error('Error fetching annees scolaires', error);
+        }
+    };
     useEffect(() => {
-        const fetchAnnees = async () => {
-            try {
-                const response = await axios.get('http://localhost:5000/anneescolaire');
-                setAnnees(response.data);
-                setFilteredAnnees(response.data);
-            } catch (error) {
-                console.error('Error fetching annees scolaires', error);
-            }
-        };
+    
         fetchAnnees();
     }, []);
 
@@ -93,8 +98,14 @@ const Anneescolaire = () => {
             setError('Tous les champs sont obligatoires');
             return;
         }
-
+    
+        const token = localStorage.getItem("token");
+    
         try {
+            const config = {
+                headers: { Authorization: `Bearer ${token}` }
+            };
+    
             const response = selectedAnnees
                 ? await axios.put(`http://localhost:5000/anneescolaire/${selectedAnnees.id}`, {
                     titre,
@@ -102,15 +113,15 @@ const Anneescolaire = () => {
                     datedebut,
                     datefin,
                     archiver,
-                })
+                }, config)
                 : await axios.post('http://localhost:5000/anneescolaire', {
                     titre,
                     titre_ar,
                     datedebut,
                     datefin,
                     archiver,
-                });
-
+                }, config);
+    
             setSuccess(selectedAnnees ? 'Année scolaire modifiée avec succès!' : 'Année scolaire ajoutée avec succès!');
             setAnnees(selectedAnnees ? annees.map(a => (a.id === selectedAnnees.id ? response.data : a)) : [...annees, response.data]);
             handleCloseModal();
@@ -118,16 +129,20 @@ const Anneescolaire = () => {
             setError("Erreur lors de l'ajout/modification de l'année scolaire");
         }
     };
-
     const handleDelete = async (id) => {
+        const token = localStorage.getItem("token");
+    
         try {
-            await axios.delete(`http://localhost:5000/anneescolaire/${id}`);
+            await axios.delete(`http://localhost:5000/anneescolaire/${id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
             setAnnees(annees.filter((annee) => annee.id !== id));
             setSuccess('Année scolaire supprimée avec succès!');
         } catch (error) {
-            setError('Erreur lors de la suppression de l\'année scolaire');
+            setError("Erreur lors de la suppression de l'année scolaire");
         }
     };
+        
 
     return (
         <>

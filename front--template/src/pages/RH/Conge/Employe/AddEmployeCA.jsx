@@ -6,46 +6,46 @@ import moment from 'moment'
 
 const AddEmployeCA = ({ listeMesCA }) => {
 
+
   const [formData, setFormData] = useState({
     type_demande: "",
     dateDebut: "",
     dateFin: "",
     commentaire: "",
-    fichier:"",
-    idcongeAnnuel:null
-    
-  });
+    fichier: "",
+    idcongeAnnuel: null
 
+  });
   const [errorMessage, setErrorMessage] = useState("");
   const [jourConge, setJourConge] = useState(null);
   const [CAouvert, setCAouvert] = useState(false);
   const [dateDebutC, setdateDebutC] = useState('');
   const [dateFinC, setdateFinC] = useState('');
   const [errors, setErrors] = useState({});
-  const [fileName, setFileName] = useState(""); 
+  const [fileName, setFileName] = useState("");
 
- 
+
   const handleChange = (e) => {
-    const { name, value,type  } = e.target;
+    const { name, value, type } = e.target;
 
-  if (type === "file") {
-    const fichier = e.target.files[0]; 
-    setFileName(fichier.name);
-    setFormData({ ...formData, [name]: fichier });
-  } else {
-    const { value } = e.target;
-    setFormData({ ...formData, [name]: value });
-    setFileName("");
-  }
+    if (type === "file") {
+      const fichier = e.target.files[0];
+      setFileName(fichier.name);
+      setFormData({ ...formData, [name]: fichier });
+    } else {
+      const { value } = e.target;
+      setFormData({ ...formData, [name]: value });
+      setFileName("");
+    }
   };
-    //verifier fichier
-    const allowedTypes = ["image/jpeg","image/png","image/gif","image/jpg","application/pdf",
-      "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
-      "text/plain" // .txt
-    ];
-    const maxSize = 5 * 1024 * 1024; // 5 Mo
-    const validateFile = (file) => {
-      if (file) {
+  //verifier fichier
+  const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/jpg", "application/pdf",
+    "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+    "text/plain" // .txt
+  ];
+  const maxSize = 5 * 1024 * 1024; // 5 Mo
+  const validateFile = (file) => {
+    if (file) {
       if (!allowedTypes.includes(file.type)) {
         return "Format non autorisé. Veuillez choisir une image, un PDF, un document Word ou un fichier texte.";
       }
@@ -53,77 +53,97 @@ const AddEmployeCA = ({ listeMesCA }) => {
         return "Le fichier est trop volumineux. La taille maximale est de 5 Mo.";
       }
     }
-      return ""; 
-    };
-    
-    const validateForm = () => {
-      const newErrors = {};
-      if (!formData.type_demande) newErrors.type_demande = "Le type de demande est requis";
-      if (!formData.dateDebut) newErrors.dateDebut = "La date de début est requise";
-      if (!formData.dateFin) newErrors.dateFin = "La date de fin est requise";
-    
-      const dateDebut = moment(formData.dateDebut);
-      const dateFin = moment(formData.dateFin);
-    
-      if (dateFin.isBefore(dateDebut, 'day')) {
-        newErrors.dateFin = "La date de fin doit être supérieure à la date de début";
-      }
-    
-      const fileError = validateFile(formData.fichier);
-      if (fileError) {
-        newErrors.fichier = fileError; // Ajoute fileError à newErrors
-      }
-    
-      if (formData.type_demande === "Congé Annuel") {
-        const dateDebutCBDD = moment(dateDebutC);
-        const dateFinCBDD = moment(dateFinC);
-    
-        if (dateDebut.isBefore(dateDebutCBDD, 'day') || dateFin.isAfter(dateFinCBDD, 'day')) {
-          setErrorMessage(`Veuillez choisir une date entre ${moment(dateDebutCBDD).format('YYYY-MM-DD')} et ${moment(dateFinCBDD).format('YYYY-MM-DD')}`);
-          return false;
-        }
-      }
-    
-      setErrors(newErrors);
-      return Object.keys(newErrors).length === 0;
-    };
+    return "";
+  };
 
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.type_demande) newErrors.type_demande = "Le type de demande est requis";
+    if (!formData.dateDebut) newErrors.dateDebut = "La date de début est requise";
+    if (!formData.dateFin) newErrors.dateFin = "La date de fin est requise";
 
+    const dateDebut = moment(formData.dateDebut);
+    const dateFin = moment(formData.dateFin);
+
+    if (dateFin.isBefore(dateDebut, 'day')) {
+      newErrors.dateFin = "La date de fin doit être supérieure à la date de début";
+    }
+
+    const fileError = validateFile(formData.fichier);
+    if (fileError) {
+      newErrors.fichier = fileError; // Ajoute fileError à newErrors
+    }
+
+    if (formData.type_demande === "Congé Annuel") {
+      const dateDebutCBDD = moment(dateDebutC);
+      const dateFinCBDD = moment(dateFinC);
+
+      if (dateDebut.isBefore(dateDebutCBDD, 'day') || dateFin.isAfter(dateFinCBDD, 'day')) {
+        setErrorMessage(`Veuillez choisir une date entre ${moment(dateDebutCBDD).format('YYYY-MM-DD')} et ${moment(dateFinCBDD).format('YYYY-MM-DD')}`);
+        return false;
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSave = async () => {
     if (!validateForm()) return;
     try {
-      const formFile=new FormData();
+      const formFile = new FormData();
       Object.entries(formData).forEach(([key, value]) => {
-      formFile.append(key, value);
-    
-    });
-    const token = localStorage.getItem("token");
-    if (!token) {
+        formFile.append(key, value);
+
+      });
+      const token = localStorage.getItem("token");
+      if (!token) {
         alert("Vous devez être connecté ");
         return;
-    }
-      const response = await axios.post('http://localhost:5000/congeAbsence/ajouter', formFile,{
-        headers:{   Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data',}
+      }
+      const response = await axios.post('http://localhost:5000/congeAbsence/ajouter', formFile, {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data', }
       });
 
+      // if (response.status === 201) {
+      //   alert('Demande ajoutée avec succès');
+      //   await listeMesCA();
+      //   console.log(response.data);
+
+      // }
       if (response.status === 201) {
         alert('Demande ajoutée avec succès');
         await listeMesCA();
-        console.log(response.data);
+        // Fermer la modal après succès
+        window.$('#addemployeca').modal('hide');
+        // Réinitialiser les champs
+        setFormData({
+          type_demande: "",
+          dateDebut: "",
+          dateFin: "",
+          commentaire: "",
+          fichier: "",
+          idcongeAnnuel: null
+        });
+        setErrors({});
+        setFileName("");
+        setErrorMessage("");
+
+
       }
-    else if (response.status === 203) {
-      alert(response.data.message); 
-    }
+      else if (response.status === 203) {
+        alert(response.data.message);
+        await listeMesCA();
+      }
     } catch (error) {
       console.log("Erreur lors de l'ajout du congé :", error);
       if (error.response) {
-        console.log('error',error.response)
+        console.log('error', error.response)
         const status = error.response.status;
         const message = error.response.data.message || "Erreur inconnue.";
-  
+
         if (status === 203) {
-          alert(message); 
+          alert(message);
         } else if (status === 500) {
           alert("Erreur serveur : " + message);
         } else {
@@ -132,7 +152,8 @@ const AddEmployeCA = ({ listeMesCA }) => {
       } else {
         alert("Erreur réseau ou de configuration.");
       }
-    }}
+    }
+  }
   //verifier si la date correspand a la date des demande de conge 
   const DateCongeOuvert = async () => {
     try {
@@ -147,13 +168,13 @@ const AddEmployeCA = ({ listeMesCA }) => {
           "Content-Type": "application/json",
         },
       });
-  
+
       if (response.status === 200) {
         setCAouvert(true);
         // Accéder au premier élément du tableau `conge`
         setdateDebutC(response.data.conge[0].dateDebut);
         setdateFinC(response.data.conge[0].dateFin);
-        setFormData(prev => ({...prev,idcongeAnnuel: response.data.conge[0].id }));
+        setFormData(prev => ({ ...prev, idcongeAnnuel: response.data.conge[0].id }));
         console.log('setdateDebutC', response.data.conge[0].dateDebut);
         console.log('setdateFinC', response.data.conge[0].dateFin);
       } else {
@@ -177,7 +198,7 @@ const AddEmployeCA = ({ listeMesCA }) => {
 
 
   return (
-    <div className="modal fade" id="addemployeca" tabIndex="-1" aria-labelledby="modal-default-label" aria-hidden="true">
+    <div className="modal fade" id="addemployeca" tabIndex="-1" aria-labelledby="modal-default-label" aria-hidden="true" >
       <div className="modal-dialog modal-lg">
         <div className="modal-content">
           <div className="modal-header bg-info text-white">
@@ -231,7 +252,7 @@ const AddEmployeCA = ({ listeMesCA }) => {
                     value={formData.dateDebut}
                     onChange={handleChange}
                   />
-                 {errors.dateDebut && <span className="text-danger">{errors.dateDebut}</span>}
+                  {errors.dateDebut && <span className="text-danger">{errors.dateDebut}</span>}
 
                 </div>
 
@@ -245,7 +266,7 @@ const AddEmployeCA = ({ listeMesCA }) => {
                     value={formData.dateFin}
                     onChange={handleChange}
                   />
-                 {errors.dateFin && <span className="text-danger">{errors.dateFin}</span>}
+                  {errors.dateFin && <span className="text-danger">{errors.dateFin}</span>}
 
                 </div>
               </div>
@@ -274,7 +295,7 @@ const AddEmployeCA = ({ listeMesCA }) => {
                 <div className="col-md-12 mb-3 mt-3" style={{ border: "1px solid rgb(192, 193, 194)", height: "40px", display: "flex", alignItems: "center", justifyContent: "center", padding: "5px", borderRadius: "5px", cursor: "pointer" }}>
                   <label htmlFor="file" style={{ marginRight: "10px", fontWeight: "bold", cursor: "pointer", color: 'rgb(65, 105, 238)' }}>
                     {!(fileName) ? "Ajouter une justification" : <span style={{ marginLeft: "10px", fontSize: "14px" }}>{fileName}</span>}
-                    </label>
+                  </label>
                   <input
                     id="file"
                     type="file"
@@ -285,12 +306,12 @@ const AddEmployeCA = ({ listeMesCA }) => {
                       zIndex: -1,
                       width: "100%",
                       height: "100%",
-                     
+
                     }}
-                  onChange={handleChange}
+                    onChange={handleChange}
                   />
                 </div>
-                {errors.fichier && <span className="text-danger">{errors.fichier}</span>} 
+                {errors.fichier && <span className="text-danger">{errors.fichier}</span>}
 
               </div>
 

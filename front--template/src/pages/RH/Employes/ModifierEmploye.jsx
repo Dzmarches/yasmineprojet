@@ -11,7 +11,7 @@ import axios from 'axios';
 import Service from '../Service';
 import moment from 'moment';
 import rh from '../../../assets/imgs/employe.png'
-
+import utilisateur from '../../../assets/imgs/utilisateur.png';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -101,7 +101,7 @@ const ModifierEmploye = () => {
 
 
           });
-          console.log('dateabts est ', response.data.User.dateAD)
+          console.log('dateabts est ', response.data.User)
 
           setSelectedPosteId(response.data.poste)
         } catch (error) {
@@ -376,46 +376,7 @@ const ModifierEmploye = () => {
     return `${firstDigitDay}${firstDigitMonth}${lastTwoDigitsYear}${randomDigits}`;
   };
 
-  // Effet pour générer le username et le password lorsque les champs sont remplis
-  // useEffect(() => {
-  //   if (values.nom && values.prenom && values.datenaiss) {
-  //     const username = generateUsername(values.nom, values.prenom, true);
-  //     const password = generatePassword(values.datenaiss);
-  //     setValues((prevValues) => ({
-  //       ...prevValues,
-  //       user: username,
-  //       pwd: password,
-  //     }));
-  //   }
-  // }, [values.nom, values.prenom, values.datenaiss]);
-
-  // const ImageProtegee = ({ imagePath }) => {
-  //   const [imageSrc, setImageSrc] = useState("");
-  //   useEffect(() => {
-  //     const fetchImage = async () => {
-  //       try {
-  //         const response = await fetch(`http://localhost:5000${imagePath}`, {
-  //           headers: {
-  //             Authorization: `Bearer ${localStorage.getItem('token')}`
-  //           }
-  //         });
-
-  //         if (!response.ok) {
-  //           throw new Error("Erreur lors du chargement de l'image");
-  //         }
-  //         const imageBlob = await response.blob();
-  //         setImageSrc(URL.createObjectURL(imageBlob));
-  //       } catch (error) {
-  //         console.error(error);
-  //       }
-  //     };
-
-  //     fetchImage();
-  //   }, [imagePath]);
-
-  //   return imageSrc ? <img src={imageSrc} alt="Photo de l'employé" width="60px" /> : <p>Chargement...</p>;
-  // };
-
+ 
   const renderStepIndicator = () => {
     return (
 
@@ -433,7 +394,7 @@ const ModifierEmploye = () => {
             .map((item, index) => (
               <div key={index} className={`step ${step === index + 1 ? 'active' : ''} text-center`}>
                 {/* <ImageProtegee imagePath={item.icon} alt={`Étape ${index + 1}`} className="step-icon" style={{ width: 50, height: 50 }} /> */}
-                <img src={url + item.icon} />
+               <img className="ronde" src={item.icon ? url + item.icon : utilisateur} alt="Photo de l'employé" />
                 <p className="mt-2">{item.label}</p>
               </div>
             ))
@@ -808,6 +769,7 @@ const ModifierEmploye = () => {
                         <option value="paiement en espéces">paiement en espéces</option>
                         <option value="virement bancaire">virement bancaire</option>
                         <option value="CCP">CCP</option>
+                        <option value="Chèques">Chèques</option>
                       </select>
                     </div>
 
@@ -997,9 +959,8 @@ const ModifierEmploye = () => {
                             style={{ borderColor: '#13b103' }}
                           />
                         </div>
-
                         <div className="col-md-3">
-                          <label htmlFor="dateabt" className="fw-bold">Date d'abattement</label>
+                          <label htmlFor="dateabt" className="fw-bold">Date de fin de l’abattement</label>
                           <input
                             type="date"
                             id="dateabt"

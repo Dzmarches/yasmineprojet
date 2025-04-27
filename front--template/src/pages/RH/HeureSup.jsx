@@ -112,9 +112,8 @@ const HeureSup = () => {
             }
           
             setFormData({
-                code: "",
+                nom: "",
                 taux: "",
-
             });
             setIsEditMode(false);
             setEditId(null);
@@ -212,7 +211,7 @@ const HeureSup = () => {
             <nav>
                 <Link to="/dashboard" className="text-primary">Dashboard</Link>
                 <span> / </span>
-                <Link to="/Gpaiement" className="text-primary">Gestion Paie</Link>
+                <Link to="/parameterepaie" className="text-primary">Paramètres de paie</Link>
                 <span> / </span>    
                 <span>Heures supplémentaire</span>
             </nav>
@@ -245,8 +244,8 @@ const HeureSup = () => {
                                                                 <div className="col-md-4">
                                                                     <label>Taux *</label>
                                                                     <input type="number" className="form-control" name="taux" value={formData.taux} onChange={handleChange} />
-                                                                    {errors.taux && <span className="text-danger">{errors.taux}</span>}<br/>
                                                                     <small className='text-muted'>Veuillez entrer le taux  en décimal (ex : 20% → 0.2)</small>
+                                                                    {errors.taux && <span className="text-danger">{errors.taux}</span>}<br/>
                                                                 </div>
 
                                                                 {/* Boutons */}

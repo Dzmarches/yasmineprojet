@@ -1,241 +1,120 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Button, Badge } from 'react-bootstrap';
 
-const NoteModal = ({ show, handleClose, eleve, matiere, notes, cycle, onSave }) => {
-    const [formValues, setFormValues] = useState({});
+const NoteModal = ({
+    show,
+    handleClose,
+    eleve,
+    matiere,
+    notes,
+    cycle, // This now comes from the selected niveau
+    onSave,
+    annescolaireId,
+    trimestId
+}) => {
+    const [formValues, setFormValues] = useState({
+        remarque: '',
+        moyenne: '',
+        coefficient: '',
+        ...notes
+    });
 
-    // useEffect(() => {
-    //     if (notes) {
-    //         setFormValues(notes);
-    //     }
-    // }, [notes]);
+    const capitalize = (str) =>
+        str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : '';
+
+    // Use the cycle prop directly (passed from parent component)
+    const validatedCycle = ['Primaire', 'Cem', 'Lycée'].includes(cycle) ? cycle : null;
+
     useEffect(() => {
-        setFormValues(notes || {});
-    }, [notes, matiere]); // Ajoutez matiere comme dépendance
+        console.log('Notes prop:', notes);
+    
+        setFormValues(prev => ({
+            ...prev,
+            ...notes,
+            annescolaireId,
+            trimestId,
+            cycle: validatedCycle // Use the validated cycle from props
+        }));
+    }, [notes, annescolaireId, trimestId, validatedCycle]);
 
-    const roundToTwo = (num) => {
-        const floatNum = parseFloat(num);
-        if (isNaN(floatNum)) return '';
-        const str = floatNum.toFixed(3);
-        const [_, decimalPart] = str.split('.');
-        const thirdDigit = parseInt(decimalPart?.[2] || 0);
-        let rounded = floatNum;
-
-        if (thirdDigit >= 5) {
-            rounded = (Math.floor(floatNum * 100) + 1) / 100;
-        } else {
-            rounded = Math.floor(floatNum * 100) / 100;
-        }
-
-        return rounded.toFixed(2);
+    const isMathSubject = () => {
+        if (!matiere) return false;
+        const mathKeywords = ['maths', 'math', 'mathématique', 'mathématiques', 'الرياضيات'];
+        const matiereName = matiere.nom?.toLowerCase() || '';
+        const matiereNameAr = matiere.nomarabe || '';
+        return mathKeywords.some(keyword =>
+            matiereName.includes(keyword.toLowerCase()) ||
+            matiereNameAr.includes(keyword)
+        );
     };
 
-    const handleNoteChange = (eleveId, fieldId, value) => {
-        const roundToTwo = (num) => {
-            const floatNum = parseFloat(num);
-            if (isNaN(floatNum)) return '';
-            const str = floatNum.toFixed(3); // garde 3 chiffres pour analyse
-            const [intPart, decimalPart] = str.split('.');
-            const thirdDigit = parseInt(decimalPart[2]);
-            let rounded = floatNum;
-
-            if (thirdDigit >= 5) {
-                rounded = (Math.floor(floatNum * 100) + 1) / 100;
+    const calculateMoyenne = (values) => {
+        if (validatedCycle === 'Primaire') {
+            if (isMathSubject()) {
+                const evalMath = parseFloat(values.moyenne_eval_math) || 0;
+                const examensMath = parseFloat(values.examens_math) || 0;
+                return ((evalMath + examensMath) / 2).toFixed(2);
             } else {
-                rounded = Math.floor(floatNum * 100) / 100;
-            }
+                const expression = parseFloat(values.expression_orale) || 0;
+                const lecture = parseFloat(values.lecture) || 0;
+                const production = parseFloat(values.production_ecrite) || 0;
 
-            return rounded.toFixed(2);
+                const moyenne_eval = ((expression + lecture + production) / 3).toFixed(2);
+                const examens = parseFloat(values.examens) || 0;
+                const moyenne = ((parseFloat(moyenne_eval) + examens) / 2).toFixed(2);
+
+                return {
+                    moyenne_eval,
+                    moyenne
+                };
+            }
+        }
+        return { moyenne: values.moyenne || '' };
+    };
+
+    const handleChange = (field, value) => {
+        const newValues = {
+            ...formValues,
+            [field]: value
         };
 
-        setNotes(prev => {
-            const updatedEleveNotes = {
-                ...prev[eleveId],
-                [fieldId]: value
-            };
-
-            const [matiereId, champ] = fieldId.split('_');
-            const currentMatiere = matieres.find(m => m.id == matiereId);
-            const isMath = currentMatiere ? isMathSubject(currentMatiere) : false;
-            const isPrimaire = selectedCycle === 'Primaire';
-            const isCem = selectedCycle === 'Cem';
-            const isLycée = selectedCycle === 'Lycée';
-
-            // ----- LOGIQUE PRIMAIRE -----
-            // ----- LOGIQUE PRIMAIRE -----
-            if (isPrimaire) {
-                const exp = parseFloat(updatedEleveNotes[`${matiereId}_expression_orale`] || 0);
-                const lec = parseFloat(updatedEleveNotes[`${matiereId}_lecture`] || 0);
-                const prod = parseFloat(updatedEleveNotes[`${matiereId}_production_ecrite`] || 0);
-                const examens = parseFloat(updatedEleveNotes[`${matiereId}_examens`] || 0);
-
-                let total = 0;
-                let count = 0;
-
-                // Vérifiez si la matière est Math
-                const isMath = currentMatiere ? isMathSubject(currentMatiere) : false;
-
-                if (isMath) {
-                    const calcul = parseFloat(updatedEleveNotes[`${matiereId}_calcul`] || 0);
-                    const grandeurs_mesures = parseFloat(updatedEleveNotes[`${matiereId}_grandeurs_mesures`] || 0);
-                    const organisation_donnees = parseFloat(updatedEleveNotes[`${matiereId}_organisation_donnees`] || 0);
-                    const espace_geometrie = parseFloat(updatedEleveNotes[`${matiereId}_espace_geometrie`] || 0);
-
-                    // Calculer la moyenne pour les mathématiques
-                    let totalMath = 0;
-                    let countMath = 0;
-
-                    if (calcul > 0) { totalMath += calcul; countMath++; }
-                    if (grandeurs_mesures > 0) { totalMath += grandeurs_mesures; countMath++; }
-                    if (organisation_donnees > 0) { totalMath += organisation_donnees; countMath++; }
-                    if (espace_geometrie > 0) { totalMath += espace_geometrie; countMath++; }
-
-                    if (countMath > 0) {
-                        const moyenneEvalMath = totalMath / countMath;
-                        updatedEleveNotes[`${matiereId}_moyenne_eval`] = roundToTwo(moyenneEvalMath);
-                    } else {
-                        updatedEleveNotes[`${matiereId}_moyenne_eval`] = '';
-                    }
-                } else {
-                    // Logique pour les autres matières
-                    if (exp > 0) { total += exp; count++; }
-                    if (lec > 0) { total += lec; count++; }
-                    if (prod > 0) { total += prod; count++; }
-
-                    if (count > 0) {
-                        const moyenneEval = total / count;
-                        updatedEleveNotes[`${matiereId}_moyenne_eval`] = roundToTwo(moyenneEval);
-                    } else {
-                        updatedEleveNotes[`${matiereId}_moyenne_eval`] = '';
-                    }
+        if (validatedCycle === 'Primaire') {
+            if (isMathSubject()) {
+                // Liste des champs mathématiques à surveiller
+                const mathFields = ['calcul', 'grandeurs_mesures', 'organisation_donnees', 'espace_geometrie'];
+                
+                if (mathFields.includes(field)) {
+                    // Calcul automatique de la moyenne d'évaluation
+                    const calcul = parseFloat(newValues.calcul) || 0;
+                    const grandeurs = parseFloat(newValues.grandeurs_mesures) || 0;
+                    const organisation = parseFloat(newValues.organisation_donnees) || 0;
+                    const geometrie = parseFloat(newValues.espace_geometrie) || 0;
+                    
+                    newValues.moyenne_eval_math = ((calcul + grandeurs + organisation + geometrie) / 4).toFixed(2);
                 }
-
-                const moyenne_eval_valide = updatedEleveNotes[`${matiereId}_moyenne_eval`] !== '';
-                const examens_valide = !isNaN(examens);
-
-                if (moyenne_eval_valide && examens_valide) {
-                    const moyenne = (parseFloat(updatedEleveNotes[`${matiereId}_moyenne_eval`]) + examens) / 2;
-                    updatedEleveNotes[`${matiereId}_moyenne`] = roundToTwo(moyenne);
-                } else if (!moyenne_eval_valide && examens_valide) {
-                    updatedEleveNotes[`${matiereId}_moyenne`] = roundToTwo(examens);
-                } else {
-                    updatedEleveNotes[`${matiereId}_moyenne`] = '';
+    
+                // Calcul de la moyenne finale si nécessaire
+                if (mathFields.includes(field) || field === 'examens_math') {
+                    const evalMath = parseFloat(newValues.moyenne_eval_math) || 0;
+                    const examensMath = parseFloat(newValues.examens_math) || 0;
+                    newValues.moyenne_math = ((evalMath + examensMath) / 2).toFixed(2);
+                }
+            } else {
+                if (field === 'expression_orale' || field === 'lecture' || field === 'production_ecrite') {
+                    const updated = calculateMoyenne(newValues);
+                    newValues.moyenne_eval = updated.moyenne_eval;
+                    newValues.moyenne = updated.moyenne;
+                } else if (field === 'examens') {
+                    const updated = calculateMoyenne(newValues);
+                    newValues.moyenne = updated.moyenne;
                 }
             }
+        }
 
-            // ----- LOGIQUE CEM -----
-            if (isCem) {
-                const eval_continue = parseFloat(updatedEleveNotes[`${matiereId}_eval_continue`] || 0);
-                const devoir1 = parseFloat(updatedEleveNotes[`${matiereId}_devoir1`] || 0);
-                const devoir2 = parseFloat(updatedEleveNotes[`${matiereId}_devoir2`] || 0);
-                const examens = parseFloat(updatedEleveNotes[`${matiereId}_examens`] || 0);
-                const coefficient = parseFloat(updatedEleveNotes[`${matiereId}_coefficient`] || 0); // 👉 AJOUT ICI
-
-                let totalEval = 0;
-                let countEval = 0;
-
-                if (!isNaN(eval_continue) && eval_continue > 0) {
-                    totalEval += eval_continue;
-                    countEval++;
-                }
-                if (!isNaN(devoir1) && devoir1 > 0) {
-                    totalEval += devoir1;
-                    countEval++;
-                }
-                if (!isNaN(devoir2) && devoir2 > 0) {
-                    totalEval += devoir2;
-                    countEval++;
-                }
-
-                if (countEval > 0) {
-                    updatedEleveNotes[`${matiereId}_moyenne_eval`] = roundToTwo(totalEval / countEval);
-                } else {
-                    updatedEleveNotes[`${matiereId}_moyenne_eval`] = '';
-                }
-
-                const moyenne_eval_valide = updatedEleveNotes[`${matiereId}_moyenne_eval`] !== '';
-                const examens_valide = !isNaN(examens) && examens > 0;
-
-                if (moyenne_eval_valide && examens_valide) {
-                    const moyenne_brute = (parseFloat(updatedEleveNotes[`${matiereId}_moyenne_eval`]) + examens * 2) / 3;
-                    updatedEleveNotes[`${matiereId}_moyenne`] = roundToTwo(moyenne_brute);
-
-                    if (!isNaN(coefficient) && coefficient > 0) {
-                        updatedEleveNotes[`${matiereId}_moyenne_total`] = roundToTwo(moyenne_brute * coefficient);
-                    } else {
-                        updatedEleveNotes[`${matiereId}_moyenne_total`] = '';
-                    }
-
-                } else if (!moyenne_eval_valide && examens_valide) {
-                    const moyenne_brute = examens;
-                    updatedEleveNotes[`${matiereId}_moyenne`] = roundToTwo(moyenne_brute);
-
-                    if (!isNaN(coefficient) && coefficient > 0) {
-                        updatedEleveNotes[`${matiereId}_moyenne_total`] = roundToTwo(moyenne_brute * coefficient);
-                    } else {
-                        updatedEleveNotes[`${matiereId}_moyenne_total`] = '';
-                    }
-
-                } else {
-                    updatedEleveNotes[`${matiereId}_moyenne`] = '';
-                    updatedEleveNotes[`${matiereId}_moyenne_total`] = '';
-                }
-            }
-            if (isLycée) {
-                const eval_continue = parseFloat(updatedEleveNotes[`${matiereId}_eval_continue`] || 0);
-                const travaux_pratiques = parseFloat(updatedEleveNotes[`${matiereId}_travaux_pratiques`] || 0);
-                const moyenne_devoirs = parseFloat(updatedEleveNotes[`${matiereId}_moyenne_devoirs`] || 0);
-                const examens = parseFloat(updatedEleveNotes[`${matiereId}_examens`] || 0);
-                const coefficient = parseFloat(updatedEleveNotes[`${matiereId}_coefficient`] || 0);
-
-                let total = 0;
-                let poidsTotal = 0;
-
-                if (!isNaN(eval_continue) && eval_continue > 0) {
-                    total += eval_continue;
-                    poidsTotal += 1;
-                }
-
-                if (!isNaN(travaux_pratiques) && travaux_pratiques > 0) {
-                    total += travaux_pratiques;
-                    poidsTotal += 1;
-                }
-
-                if (!isNaN(moyenne_devoirs) && moyenne_devoirs > 0) {
-                    total += moyenne_devoirs;
-                    poidsTotal += 1;
-                }
-
-                if (!isNaN(examens) && examens > 0) {
-                    total += examens * 2;
-                    poidsTotal += 2;
-                }
-
-                if (poidsTotal > 0) {
-                    const moyenne_brute = total / poidsTotal;
-                    updatedEleveNotes[`${matiereId}_moyenne`] = roundToTwo(moyenne_brute);
-
-                    if (!isNaN(coefficient) && coefficient > 0) {
-                        updatedEleveNotes[`${matiereId}_moyenne_total`] = roundToTwo(moyenne_brute * coefficient);
-                    } else {
-                        updatedEleveNotes[`${matiereId}_moyenne_total`] = '';
-                    }
-                } else {
-                    updatedEleveNotes[`${matiereId}_moyenne`] = '';
-                    updatedEleveNotes[`${matiereId}_moyenne_total`] = '';
-                }
-            }
-
-
-
-            return {
-                ...prev,
-                [eleveId]: updatedEleveNotes
-            };
-        });
+        setFormValues(newValues);
     };
 
-    const renderField = (label, field, readOnly = false) => (
+    const renderField = (label, field, readOnly = false, extraProps = {}) => (
         <Form.Group className="mb-3" controlId={field}>
             <Form.Label>{label}</Form.Label>
             <Form.Control
@@ -243,69 +122,54 @@ const NoteModal = ({ show, handleClose, eleve, matiere, notes, cycle, onSave }) 
                 value={formValues[field] || ''}
                 onChange={(e) => handleChange(field, e.target.value)}
                 readOnly={readOnly}
+                step="0.01"
+                min="0"
+                max="20"
+                {...extraProps}
             />
         </Form.Group>
     );
 
-    const isMathSubject = (matiere) => {
-        if (!matiere) return false; // protection si null ou undefined
-
-        const mathKeywords = ['maths', 'math', 'mathématique', 'mathématiques', 'الرياضيات'];
-        const matiereName = matiere.nom?.toLowerCase() || '';
-        const matiereNameAr = matiere.nomarabe || '';
-
-        return mathKeywords.some(keyword =>
-            matiereName.includes(keyword.toLowerCase()) ||
-            matiereNameAr.includes(keyword)
-        );
-    };
-
     const renderFields = () => {
-        if (!matiere) return null;
-
-        const isMath = isMathSubject(matiere);
-
-        switch (cycle) {
+        const isMath = isMathSubject();
+    
+        switch (validatedCycle) {
             case 'Primaire':
-                return (
+                return isMath ? (
                     <>
-                        {isMath ? (
-                            <>
-                                {renderField('الحساب / Calcul', 'calcul')}
-                                {renderField('القياس / Grandeurs et mesures', 'grandeurs_mesures')}
-                                {renderField('تنظيم البيانات / Organisation des données', 'organisation_donnees')}
-                                {renderField('الفضاء و الهندسة / Espace et géométrie', 'espace_geometrie')}
-                                {renderField('معدل التقويم / Moyenne évaluation continue', 'moyenne_eval_math', true)}
-                                {renderField('الإختبارات / Examens', 'examens_math')}
-                                {renderField('معدل / Moyenne', 'moyenne_math', true)}
-                            </>
-                        ) : (
-                            <>
-                                {renderField('التعبير و التواصل الشفوي / Expression orale', 'expression_orale')}
-                                {renderField('القراءة و المحفوظات / Lecture', 'lecture')}
-                                {renderField('الإنتاج الكتابي / Production écrite', 'production_ecrite')}
-                                {renderField('معدل التقويم المستمر / Moyenne évaluation continue', 'moyenne_eval', true)}
-                                {renderField('الإختبارات / Examens', 'examens')}
-                                {renderField('معدل / Moyenne', 'moyenne', true)}
-                            </>
-                        )}
+                        {renderField('الحساب / Calcul', 'calcul')}
+                        {renderField('القياس / Grandeurs et mesures', 'grandeurs_mesures')}
+                        {renderField('تنظيم البيانات / Organisation des données', 'organisation_donnees')}
+                        {renderField('الفضاء و الهندسة / Espace et géométrie', 'espace_geometrie')}
+                        {renderField('معدل التقويم / Moyenne évaluation continue', 'moyenne_eval_math')}
+                        {renderField('الإختبارات / Examens', 'examens_math')}
+                        {renderField('معدل / Moyenne', 'moyenne_math', true)}
+                    </>
+                ) : (
+                    <>
+                        {renderField('التعبير و التواصل الشفوي / Expression orale', 'expression_orale')}
+                        {renderField('القراءة و المحفوظات / Lecture', 'lecture')}
+                        {renderField('الإنتاج الكتابي / Production écrite', 'production_ecrite')}
+                        {renderField('معدل التقويم المستمر / Moyenne évaluation continue', 'moyenne_eval')}
+                        {renderField('الإختبارات / Examens', 'examens')}
+                        {renderField('معدل / Moyenne', 'moyenne', true)}
                     </>
                 );
-
+    
             case 'Cem':
                 return (
                     <>
                         {renderField('التقويم المستمر / Évaluation continue', 'eval_continue')}
                         {renderField('الفرض الأول / Devoir 1', 'devoir1')}
                         {renderField('الفرض الثاني / Devoir 2', 'devoir2')}
-                        {renderField('معدل التقويم / Moyenne évaluation', 'moyenne_eval', true)}
+                        {renderField('معدل التقويم / Moyenne évaluation', 'moyenne_eval')}
                         {renderField('الإختبارات / Examens', 'examens')}
                         {renderField('معدل / Moyenne', 'moyenne', true)}
-                        {renderField('معامل / Coefficient', 'coefficient')}
+                        {renderField('معامل / Coefficient', 'coefficient', false, { min: '0.5', step: '0.5' })}
                         {renderField('المعدل الإجمالي / Moyenne totale', 'moyenne_total', true)}
                     </>
                 );
-
+    
             case 'Lycée':
                 return (
                     <>
@@ -314,27 +178,35 @@ const NoteModal = ({ show, handleClose, eleve, matiere, notes, cycle, onSave }) 
                         {renderField('معدل الفروض / Moyenne devoirs', 'moyenne_devoirs')}
                         {renderField('الإختبارات / Examens', 'examens')}
                         {renderField('معدل / Moyenne', 'moyenne', true)}
-                        {renderField('معامل / Coefficient', 'coefficient')}
+                        {renderField('معامل / Coefficient', 'coefficient', false, { min: '1', step: '1' })}
                         {renderField('المعدل الإجمالي / Moyenne totale', 'moyenne_total', true)}
                     </>
                 );
-
+    
             default:
-                return null;
+                return <div className="text-danger">Cycle non reconnu ou manquant.</div>;
         }
     };
 
     const handleSubmit = () => {
-        onSave(formValues);
-        handleClose();
+        const noteToSave = {
+            ...formValues,
+            eleveId: eleve?.id,
+            matiereId: matiere?.id,
+            annescolaireId,
+            trimestId,
+            cycle: validatedCycle
+        };
+        onSave(noteToSave);
     };
 
     return (
-        <Modal show={show} onHide={handleClose} size="lg">
-            <Modal.Header closeButton>
+        <Modal show={show} onHide={handleClose} size="lg" backdrop="static">
+            <Modal.Header closeButton className="bg-primary text-white">
                 <Modal.Title>
-                    Saisie des notes - {eleve?.User?.prenom} {eleve?.User?.nom}
-                    <Badge bg="info" className="ms-2">{matiere?.nom}</Badge>
+                    Saisie des notes - {eleve?.User?.prenom_ar} {eleve?.User?.nom_ar}
+                    <Badge bg="light" text="dark" className="ms-2">{matiere?.nom}</Badge>
+                    {validatedCycle && <Badge bg="info" className="ms-2">{validatedCycle}</Badge>}
                 </Modal.Title>
             </Modal.Header>
             <Modal.Body>
@@ -347,6 +219,7 @@ const NoteModal = ({ show, handleClose, eleve, matiere, notes, cycle, onSave }) 
                             rows={3}
                             value={formValues.remarque || ''}
                             onChange={(e) => handleChange('remarque', e.target.value)}
+                            placeholder="Entrez une remarque si nécessaire..."
                         />
                     </Form.Group>
                 </Form>

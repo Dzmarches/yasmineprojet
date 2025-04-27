@@ -3,7 +3,6 @@ import IRG from '../../../models/RH/paie/IRG.js'
 
 export const AjouterIRG = async (req, res) => {
   try {
-    console.log('reerrererrehello')
     const ecoleId = req.user.ecoleId;
     const { annee_fiscale, tranche_min, tranche_max, taux_imposition, pays } = req.body;
 

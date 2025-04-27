@@ -23,12 +23,13 @@ const PointageManuel = () => {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
-        hour: 'numeric',
-        minute: 'numeric',
-        second: 'numeric',
-        hour12: false
+        // hour: 'numeric',
+        // minute: 'numeric',
+        // second: 'numeric',
+        // hour12: false
     };
     const Datetoday = today.toLocaleDateString('fr-FR', options);
+
     const formattedDate = today.toISOString().slice(0, 16);
     const [showModal, setShowModal] = useState(false);
     const [fileName, setFileName] = useState('');
@@ -41,6 +42,40 @@ const PointageManuel = () => {
     const [listepointages, setlistepointages] = useState([]);
     const [datedu, setDatedu] = useState('');
     const [datea, setDatea] = useState('');
+
+
+    const [selectedEcole, setSelectedEcole] = useState(null);
+    const [filteredEcoles, setFilteredEcoles] = useState([]);
+    const [ecole, setEcoles] = useState([]);
+    useEffect(() => {
+        const fetchEcoles = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    console.error('Aucun token trouvé. Veuillez vous connecter.');
+                    return;
+                }
+
+                const response = await axios.get('http://localhost:5000/ecoles', {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                // Vérifier que les données contiennent bien les champs nécessaires
+                const ecolesWithDefaults = response.data.map(ecole => ({
+                    ...ecole,
+                    nomecole: ecole.nomecole || '', // Valeur par défaut si undefined
+                    nom_arecole: ecole.nom_arecole || '', // Valeur par défaut si undefined
+                }));
+                setEcoles(ecolesWithDefaults);
+                setFilteredEcoles(ecolesWithDefaults);
+            } catch (error) {
+                console.error('Erreur lors de la récupération des écoles', error);
+            }
+        };
+        fetchEcoles();
+    }, []);
+
 
     const handleShowModal = () => setShowModal(true);
     const handleCloseModal = () => setShowModal(false);
@@ -114,7 +149,7 @@ const PointageManuel = () => {
     useEffect(() => {
         const fetchPointages = async () => {
             if (datedu && datea) {
-              
+
                 try {
                     const token = localStorage.getItem("token");
                     if (!token) {
@@ -149,7 +184,7 @@ const PointageManuel = () => {
 
     const listePointage = async () => {
         try {
-            
+
             const token = localStorage.getItem("token");
             if (!token) {
                 alert("Vous devez être connecté pour soumettre le formulaire.");
@@ -161,7 +196,6 @@ const PointageManuel = () => {
                     "Content-Type": "application/json",
                 },
             });
-
             const employePactif = response.data.filter((item) => item.Employe.User?.statuscompte === "activer")
             setlistepointages(employePactif);
         } catch (error) {
@@ -302,18 +336,18 @@ const PointageManuel = () => {
                 return;
             }
             // Vérification du statut
-        // if (!statut[selectedPointageId]) {
-        //     alert("Veuillez sélectionner un statut");
-        //     return;
-        // }
-        // Vérification des heures supplémentaires
-        const heuresSup = parseInt(formData[selectedPointageId]?.heuresupP) || 0;
-        const typeHeureSup = formData[selectedPointageId]?.IdHeureSup;
+            // if (!statut[selectedPointageId]) {
+            //     alert("Veuillez sélectionner un statut");
+            //     return;
+            // }
+            // Vérification des heures supplémentaires
+            const heuresSup = parseInt(formData[selectedPointageId]?.heuresupP) || 0;
+            const typeHeureSup = formData[selectedPointageId]?.IdHeureSup;
 
-        if (heuresSup > 0 && !typeHeureSup) {
-            alert("Veuillez sélectionner un type d'heure supplémentaire lorsque le nombre d'heures est supérieur à 0");
-            return;
-        }
+            if (heuresSup > 0 && !typeHeureSup) {
+                alert("Veuillez sélectionner un type d'heure supplémentaire lorsque le nombre d'heures est supérieur à 0");
+                return;
+            }
             const response = await axios.put(`http://localhost:5000/pointage/modifier/${selectedPointageId}`, {
                 ...formData[selectedPointageId],
                 statut: statut[selectedPointageId]
@@ -339,15 +373,25 @@ const PointageManuel = () => {
     const handleSearchChange = (event) => {
         setSearchTerm(event.target.value);
     };
+
     const filteredData = listepointages.filter(item => {
-        return (item.Employe.User?.nom && item.Employe.User?.nom.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
+        const matchesSearchTerm =
+            (item.Employe.User?.nom && item.Employe.User?.nom.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
             (item.Employe.User?.prenom && item.Employe.User?.prenom.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
             (item.Employe.Poste.poste && item.Employe.Poste.poste.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
             (item.HeureSMP && item.HeureSMP.includes(searchTerm)) ||
             (item.HeureEAMP && item.HeureEAMP.includes(searchTerm)) ||
             (item.HeureEMP && item.HeureEMP.includes(searchTerm)) ||
             (item.HeureSAMP && item.HeureSAMP.includes(searchTerm)) ||
-            (item.statut && item.statut.includes(searchTerm))
+            (item.date && moment(item.date).format('YYYY-MM-DD').includes(searchTerm)) ||
+            (item.statut && item.statut.includes(searchTerm));
+
+        // Filtre par école
+        const matchesEcole = !selectedEcole ||
+            (item.Employe?.User?.Ecoles.some(ecole => ecole.id === parseInt(selectedEcole))) ||
+            (item.Employe?.User?.Ecoles[0]?.id === parseInt(selectedEcole));
+
+        return matchesSearchTerm && matchesEcole;
     });
 
     //imprimer 
@@ -489,6 +533,10 @@ const PointageManuel = () => {
             }));
         }
     }, [formData[selectedPointageId]?.heuresupP, selectedPointageId]);
+
+
+
+
     return (
         <>
             <nav>
@@ -578,29 +626,52 @@ const PointageManuel = () => {
                                                             </button>
 
                                                         </div>
+                                                    </div>
 
-                                                        <div className="col-md-4" style={{ flex: '1', marginRight: '10px' }}>
-                                                            <div className="input-group mr-2">
-                                                                <div className="form-outline" data-mdb-input-init> <input
+
+                                                    <div className="row d-flex align-items-center mb-3">
+                                                        {/* Champ de recherche */}
+                                                        <div className="col-md-4 d-flex">
+                                                            <div className="input-group" style={{ width: '100%' }}>
+                                                                <input
                                                                     type="search"
                                                                     id="form1"
                                                                     className="form-control"
                                                                     placeholder="Recherche"
-                                                                    style={{ height: "38px" }}
+                                                                    style={{ height: "38px", borderTopLeftRadius: '8px', borderBottomLeftRadius: '8px' }}
                                                                     value={searchTerm}
                                                                     onChange={handleSearchChange}
                                                                 />
+                                                                <div className="input-group-append">
+                                                                    <span className="input-group-text" style={{ background: "#cac8c8", borderTopRightRadius: '8px', borderBottomRightRadius: '8px' }}>
+                                                                        <img src={recherche} alt="Rechercher" height="20px" width="20px" />
+                                                                    </span>
                                                                 </div>
-                                                                <div style={{ background: "rgb(202, 200, 200)", padding: "3px", height: "37px", borderRadius: "2px" }}>
-                                                                    <img src={recherche} alt="" height="30px" width="30px" />
-
-                                                                </div>
-
-
                                                             </div>
                                                         </div>
 
+                                                        {/* Sélecteur d’école */}
+                                                        <div className="col-md-4" style={{ width: '100%'}}>
+                                                            <select
+                                                                name="ecole"
+                                                                className="form-control"
+                                                                required
+                                                                style={{ height: '38px', borderRadius: '8px', backgroundColor: '#F8F8F8' }}
+                                                                onChange={(e) => setSelectedEcole(e.target.value)}
+                                                                value={selectedEcole || ''}
+                                                            >
+                                                                <option value="">Sélectionnez une école</option>
+                                                                {ecole.map((item) => (
+                                                                    <option key={item.id} value={item.id}>
+                                                                        {item.nomecole}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
                                                     </div>
+
+
+
                                                 </div>
                                                 <div className="card-body col-12 mt-2">
                                                     <div className='row'>
@@ -626,15 +697,17 @@ const PointageManuel = () => {
                                                     <table className="table table-bordered " id="imprimer">
                                                         <thead>
                                                             <tr>
+
                                                                 <th>Nom et Prénom</th>
                                                                 <th>Poste</th>
-                                                                <th>Heure d'entrée Matin</th>
-                                                                <th>Heure de sortie l'après-midi</th>
-                                                                <th>Heure d'entrée Matin</th>
-                                                                <th>Heure de sortie l'après-midi</th>
+                                                                <th>Heure Entrée<br />(matin)</th>
+                                                                <th>Heure Sortie<br />(matin)</th>
+                                                                <th>Heure Entrée<br />(après-midi)</th>
+                                                                <th>Heure Sortie<br />(après-midi)</th>
                                                                 <th>Statut</th>
                                                                 <th>date</th>
-                                                                <th>Heures supplémentaires</th>
+                                                                <th>Heures <br />supplémentaires</th>
+                                                                <th>Ecole</th>
                                                                 <th>Modifier</th>
                                                             </tr>
                                                         </thead>
@@ -684,9 +757,10 @@ const PointageManuel = () => {
                                                                         </span>
                                                                     </td>
                                                                     <td>{moment(item.date).format('YYYY-MM-DD')}</td>
-                                                                    <td>{item.heuresupP}<br/>
+                                                                    <td>{item.heuresupP}<br />
                                                                         <small style={{ color: 'green' }}>{item.HeuresSup?.nom}</small>
                                                                     </td>
+                                                                    <td>{item.Employe?.User?.Ecoles ? item.Employe?.User?.Ecoles[0]?.nomecole : ''}</td>
                                                                     <td>
                                                                         <Button onClick={() => handleShowModalStatut(
                                                                             item.id,
@@ -701,7 +775,7 @@ const PointageManuel = () => {
                                                                             item.justificationret,
                                                                             item.datea,
                                                                             item.datedu,
-                                                                            item.IdHeureSup 
+                                                                            item.IdHeureSup
                                                                         )}>
                                                                             Modifier
                                                                         </Button>

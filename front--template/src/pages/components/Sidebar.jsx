@@ -18,6 +18,7 @@ import { BiSliderAlt } from 'react-icons/bi';
 import { AiFillReconciliation } from 'react-icons/ai';
 import { RiHome2Line } from 'react-icons/ri';
 import Can from '../../can';
+import {useAuth } from '../../components/AuthContext';
 
 
 import axios from 'axios';
@@ -25,6 +26,8 @@ import axios from 'axios';
 const Sidebar = () => {
   const [openSection, setOpenSection] = useState(null);
   const username = localStorage.getItem('username');
+  const { user } = useAuth(); // Utilisation du hook pour obtenir l'utilisateur
+
   const navigate = useNavigate();
 
   const today = new Date();
@@ -59,8 +62,12 @@ const Sidebar = () => {
         <div className="use-panel mt-2 d-flex flex-column align-items-center">
           <img src={logo} className="userImg" alt="User Image" />
           <div className="info text-center">
-            <a href="#" className="d-block">{username ? username : 'Utilisateur'}</a>
+            <a href="#" className="d-block">{user ? user.username : 'Utilisateur'}</a>
           </div>
+          <div className="info text-center">
+            <a href="#" className="d-block">{user && user.roles ? user.roles.join(', ') : 'Aucun rôle'}</a>
+          </div>
+
         </div>
 
         <div className="user-panel mt-3 pb-3 mb-3 d-flex">

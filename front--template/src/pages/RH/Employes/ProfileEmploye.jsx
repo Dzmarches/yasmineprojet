@@ -3,6 +3,7 @@ import rh from '../../../assets/imgs/employe.png';
 import axios from 'axios';
 import moment from 'moment'
 import printer from '../../../assets/imgs/printer.png';
+import utilisateur from '../../../assets/imgs/utilisateur.png';
 const ProfileEmploye = ({ employeId }) => {
 
     const [employe, setEmploye] = useState(null);
@@ -97,7 +98,6 @@ const ProfileEmploye = ({ employeId }) => {
               <body>
                 <div class="print-container">
                   <div class="header-row">
-                    <img class="profile" src="${url + employe.photo}" alt="Photo de l'employé" />
                     <div>
                       <h2>Profil de ${employe.User?.nom} ${employe.User?.prenom}</h2>
                       <p>Poste : ${employe?.Poste?.poste}</p>
@@ -233,7 +233,7 @@ const ProfileEmploye = ({ employeId }) => {
                         <td>${employe.tauxabt}</td>
                       </tr>
                       <tr>
-                        <th>Date d'abattement</th>
+                        <th>Date de fin de l’abattement</th>
                         <td>${employe.dateabt?moment(employe.dateabt).format('YYYY-MM-DD'):''}</td>
                         <th>Declaration a la CNAS</th>
                         <td>${employe.declaration==1?'Oui':'Non'}</td>
@@ -295,7 +295,10 @@ const ProfileEmploye = ({ employeId }) => {
                         <div className="widget-user-header d-flex justify-content-start align-items-center">
                             <div className="">
                                 {/* <ImageProtegee imagePath={employe.photo} /> */}
-                                <img src={url + employe.photo} alt="Photo de l'employé" width="90px" style={{borderRadius: '50%'}}/>
+                                {/* <img src={url + employe.photo} alt="Photo de l'employé" width="90px" style={{borderRadius: '50%'}}/> */}
+                              <img className="ronde" src={employe.photo ? url + employe.photo : utilisateur} 
+                              alt="Photo de l'employé" width="90px" style={{borderRadius: '50%'}}/>
+                                
                             </div>
                             <div className="ml-3">
                                 <h5 className="widget-user-username">Profile du :{employe.User?.nom} {employe.User.prenom}</h5>
@@ -516,7 +519,7 @@ const ProfileEmploye = ({ employeId }) => {
                                     <p>{employe.tauxabt}</p>
                                 </div>
                                 <div className="col-md-3">
-                                    <h6 className="font-weight-bold">Date d'abattement</h6>
+                                    <h6 className="font-weight-bold">Date de fin de l’abattement</h6>
                                     <p>{employe.dateabt?moment(employe.dateabt).format('YYYY-MM-DD'):''}</p>
 
                                 </div>

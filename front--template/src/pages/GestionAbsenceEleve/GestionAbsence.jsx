@@ -196,19 +196,22 @@ const GestionAbsence = () => {
                         const existing = existingPresences.find(p => p.eleveId === eleve.id);
                         newPresences[eleve.id] = {
                             matin: existing?.matin || 'present',
-                            apres_midi: existing?.apres_midi || 'present'
+                            apres_midi: existing?.apres_midi || 'present',
+                            justificationMatin: existing?.justificationMatin || null,
+                            justificationApresMidi: existing?.justificationApresMidi || null
                         };
                     });
 
                     setPresences(newPresences);
                 } catch (error) {
                     console.error("Erreur lors de la récupération des présences:", error);
-                    // Initialiser avec des valeurs par défaut
                     const defaultPresences = {};
                     eleves.forEach(eleve => {
                         defaultPresences[eleve.id] = {
                             matin: 'present',
-                            apres_midi: 'present'
+                            apres_midi: 'present',
+                            justificationMatin: null,
+                            justificationApresMidi: null
                         };
                     });
                     setPresences(defaultPresences);
@@ -324,63 +327,59 @@ const GestionAbsence = () => {
 
     const handleSavePresences = async () => {
         try {
-            const token = localStorage.getItem('token');
-            if (!token) throw new Error('Aucun token trouvé');
-
             const formData = new FormData();
 
-            // Ajouter les données de présence
-            const presencesData = eleves.map(eleve => ({
-                eleveId: eleve.id,
-                matin: presences[eleve.id]?.matin || 'present',
-                apres_midi: presences[eleve.id]?.apres_midi || 'present',
-                justificationMatin: justificationFiles[eleve.id]?.matin ? 'pending' : null,
-                justificationApresMidi: justificationFiles[eleve.id]?.apres_midi ? 'pending' : null
-            }));
+            // Ajouter les présences
+            eleves.forEach(eleve => {
+                formData.append('presences[]', JSON.stringify({
+                    eleveId: eleve.id,
+                    matin: presences[eleve.id]?.matin || 'present',
+                    apres_midi: presences[eleve.id]?.apres_midi || 'present'
+                }));
+            });
 
-            formData.append('presences', JSON.stringify(presencesData));
+            // Ajouter les fichiers de justification
+            Object.entries(justificationFiles).forEach(([eleveId, periods]) => {
+                Object.entries(periods).forEach(([period, file]) => {
+                    formData.append(`justification${capitalize(period)}-${eleveId}`, file);
+                });
+            });
+
+            // Ajouter les autres données
             formData.append('date', selectedDate);
             formData.append('heure', selectedTime);
             formData.append('enseignantId', enseignantId);
 
-            // Ajouter les fichiers de justification
-            eleves.forEach(eleve => {
-                if (justificationFiles[eleve.id]?.matin) {
-                    formData.append(`justificationMatin-${eleve.id}`, justificationFiles[eleve.id].matin);
-                }
-                if (justificationFiles[eleve.id]?.apres_midi) {
-                    formData.append(`justificationApresMidi-${eleve.id}`, justificationFiles[eleve.id].apres_midi);
+            const response = await axios.post('http://localhost:5000/presences', formData, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'multipart/form-data'
                 }
             });
 
-            const response = await axios.post(
-                'http://localhost:5000/presences',
-                formData,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        'Content-Type': 'multipart/form-data'
-                    }
-                }
-            );
-
+            console.log('Fichiers à envoyer:', justificationFiles); // Ajoutez ce log avant l'envoi
+            alert('Sauvegarde réussie !');
             console.log('Réponse du serveur:', response.data);
-            alert('Présences et justifications enregistrées avec succès!');
         } catch (error) {
-            console.error('Erreur lors de l\'enregistrement:', error);
-            alert(`Erreur: ${error.response?.data?.message || error.message}`);
+            console.error('Erreur lors de la sauvegarde:', error);
+            alert('Erreur lors de la sauvegarde: ' + (error.response?.data?.message || error.message));
         }
     };
+
+    // Helper function
+    const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
     const handleFileChange = (e, eleveId, period) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        const newJustificationFiles = { ...justificationFiles };
-        if (!newJustificationFiles[eleveId]) {
-            newJustificationFiles[eleveId] = {};
-        }
-        newJustificationFiles[eleveId][period] = file;
-        setJustificationFiles(newJustificationFiles);
+        setJustificationFiles(prev => {
+            const newFiles = { ...prev };
+            if (!newFiles[eleveId]) {
+                newFiles[eleveId] = {};
+            }
+            newFiles[eleveId][period] = file;
+            return newFiles;
+        });
     };
 
     if (loading) return <p>Chargement ...</p>;
@@ -552,7 +551,7 @@ const GestionAbsence = () => {
                                                     <button
                                                         className="btn btn-success no-print"
                                                         onClick={handleSavePresences}
-                                                        // disabled={!isInSchedule} // Gardez seulement la vérification d'emploi du temps
+                                                    // disabled={!isInSchedule} // Gardez seulement la vérification d'emploi du temps
                                                     >
                                                         Enregistrer
                                                     </button>
@@ -585,95 +584,104 @@ const GestionAbsence = () => {
                                                         </thead>
                                                         <tbody>
                                                             {eleves.length > 0 ? (
-                                                                eleves.map((eleve, index) => (
-                                                                    <tr key={eleve.id}>
-                                                                        <td>{index + 1}</td>
-                                                                        <td>{eleve.User?.nom || 'N/A'}</td>
-                                                                        <td>{eleve.User?.prenom || 'N/A'}</td>
+                                                                eleves.map((eleve, index) => {
+                                                                    const matinStatus = presences[eleve.id]?.matin || 'present';
+                                                                    const apresMidiStatus = presences[eleve.id]?.apres_midi || 'present';
+                                                                    const hasMatinJustification = !!presences[eleve.id]?.justificationMatin;
+                                                                    const hasApresMidiJustification = !!presences[eleve.id]?.justificationApresMidi;
 
-                                                                        {/* Matin */}
-                                                                        <td>
-                                                                            <input
-                                                                                type="radio"
-                                                                                name={`matin-${eleve.id}`}
-                                                                                checked={presences[eleve.id]?.matin === 'present'}
-                                                                                onChange={() => handlePresenceChange(eleve.id, 'present', 'matin')}
-                                                                            // disabled={isMorningDisabled}
-                                                                            />
-                                                                        </td>
-                                                                        <td>
-                                                                            <input
-                                                                                type="radio"
-                                                                                name={`matin-${eleve.id}`}
-                                                                                checked={presences[eleve.id]?.matin === 'retard'}
-                                                                                onChange={() => handlePresenceChange(eleve.id, 'retard', 'matin')}
-                                                                            // disabled={isMorningDisabled}
-                                                                            />
-                                                                        </td>
-                                                                        <td>
-                                                                            <input
-                                                                                type="radio"
-                                                                                name={`matin-${eleve.id}`}
-                                                                                checked={presences[eleve.id]?.matin === 'absent'}
-                                                                                onChange={() => handlePresenceChange(eleve.id, 'absent', 'matin')}
-                                                                            // disabled={isMorningDisabled}
-                                                                            />
-                                                                        </td>
-                                                                        <td>
-                                                                            <input
-                                                                                type="file"
-                                                                                accept="image/*,.pdf"
-                                                                                onChange={(e) => handleFileChange(e, eleve.id, 'matin')}
-                                                                            // Retirez cette ligne ↓
-                                                                            // disabled={presences[eleve.id]?.matin !== 'absent'}
-                                                                            />
-                                                                            {justificationFiles[eleve.id]?.matin && (
-                                                                                <span>{justificationFiles[eleve.id].matin.name}</span>
-                                                                            )}
-                                                                        </td>
+                                                                    return (
+                                                                        <tr key={eleve.id}>
+                                                                            <td>{index + 1}</td>
+                                                                            <td>{eleve.User?.nom || 'N/A'}</td>
+                                                                            <td>{eleve.User?.prenom || 'N/A'}</td>
 
-                                                                        {/* Après-midi */}
-                                                                        <td>
-                                                                            <input
-                                                                                type="radio"
-                                                                                name={`apres_midi-${eleve.id}`}
-                                                                                checked={presences[eleve.id]?.apres_midi === 'present'}
-                                                                                onChange={() => handlePresenceChange(eleve.id, 'present', 'apres_midi')}
-                                                                            //disabled={isAfternoonDisabled}
-                                                                            />
-                                                                        </td>
-                                                                        <td>
-                                                                            <input
-                                                                                type="radio"
-                                                                                name={`apres_midi-${eleve.id}`}
-                                                                                checked={presences[eleve.id]?.apres_midi === 'retard'}
-                                                                                onChange={() => handlePresenceChange(eleve.id, 'retard', 'apres_midi')}
-                                                                            //disabled={isAfternoonDisabled}
-                                                                            />
-                                                                        </td>
-                                                                        <td>
-                                                                            <input
-                                                                                type="radio"
-                                                                                name={`apres_midi-${eleve.id}`}
-                                                                                checked={presences[eleve.id]?.apres_midi === 'absent'}
-                                                                                onChange={() => handlePresenceChange(eleve.id, 'absent', 'apres_midi')}
-                                                                            //disabled={isAfternoonDisabled}
-                                                                            />
-                                                                        </td>
-                                                                        <td>
-                                                                            <input
-                                                                                type="file"
-                                                                                accept="image/*,.pdf"
-                                                                                onChange={(e) => handleFileChange(e, eleve.id, 'apres_midi')}
-                                                                            // Retirez cette ligne ↓
-                                                                            // disabled={presences[eleve.id]?.apres_midi !== 'absent'}
-                                                                            />
-                                                                            {justificationFiles[eleve.id]?.apres_midi && (
-                                                                                <span>{justificationFiles[eleve.id].apres_midi.name}</span>
-                                                                            )}
-                                                                        </td>
-                                                                    </tr>
-                                                                ))
+                                                                            {/* Matin */}
+                                                                            <td>
+                                                                                <input
+                                                                                    type="radio"
+                                                                                    name={`matin-${eleve.id}`}
+                                                                                    checked={matinStatus === 'present'}
+                                                                                    onChange={() => handlePresenceChange(eleve.id, 'present', 'matin')}
+                                                                                />
+                                                                            </td>
+                                                                            <td>
+                                                                                <input
+                                                                                    type="radio"
+                                                                                    name={`matin-${eleve.id}`}
+                                                                                    checked={matinStatus === 'retard'}
+                                                                                    onChange={() => handlePresenceChange(eleve.id, 'retard', 'matin')}
+                                                                                />
+                                                                            </td>
+                                                                            <td>
+                                                                                <input
+                                                                                    type="radio"
+                                                                                    name={`matin-${eleve.id}`}
+                                                                                    checked={matinStatus === 'absent'}
+                                                                                    onChange={() => handlePresenceChange(eleve.id, 'absent', 'matin')}
+                                                                                />
+                                                                            </td>
+                                                                            <td>
+                                                                                {(matinStatus === 'absent' || matinStatus === 'retard') && (
+                                                                                    <>
+                                                                                        <input
+                                                                                            type="file"
+                                                                                            accept="image/*,.pdf"
+                                                                                            onChange={(e) => handleFileChange(e, eleve.id, 'matin')}
+                                                                                        />
+                                                                                        {hasMatinJustification ? (
+                                                                                            <span style={{ color: 'green' }}>Justifié</span>
+                                                                                        ) : justificationFiles[eleve.id]?.matin ? (
+                                                                                            <span>{justificationFiles[eleve.id].matin.name}</span>
+                                                                                        ) : null}
+                                                                                    </>
+                                                                                )}
+                                                                            </td>
+
+                                                                            {/* Après-midi */}
+                                                                            <td>
+                                                                                <input
+                                                                                    type="radio"
+                                                                                    name={`apres_midi-${eleve.id}`}
+                                                                                    checked={apresMidiStatus === 'present'}
+                                                                                    onChange={() => handlePresenceChange(eleve.id, 'present', 'apres_midi')}
+                                                                                />
+                                                                            </td>
+                                                                            <td>
+                                                                                <input
+                                                                                    type="radio"
+                                                                                    name={`apres_midi-${eleve.id}`}
+                                                                                    checked={apresMidiStatus === 'retard'}
+                                                                                    onChange={() => handlePresenceChange(eleve.id, 'retard', 'apres_midi')}
+                                                                                />
+                                                                            </td>
+                                                                            <td>
+                                                                                <input
+                                                                                    type="radio"
+                                                                                    name={`apres_midi-${eleve.id}`}
+                                                                                    checked={apresMidiStatus === 'absent'}
+                                                                                    onChange={() => handlePresenceChange(eleve.id, 'absent', 'apres_midi')}
+                                                                                />
+                                                                            </td>
+                                                                            <td>
+                                                                                {(apresMidiStatus === 'absent' || apresMidiStatus === 'retard') && (
+                                                                                    <>
+                                                                                        <input
+                                                                                            type="file"
+                                                                                            accept="image/*,.pdf"
+                                                                                            onChange={(e) => handleFileChange(e, eleve.id, 'apres_midi')}
+                                                                                        />
+                                                                                        {hasApresMidiJustification ? (
+                                                                                            <span style={{ color: 'green' }}>Justifié</span>
+                                                                                        ) : justificationFiles[eleve.id]?.apres_midi ? (
+                                                                                            <span>{justificationFiles[eleve.id].apres_midi.name}</span>
+                                                                                        ) : null}
+                                                                                    </>
+                                                                                )}
+                                                                            </td>
+                                                                        </tr>
+                                                                    );
+                                                                })
                                                             ) : (
                                                                 <tr>
                                                                     <td colSpan="11" className="text-center">Aucun élève trouvé</td>

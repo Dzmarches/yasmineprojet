@@ -47,7 +47,7 @@ const Cart = ({ lat, lon, showcart, setShowcart, EcolePosition, color,id }) => {
     } else {
         circleOptions = { color: 'red', fillColor: 'red' };
     }
-    console.log('circleOptions', circleOptions);
+
 
     // Calculer le centre du polygone (EcolePosition)
     const calculateCenter = (polygon) => {
@@ -59,10 +59,6 @@ const Cart = ({ lat, lon, showcart, setShowcart, EcolePosition, color,id }) => {
     };
 
     const center = calculateCenter(EcolePosition);
-
-
-
-    console.log('iddddddd',id)
     return (
         <div className='cart'>
             {person}
@@ -78,12 +74,6 @@ const Cart = ({ lat, lon, showcart, setShowcart, EcolePosition, color,id }) => {
                         <div className="modal-header">
                             <h6 className="modal-title" id="staticBackdropLabel">Position du pointage</h6>
                             <button type="button" className="btn-close" onClick={closeModal} aria-label="Close"></button>
-
-
-
-
-
-
                         </div>
                         <div className="modal-body">
                             <MapContainer
@@ -107,7 +97,7 @@ const Cart = ({ lat, lon, showcart, setShowcart, EcolePosition, color,id }) => {
                                     <Circle
                                         center={[lat, lon]}
                                         pathOptions={circleOptions}
-                                        radius={5}
+                                        radius={2}
                                     />
                                 </LayerGroup>
 
@@ -121,7 +111,6 @@ const Cart = ({ lat, lon, showcart, setShowcart, EcolePosition, color,id }) => {
                             </MapContainer>
                         </div>
                         <div className="modal-footer">
-                            <button type="button" className="btn btn-secondary">Ajouter</button>
                             <button type="button" className="btn btn-secondary" onClick={closeModal}>Fermer</button>
                         </div>
                     </div>

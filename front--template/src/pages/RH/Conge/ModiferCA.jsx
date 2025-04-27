@@ -107,6 +107,8 @@ const ModifierCA = ({ IDemande, IDEmploye }) => {
 
             if (response.status === 200) {
                 alert("Demande mise à jour avec succès.");
+                // Fermer la modal après succès
+                window.$('#ModifierCA').modal('hide');
             }
 
 
@@ -264,8 +266,8 @@ const ModifierCA = ({ IDemande, IDEmploye }) => {
                             <hr />
 
                             <div className="row">
-                                {(demandeEmploye?.statut != 'Accepté') &&(
-                                    
+                                {(demandeEmploye?.statut != 'Accepté') && (
+
                                     <div className="col-md-4">
                                         <label >Changer le statut</label>
                                         <Select

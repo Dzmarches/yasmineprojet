@@ -34,16 +34,25 @@ import periodesPaieRoute from './routes/RH/paie/periodePaieRoute.js';
 import BultteinsPaieRoute from './routes/RH/paie/BultteinsPaieRoute.js';
 import HeureSupRoute from './routes/RH/HeureSupRoute.js';
 import ParametreRetard from './routes/RH/paie/ParametreRetardRoute.js';
+import joursferies from './routes/RH/paie/JourFeries.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs'
-import './cron/absenceFinJournee.js'
+import Typerevenus from './routes/comptabilite/TypeRevenueRoute.js'
+import Typedepenses from './routes/comptabilite/TypeDepenseRoute.js'
+import depensesRoute from './routes/comptabilite/DepensesRoute.js'
+import revenusRoute from './routes/comptabilite/RevenusRoute.js'
+import ContratRoute from './routes/comptabilite/paimentEleve/ContratRoute.js'
+import PlanningPaiementR from './routes/comptabilite/paimentEleve/PlanningPaiementR.js'
+// import './cron/absenceFinJournee.js'
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename)
 
 dotenv.config();
 const app = express();
+
 
 
 app.use(express.urlencoded({ extended: true }));
@@ -56,6 +65,8 @@ app.use('/images/employes', express.static(path.join(__dirname, 'public/images/e
 app.use('/justifications/modeles/images', express.static(path.join(__dirname, 'public/justifications/modeles/images')));
 app.use("/attestations/modeles/images", express.static(path.join(__dirname, "public/attestations/modeles/images")));
 app.use(`/conges/employes`, express.static(path.join(__dirname, `public/conges/employes`)));
+app.use(`/revenus`, express.static(path.join(__dirname, `public/revenus`)));
+app.use(`/depenses`, express.static(path.join(__dirname, `public/depenses`)));
 
 app.use(router);
 
@@ -85,6 +96,13 @@ app.use('/BultteinPaie',BultteinsPaieRoute);
 app.use('/HeureSup',HeureSupRoute);
 app.use('/attestation',attestationRoute);
 app.use('/ParametreRetard',ParametreRetard);
+app.use('/joursferies',joursferies);
+app.use('/Typerevenus',Typerevenus);
+app.use('/Typedepenses',Typedepenses);
+app.use('/revenus',revenusRoute);
+app.use('/depenses',depensesRoute);
+app.use('/contrat',ContratRoute);
+app.use('/PlanningPaiement',PlanningPaiementR);
 
 export const syncDatabase = async () => {
   try {
@@ -95,7 +113,6 @@ export const syncDatabase = async () => {
     throw error;
   }
 };
-
 
 
 const startServer = async () => {

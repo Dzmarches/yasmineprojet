@@ -39,7 +39,18 @@ import Note from './Admin/Note.js';
 import PeriodeNote from './Admin/periodenote.js';
 import Remarque from './Admin/Remarque.js';
 import EcoleRemarque from './Admin/EcoleRemarque.js';
-import Anneescolaire from '../models/Admin/Anneescolaires.js';
+import JoursFeries from './RH/paie/JoursFeries.js';
+import TypeRevenue from './comptabilite/TypeRevenue.js';
+import TypeDepense from './comptabilite/TypeDepense.js';
+import Revenu from './comptabilite/Revenu.js';
+import Depense from './comptabilite/Depense.js';
+import Contrat from './comptabilite/PaimentEtudiant/Contrat.js';
+import PlanningPaiement from './comptabilite/PaimentEtudiant/PlanningPaiement.js';
+
+import Anneescolaire from './Admin/Anneescolaires.js';
+import trimest from './Admin/Trimest.js';
+import Trimest from './Admin/Trimest.js';
+import MoyenneGenerale from './Admin/MoyenneGenerale.js';
 
 
 // User and Role Many-to-Many Relationship
@@ -199,6 +210,18 @@ Note.belongsTo(User, { as: 'Enseignant', foreignKey: 'enseignantId' });
 Note.belongsTo(Matiere, { foreignKey: 'matiereId' });
 Note.belongsTo(Section, { foreignKey: 'sectionId' });
 Note.belongsTo(PeriodeNote, { foreignKey: 'periodeId' });
+Note.belongsTo(Anneescolaire, { foreignKey: 'annescolaireId' });
+Note.belongsTo(Trimest, { foreignKey: 'trimestId' });
+
+MoyenneGenerale.belongsTo(User, { as: 'Eleve', foreignKey: 'EleveId' });
+MoyenneGenerale.belongsTo(User, { as: 'Enseignant', foreignKey: 'enseignantId' });
+MoyenneGenerale.belongsTo(Matiere, { foreignKey: 'matiereId' });
+MoyenneGenerale.belongsTo(Niveaux, { foreignKey: 'niveauId' });
+MoyenneGenerale.belongsTo(Section, { foreignKey: 'sectionId' });
+MoyenneGenerale.belongsTo(PeriodeNote, { foreignKey: 'periodeId' });
+MoyenneGenerale.belongsTo(Anneescolaire, { foreignKey: 'annescolaireId' });
+MoyenneGenerale.belongsTo(Trimest, { foreignKey: 'trimestId' });
+
 
 
 Ecole.belongsToMany(Remarque, { through: EcoleRemarque, foreignKey: "ecoleeId" });
@@ -298,11 +321,9 @@ CongeAnnuel.belongsTo(EcolePrincipal, { foreignKey: 'ecoleId' });
 Ecole.hasMany(CongeAnnuel, {foreignKey: "ecoleeId"});
 CongeAnnuel.belongsTo(Ecole, { foreignKey: 'ecoleeId' });
 
-
 //conge absences et conge annuel
 CongeAnnuel.hasMany(CongeAbsence, { foreignKey: 'idCA' });
 CongeAbsence.belongsTo(CongeAnnuel, { foreignKey: 'idCA' });
-
 
 //documents ecolep et secole
 
@@ -311,8 +332,6 @@ Attestation.belongsTo(EcolePrincipal, { foreignKey: 'ecoleId' });
 
 Ecole.hasMany(Attestation, {foreignKey: "ecoleeId"});
 Attestation.belongsTo(Ecole, { foreignKey: 'ecoleeId' });
- 
- 
 
 //paie
 EcolePrincipal.hasMany(Prime, {foreignKey: "ecoleId"});
@@ -324,7 +343,6 @@ PeriodePaie.belongsTo(EcolePrincipal, { foreignKey: 'ecoleId' });
 EcolePrincipal.hasMany(HeuresSup, {foreignKey: "ecoleId"});
 HeuresSup.belongsTo(EcolePrincipal, { foreignKey: 'ecoleId' });
 
-
 //parametre retard
 EcolePrincipal.hasMany(ParametereRetard, {foreignKey: "ecoleId"});
 ParametereRetard.belongsTo(EcolePrincipal, { foreignKey: 'ecoleId' });
@@ -334,8 +352,6 @@ Pointage.belongsTo(HeuresSup, { foreignKey: 'IdHeureSup' });
 
 // PeriodePaie.hasOne(JournalPaie, { foreignKey: 'periodePaieId', onDelete: 'CASCADE', onUpdate: 'CASCADE',});
 // JournalPaie.belongsTo(PeriodePaie, {foreignKey: 'periodePaieId',});
-
-
 
 Employe.belongsToMany(PeriodePaie, { through: JournalPaie, foreignKey: 'idEmploye' });
 PeriodePaie.belongsToMany(Employe, { through: JournalPaie, foreignKey: 'periodePaieId' });
@@ -367,5 +383,52 @@ Prime_Employe.belongsTo(Employe, { foreignKey: 'EmployeId' });
 
 Employe.hasMany(Pointage, { foreignKey: 'employe_id' });
 Pointage.belongsTo(Employe, { foreignKey: 'employe_id' });
+
+EcolePrincipal.hasMany(JoursFeries, { foreignKey: 'ecoleId' });
+JoursFeries.belongsTo(EcolePrincipal, { foreignKey: 'ecoleId' });
+
+
+//comptabilite:
+// type revenues
+EcolePrincipal.hasMany(TypeRevenue, {foreignKey: "ecoleId"});
+TypeRevenue.belongsTo(EcolePrincipal, { foreignKey: 'ecoleId' });
+Ecole.hasMany(TypeRevenue, {foreignKey: "ecoleeId"});
+TypeRevenue.belongsTo(Ecole, { foreignKey: 'ecoleeId' });
+// type depenses
+EcolePrincipal.hasMany(TypeDepense, {foreignKey: "ecoleId"});
+TypeDepense.belongsTo(EcolePrincipal, { foreignKey: 'ecoleId' });
+Ecole.hasMany(TypeDepense, {foreignKey: "ecoleeId"});
+TypeDepense.belongsTo(Ecole, { foreignKey: 'ecoleeId' });
+
+
+// gestion  revenues
+EcolePrincipal.hasMany(Revenu, {foreignKey: "ecoleId"});
+Revenu.belongsTo(EcolePrincipal, { foreignKey: 'ecoleId' });
+Ecole.hasMany(Revenu, {foreignKey: "ecoleeId"});
+Revenu.belongsTo(Ecole, { foreignKey: 'ecoleeId' });
+TypeRevenue.hasMany(Revenu, {foreignKey: "typeId"});
+Revenu.belongsTo(TypeRevenue, { foreignKey: 'typeId' });
+
+
+// gestion  depenses
+EcolePrincipal.hasMany(Depense, {foreignKey: "ecoleId"});
+Depense.belongsTo(EcolePrincipal, { foreignKey: 'ecoleId' });
+Ecole.hasMany(Depense, {foreignKey: "ecoleeId"});
+Depense.belongsTo(Ecole, { foreignKey: 'ecoleeId' });
+TypeDepense.hasMany(Depense, {foreignKey: "typeId"});
+Depense.belongsTo(TypeDepense, { foreignKey: 'typeId' });
+
+//paiments etudiants
+Niveaux.hasMany(Contrat, {foreignKey: "niveauId"});
+Contrat.belongsTo(Niveaux, {foreignKey: "niveauId"});
+
+Anneescolaire.hasMany(Contrat, {foreignKey: "annescolaireId"});
+Contrat.belongsTo(Anneescolaire, {foreignKey: "annescolaireId"});
+
+Eleve.hasMany(Contrat, {foreignKey: "eleveId"});
+Contrat.belongsTo(Eleve, {foreignKey: "eleveId"});
+
+Contrat.hasMany(PlanningPaiement, {foreignKey: "ContratId"});
+PlanningPaiement.belongsTo(Contrat, {foreignKey: "ContratId"});
 
 export { User, Role, UserRole, EcolePrincipal, Ecole, UserEcole, CycleScolaire };

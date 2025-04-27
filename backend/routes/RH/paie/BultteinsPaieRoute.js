@@ -1,7 +1,7 @@
 import express from 'express';
 import {FindEmploye,FindPeriodePaie,FindPointage,journalpaie,liste,ImprimerBTE,
     ArchiverJournalPaie,findeEnregistrer,getIRG,VoirFichesPaie,
-    publierJournal,JPEmploye,listeConge,listeCongeNonEmploye}
+    publierJournal,JPEmploye,listeConge,listeCongeNonEmploye,journalpaieATS}
     from '../../../controllers/RH/paie/BulletinsPaie.js'
 
 
@@ -23,6 +23,9 @@ router.put('/journalPaie/publier',publierJournal);
 router.get('/journalPaie/Employe',JPEmploye);
 router.get('/listeConge/:employeId/:idPeriodepai',listeConge);
 router.get('/listeCongeNonE/:employeId',listeCongeNonEmploye);
+
+//route pour genere les bultein de paie pour ATS
+router.post("/journalPaie/ats", journalpaieATS);
   
 
 

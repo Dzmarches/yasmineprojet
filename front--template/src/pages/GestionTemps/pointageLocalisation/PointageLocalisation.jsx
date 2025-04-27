@@ -54,19 +54,7 @@ const PointageLocalisation = () => {
         setSelectedOption(selectedOption);
     };
 
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentItems = data.slice(indexOfFirstItem, indexOfLastItem);
-    const totalPages = Math.ceil(data.length / itemsPerPage);
-    const pageNumbers = [];
-    for (let i = Math.max(1, currentPage - 2); i <= Math.min(currentPage + 2, totalPages); i++) {
-        pageNumbers.push(i);
-    }
-    const handlePageChange = (page) => {
-        if (page >= 1 && page <= totalPages) {
-            setCurrentPage(page);
-        }
-    };
+
 
     // console.log('data is ', PointagesData)
     const handleButtonClick = async (BTN) => {
@@ -128,7 +116,6 @@ const PointageLocalisation = () => {
                         },
                     }
                 );
-
                 if (response.status === 201) {
                     alert("Formulaire soumis avec succès!");
                     infoPointageE();
@@ -310,6 +297,21 @@ const PointageLocalisation = () => {
             (item.addressEAMP && item.addressEAMP.includes(searchTerm)) ||
             (item.addressSAMP && item.addressSAMP.includes(searchTerm))
     });
+
+
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    const pageNumbers = [];
+    for (let i = Math.max(1, currentPage - 2); i <= Math.min(currentPage + 2, totalPages); i++) {
+        pageNumbers.push(i);
+    }
+    const handlePageChange = (page) => {
+        if (page >= 1 && page <= totalPages) {
+            setCurrentPage(page);
+        }
+    };
 
 
     const mapEcole = async () => {
@@ -647,10 +649,10 @@ const PointageLocalisation = () => {
                                                             <thead>
                                                                 <tr>
                                                                     {columnVisibility.date && <th>Date</th>}
-                                                                    {columnVisibility.heureEntreeMatin && <th>Heure d'entrée Matin</th>}
-                                                                    {columnVisibility.heureSortieMatin && <th>Heure de sortie Matin</th>}
-                                                                    {columnVisibility.heureEntreeApresMidi && <th>Heure d'entrée Après-Midi</th>}
-                                                                    {columnVisibility.heureSortieApresMidi && <th>Heure de sortie Après-Midi</th>}
+                                                                    {columnVisibility.heureEntreeMatin && <th>Heure Entrée<br/>(matin)</th>}
+                                                                    {columnVisibility.heureSortieMatin && <th>Heure Sortie<br/>(matin)</th>}
+                                                                    {columnVisibility.heureEntreeApresMidi && <th>Heure Entrée<br/>(après-midi)</th>}
+                                                                    {columnVisibility.heureSortieApresMidi && <th>Heure Sortie<br/>(après-midi)</th>}
                                                                     {columnVisibility.statut && <th>Statut</th>}
                                                                     {columnVisibility.heureSupplementaire && <th>Heure Supplémentaire</th>}
                                                                     {columnVisibility.commentaire && <th>Commentaire</th>}
@@ -659,7 +661,7 @@ const PointageLocalisation = () => {
 
                                                             </thead>
                                                             <tbody>
-                                                                {filteredData.reverse().map((item, index) => (
+                                                                {currentItems.map((item, index) => (
                                                                     <tr key={index}>
                                                                        {columnVisibility.date && <td style={{ writingMode: 'vertical', textOrientation: 'upright', whiteSpace: 'nowrap' }}>
                                                                             {item.date}

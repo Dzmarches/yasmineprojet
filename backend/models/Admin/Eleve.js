@@ -88,10 +88,10 @@ Eleve.init(
 Eleve.belongsTo(User, { foreignKey: 'userId' });
 User.hasOne(Eleve, { foreignKey: 'userId' });
 
-Eleve.belongsTo(Niveaux, { foreignKey: 'niveauId', as: 'niveau' });
-Niveaux.hasMany(Eleve, { foreignKey: 'niveauId', as: 'eleve' });
+Eleve.belongsTo(Niveaux, { foreignKey: 'niveauId' });
+Niveaux.hasMany(Eleve, { foreignKey: 'niveauId', });
 
-Eleve.belongsTo(Section, { foreignKey: 'classeId', as: 'sections' });
-Section.hasMany(Eleve, { foreignKey: 'classeId', as: 'eleve' });
+Eleve.belongsTo(Section, { foreignKey: 'classeId' });
+Section.hasMany(Eleve, { foreignKey: 'classeId' });
 
 export default Eleve;

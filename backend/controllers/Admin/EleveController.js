@@ -81,7 +81,7 @@ export const getElevesBySection = async (req, res) => {
             where: { classeId: sectionId },
             include: [{
                 model: User,
-                attributes: ['id', 'nom', 'prenom']
+                attributes: ['id', 'nom', 'prenom', 'nom_ar', 'prenom_ar', 'datenaiss', 'lieuxnaiss', 'lieuxnaiss_ar'],
             }]
         });
 

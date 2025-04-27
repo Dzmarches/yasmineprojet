@@ -1,6 +1,7 @@
 import express from 'express';
 import { AjouterPointage,ModifierPointage,Listepointage,InfoPointageToday,
-    Listepointagedate,AjouterPointageLocalisation,setAllpoinates,ecoleD,ListepointageRapport,ecoleEmployerUser}
+    Listepointagedate,AjouterPointageLocalisation,setAllpoinates,ecoleD,ListepointageRapport
+    ,ecoleEmployerUser,marquerabsences}
  from '../../controllers/RH/pointageControl.js';
  
 
@@ -16,6 +17,11 @@ router.get("/allpointages",setAllpoinates);
 router.get('/ecoleD', ecoleD);
 router.get('/ListepointageRapport', ListepointageRapport);
 router.get('/ecoleDEmploye/:id', ecoleEmployerUser);
+router.post('/marquerabsences', marquerabsences);
+
+
+
+
 
 
 

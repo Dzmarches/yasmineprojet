@@ -77,6 +77,14 @@ import JustificationAbsence from "./pages/GestionAbsenceEleve/JustificationAbsen
 import RapportConges from "./pages/RH/Conge/RapportConges.jsx";
 import SoldeCompte from "./pages/RH/Paie/soldeTTcompte/SoldeCompte.jsx";
 import ListeNonEmploye from "./pages/RH/Paie/soldeTTcompte/ListeNonEmploye.jsx";
+import JoursFeries from "./pages/parametres/JoursFeries.jsx";
+import Typerevenue from "./pages/comptabilite/Typerevenue.jsx";
+import Typedepense from "./pages/comptabilite/Typedepense.jsx";
+import RevenusC from "./pages/comptabilite/RevenusC.jsx";
+import DepensesC from "./pages/comptabilite/DepensesC.jsx";
+import Parameterpaie from "./pages/RH/Paie/Parameterpaie.jsx"
+import Comptabilite from "./pages/comptabilite/Comptabilite.jsx";
+import PaiementEtudiants from "./pages/comptabilite/paiementEtudiants/PaiementEtudiants.jsx";
 
 
 
@@ -173,7 +181,15 @@ function App() {
           <Route path="/rapportConges" element={<PrivateRoute><Layoute><RapportConges/></Layoute></PrivateRoute>} />
           <Route path="/soldeCompte" element={<PrivateRoute><Layoute><SoldeCompte/></Layoute></PrivateRoute>} />
           <Route path="/bulletins_paie/NonEmploye/:id" element={<PrivateRoute><Layoute><ListeNonEmploye/></Layoute></PrivateRoute>} />
+          <Route path="/parameterepaie" element={<PrivateRoute><Layoute><Parameterpaie/></Layoute></PrivateRoute>} />
 
+          {/* comptabilite */}
+          {/* <Route path="/revenus" element={<PrivateRoute><Layoute><Typerevenue/></Layoute></PrivateRoute>} />
+          <Route path="/depenses" element={<PrivateRoute><Layoute><Typedepense/></Layoute></PrivateRoute>} />
+          <Route path="/revenusC" element={<PrivateRoute><Layoute><RevenusC/></Layoute></PrivateRoute>} />
+          <Route path="/depensesC" element={<PrivateRoute><Layoute><DepensesC/></Layoute></PrivateRoute>} /> */}
+          <Route path="/comptabilite" element={<PrivateRoute><Layoute><Comptabilite/></Layoute></PrivateRoute>} />
+          <Route path="/paiementEleves" element={<PrivateRoute><Layoute><PaiementEtudiants/></Layoute></PrivateRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

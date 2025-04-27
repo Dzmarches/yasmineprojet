@@ -291,7 +291,7 @@ const EmployeCA = () => {
                                   {columnVisibility.dateDebut && <td>{moment(item.dateDebut).format('YYYY-MM-DD')}</td>}
                                   {columnVisibility.dateFin && <td>{moment(item.dateFin).format('YYYY-MM-DD')}</td>}
                                   {columnVisibility.duree && <td>{moment(item.dateFin).diff(moment(item.dateDebut), 'days')+1} jours</td>}
-                                  {columnVisibility.statut && <td>{item.statut}</td>}
+                                  {columnVisibility.statut && <td><strong>{item.statut}</strong></td>}
                                   {columnVisibility.actions && (
                                     <td width="300px" className="text-center">
                                       <a

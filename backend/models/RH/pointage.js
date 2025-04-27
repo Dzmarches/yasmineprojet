@@ -9,7 +9,7 @@ const Pointage = sequelize.define('Pointage', {
     autoIncrement: true,
   },
   statut: { type: DataTypes.STRING },
-  heuresupP: { type: DataTypes.INTEGER },
+  heuresupP: { type: DataTypes.FLOAT },
   HeureEMP: { type: DataTypes.TIME, allowNull: true },
   HeureSMP: { type: DataTypes.TIME, allowNull: true },
   HeureEAMP: { type: DataTypes.TIME, allowNull: true },

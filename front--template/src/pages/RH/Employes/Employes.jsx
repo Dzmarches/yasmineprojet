@@ -38,24 +38,77 @@ const Employes = () => {
   const [ListeBTP, setListeBTP] = useState([]);
   const navigate = useNavigate();
 
+
   const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [signataire, setsignataire] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredBulletins, setFilteredBulletins] = useState([]);
+  const [isExterne, setIsExterne] = useState(false);
 
+
+  const [selectedEcole, setSelectedEcole] = useState(null);
+  const [filteredEcoles, setFilteredEcoles] = useState([]);
+  const [ecole, setEcoles] = useState([]);
+  useEffect(() => {
+    const fetchEcoles = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('Aucun token trouvé. Veuillez vous connecter.');
+          return;
+        }
+
+        const response = await axios.get('http://localhost:5000/ecoles', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        // Vérifier que les données contiennent bien les champs nécessaires
+        const ecolesWithDefaults = response.data.map(ecole => ({
+          ...ecole,
+          nomecole: ecole.nomecole || '', // Valeur par défaut si undefined
+          nom_arecole: ecole.nom_arecole || '', // Valeur par défaut si undefined
+        }));
+        setEcoles(ecolesWithDefaults);
+        setFilteredEcoles(ecolesWithDefaults);
+      } catch (error) {
+        console.error('Erreur lors de la récupération des écoles', error);
+      }
+    };
+    fetchEcoles();
+  }, []);
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);
   };
 
   const filteredData = data.filter(item => {
-    // Vous pouvez filtrer en fonction de n'importe quel champ. Exemple ici : 'nom' et 'prenom'
-    return (item.User?.nom && item.User?.nom.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
+    const search = searchTerm.toLowerCase().trim();
+    // Filtre par recherche texte
+    const matchesSearchTerm = search === '' || (
+      (item.User?.nom && item.User?.nom.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
       (item.User?.prenom && item.User?.prenom.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
-      (item.User?.email && item.User?.email.toLowerCase().includes(searchTerm.toLowerCase().trim())) || // Filtrage par nom, prénom et mail
-      (item.User?.telephone && item.User?.telephone.includes(searchTerm)) || // Filtrage par nom, prénom et mail
-      (item.Poste.poste && item.Poste.poste.toLowerCase().includes(searchTerm.toLowerCase().trim()));
+      (item.User?.email && item.User?.email.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
+      (item.User?.telephone && item.User?.telephone.includes(searchTerm)) ||
+      (item.Poste?.poste && item.Poste.poste.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
+      (
+        item.declaration !== undefined &&
+        (
+          (search === 'oui' && item.declaration === true) ||
+          (search === 'non' && item.declaration === false)
+        )
+      )
+    );
+
+    // Filtre par école
+    const matchesEcole = !selectedEcole ||
+      (item.User?.Ecoles?.some(ecole => ecole.id === parseInt(selectedEcole))) ||
+      (item.User?.Ecoles[0]?.id === parseInt(selectedEcole));
+
+    // Les deux conditions doivent être vraies
+    return matchesSearchTerm && matchesEcole;
   });
+
 
   const handleProfileClick = (id) => {
     setSelectedEmployeId(id);
@@ -105,8 +158,20 @@ const Employes = () => {
     return label;
 
   };
+
   const handleExport = () => {
-    const ws = XLSX.utils.json_to_sheet(data);
+    const ws = XLSX.utils.json_to_sheet(data.map(item => ({
+      "Nom et Prénom": `${item.User?.nom} ${item.User?.prenom}`,
+      "Poste": item.Poste?.poste,
+      "Email": item.User?.email,
+      "Numéro de téléphone": item.User?.telephone,
+      "Déclaré à la CNAS":  item.declaration == 1 ? 'Déclaré' : 'Non déclaré' ,
+      "Date de recrutement": item.daterecru ? moment(item.daterecru).format('DD-MM-YYYY') : '',
+      "Date de cessation de travail": item.User?.dateAD,
+      "Ecole Principale": item.User?.EcolePrincipal?.nomecole,
+      "Ecole": item.User?.Ecoles[0]?.nomecole,
+    }
+    )));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Liste des employés");
     XLSX.writeFile(wb, "liste_employes.xlsx");
@@ -440,17 +505,6 @@ const Employes = () => {
     }
   };
 
-  // const updateStatusInBackend = async (userId, newStatus) => {
-  //   try {
-  //     await axios.put(`http://localhost:5000/apii/users/modifier/${userId}`, {
-  //       statuscompte: newStatus,
-  //     });
-  //   } catch (err) {
-  //     console.error("Erreur lors de la mise à jour :", err);
-  //   }
-  // };
-
-
   //ATS
   const [showATS, setShowATS] = useState(false);
   const handleATS = () => setShowATS(true);
@@ -473,172 +527,73 @@ const Employes = () => {
     Signataire: '',
     repriseTravail: '',
     faitA: '',
+    AdE: '', RSEmp: '', adressEmp: '', nomPE: ''
+
   });
   const handleChangeATS = (e) => {
     const { name, value } = e.target;
     setFormDataATS(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleRadioChangeATS = (e) => {
-    setFormDataATS(prev => ({ ...prev, raisonArret: e.target.value }));
-  };
 
   const handleSubmitATS = () => {
     onSubmit(formDataATS);
     onHide();
   };
 
-  // const genererATS = async (formData) => {
 
-  //   if (!selectedEmployee) {
-  //     console.error('Aucun employé sélectionné');
-  //     return;
-  //   }
-  //   const existingPdfBytes = await fetch('/ATS1.pdf').then(res => res.arrayBuffer());
-  //   const pdfDoc = await PDFDocument.load(existingPdfBytes);
-  //   const page = pdfDoc.getPages()[0];
-
-  //   const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  //   const drawText = (text, x, y) => {
-  //     page.drawText(text, {
-  //       x,
-  //       y,
-  //       size: 12,
-  //       font: helveticaFont,
-  //       color: rgb(0, 0, 0),
-  //     });
-  //   };
-  //   console.log('data', data)
-
-  //   // Exemple : place les textes selon ton PDF
-  //   drawText(`Nom : ${data.User?.id}`, 100, 700);
-  //   drawText(`Poste : ${data.poste}`, 100, 680);
-  //   drawText(`Salaire : ${data.salaire} DA`, 100, 660);
-  //   drawText(`Date d'entrée : ${employees.dateDebut}`, 100, 640);
-
-  //   const pdfBytes = await pdfDoc.save();
-
-  //   // Créer un Blob à partir des octets du PDF
-  //   const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-  //   const url = URL.createObjectURL(blob);
-
-  //   // Ouvrir le PDF dans un nouvel onglet
-  //   window.open(url);
-
-  //   // Optionnel : libérer l'URL après un certain temps
-  //   setTimeout(() => URL.revokeObjectURL(url), 100); // Libérer l'URL après 100 ms
-  //   // download(pdfBytes, 'Attestation-Travail-Salaire.pdf', 'application/pdf');
-  // };
-
-  // const genererATS = async (formDataATS) => {
-  //   if (!selectedEmployee) {
-  //     console.error('Aucun employé sélectionné');
-  //     return;
-  //   }
-
-  //   const existingPdfBytes = await fetch('/ATS1.pdf').then(res => res.arrayBuffer());
-  //   const pdfDoc = await PDFDocument.load(existingPdfBytes);
-  //   const page = pdfDoc.getPages()[0];
-
-  //   const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  //   const drawText = (text, x, y) => {
-  //     page.drawText(text, {
-  //       x,
-  //       y,
-  //       size: 10,
-  //       font: helveticaFont,
-  //       color: rgb(0, 0, 0),
-  //     });
-  //   };
-
-  //   // Utiliser les données de l'employé sélectionné
-  //   drawText(` ${selectedEmployee.User?.nom} ${selectedEmployee.User?.prenom}`, 100, 600);
-  //   drawText(`Poste : ${selectedEmployee.Poste?.poste}`, 100, 680);
-  //   drawText(`Salaire : ${selectedEmployee.SalairNeg} `, 100, 660);
-  //   drawText(`Date d'entrée : ${moment(selectedEmployee.daterecru).format('YYYY-MM-DD')}`, 100, 640);
-
-  //   const pdfBytes = await pdfDoc.save();
-  //   // Créer un Blob à partir des octets du PDF
-  //   const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-  //   const url = URL.createObjectURL(blob);
-
-  //   // Ouvrir le PDF dans un nouvel onglet
-  //   window.open(url);
-
-  //   // Optionnel : libérer l'URL après un certain temps
-  //   setTimeout(() => URL.revokeObjectURL(url), 100); // Libérer l'URL après 100 ms
-  // };
-
-
-  //journale de paie 
-  useEffect(() => {
-    ListeJP();
-}, []);
-
-const ListeJP = async () => {
+  const ListeJP = async (employeId, dateDebut, dateFin) => {
     try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            alert("Vous devez être connecté ");
-            return;
-        }
-        const response = await axios.get(`http://localhost:5000/BultteinPaie/liste/`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-            },
-        });
-
-        if (response.status === 200 && Array.isArray(response.data)) {
-            setListeBTP(response.data)
-        } else {
-            console.error("Les données ne sont pas un tableau !");
-        }
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Vous devez être connecté ");
+        return;
+      }
+      const response = await axios.post('http://localhost:5000/BultteinPaie/journalPaie/ats', {
+        employeId,
+        dateDebut,
+        dateFin
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (response.status === 200 && Array.isArray(response.data)) {
+        setListeBTP(response.data)
+        console.log('data', response.data);
+      } else {
+        console.error("Les données ne sont pas un tableau !");
+      }
     } catch (error) {
-        console.log(error);
+      console.log(error);
     }
-};
+  };
+
   const genererATS = async (formDataATS) => {
     if (!selectedEmployee) {
-      console.error('Aucun employé sélectionné');
+      alert('Aucun employé sélectionné');
+      return;
+    }
+    if (!formDataATS.dateDebut || !formDataATS.dateFin) {
+      alert('Veuillez renseigner la date de début et la date de fin.');
       return;
     }
 
+    // Attendre les données de la liste si nécessaire
+    ListeJP(selectedEmployee.id, formDataATS.dateDebut, formDataATS.dateFin);
 
-    // const filterBulletins = (employeId, dateDebut, dateFin) => {
-    //   if (!employeId || !dateDebut || !dateFin) return;
-    
-    //   const filtered = ListeBTP.filter(bulletin => {
-    //     return (
-    //       bulletin.idEmploye === employeId &&
-    //       moment(bulletin.date).isBetween(dateDebut, dateFin, null, '[]')
-    //     );
-    //   });
-    
-    //   setFilteredBulletins(filtered);
-      
-    //   // Calculer le total des jours travaillés et salaire
-    //   const totalJours = filtered.reduce((sum, b) => sum + parseFloat(b.nbrJrTrvMois || 0), 0);
-    //   const totalSalaire = filtered.reduce((sum, b) => sum + parseFloat(b.salaireNet || 0), 0);
-    
-    //   // Mettre à jour le formulaire
-    //   setFormDataATS(prev => ({
-    //     ...prev,
-    //     joursTravail: totalJours,
-    //     salaire: totalSalaire,
-    //     heuresTravail: totalJours * 8 
-    //   }));
-    // };
-  
     const existingPdfBytes = await fetch('/ATSS.pdf').then(res => res.arrayBuffer());
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
-    const page = pdfDoc.getPages()[0];
-  
+    const pages = pdfDoc.getPages();
+    const page1 = pages[0];
+    let page2 = pages[1];
+
     const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const helveticaBoldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
     const drawText = (text, x, y, bold = false) => {
-      page.drawText(text, {
+      page1.drawText(text, {
         x,
         y,
         size: 13,
@@ -646,60 +601,176 @@ const ListeJP = async () => {
         color: rgb(12 / 255, 6 / 255, 6 / 255),
       });
     };
+
+    // Employeur
+    drawText(` ${formDataATS.nomPE}`, 100, 630, true);
+    drawText(` ${formDataATS.AdE}`, 230, 603, true);
+    drawText(` ${formDataATS.RSEmp}`, 100, 587, true);
+    drawText(` ${formDataATS.adressEmp}`, 100, 570, true);
+
     // Utiliser les données de l'employé sélectionné
-    drawText(`${selectedEmployee.User?.nom} ${selectedEmployee.User?.prenom}`, 120, 500,true);
-    drawText(`${selectedEmployee.NumAS?selectedEmployee.NumAS:''}`, 250, 470,true);
-    drawText(`${selectedEmployee.User?.datenaiss?moment(selectedEmployee.User.datenaiss).format('DD-MM-YYYY'):''}`,
-     100, 450,true);
-     drawText(`${selectedEmployee.User?selectedEmployee.User.lieuxnaiss:''}`,
-     100, 430,true);
-    drawText(` ${selectedEmployee.Poste?.poste}`, 100, 410,true);
-    drawText(` ${selectedEmployee.daterecru?moment(selectedEmployee.daterecru).format('DD-MM-YYYY'):''}`
-    , 250, 347,true);
+    drawText(`${selectedEmployee.User?.nom} ${selectedEmployee.User?.prenom}`, 120, 500, true);
+    drawText(`${selectedEmployee.NumAS ? selectedEmployee.NumAS : ''}`, 250, 470, true);
+    drawText(`${selectedEmployee.User?.datenaiss ? moment(selectedEmployee.User.datenaiss).format('DD-MM-YYYY') : ''}`,
+      100, 450, true);
+    drawText(`${selectedEmployee.User ? selectedEmployee.User.lieuxnaiss : ''}`,
+      100, 430, true);
+    drawText(` ${selectedEmployee.Poste?.poste}`, 100, 410, true);
+    drawText(` ${selectedEmployee.daterecru ? moment(selectedEmployee.daterecru).format('DD-MM-YYYY') : ''}`
+      , 250, 347, true);
 
 
-     drawText(`${formDataATS.dernierJourTravail? moment(formDataATS.dernierJourTravail).format('DD-MM-YYYY'):''}`, 250, 330,true);
-     drawText(`${formDataATS.dateRepriseTravail? moment(formDataATS.dateRepriseTravail).format('DD-MM-YYYY'):''}`, 250, 310,true);
-     drawText(`${formDataATS.dateNonReprise? moment(formDataATS.dateNonReprise).format('DD-MM-YYYY'):''}`, 250, 290,true);
+    drawText(`${formDataATS.dernierJourTravail ? moment(formDataATS.dernierJourTravail).format('DD-MM-YYYY') : ''}`, 250, 330, true);
+    drawText(`${formDataATS.dateRepriseTravail ? moment(formDataATS.dateRepriseTravail).format('DD-MM-YYYY') : ''}`, 250, 310, true);
+    drawText(`${formDataATS.dateNonReprise ? moment(formDataATS.dateNonReprise).format('DD-MM-YYYY') : ''}`, 250, 290, true);
 
-     drawText(`${formDataATS.joursTravail}`, 210, 230,true);
-     drawText(` ${formDataATS.heuresTravail}`, 260, 230,true);
-     drawText(`${formDataATS.periodeDebut? moment(formDataATS.periodeDebut).format('DD-MM-YYYY'):''}`, 100, 210,true);
-     drawText(`${formDataATS.periodeFin? moment(formDataATS.periodeFin).format('DD-MM-YYYY'):''}`, 210, 210,true);
+    //raison d'arret courte ou maternite ou longue
+    if (formDataATS.raisonArret === 'courte') {
+      drawText(`${formDataATS.joursTravail}`, 210, 230, true);
+      drawText(` ${formDataATS.heuresTravail}`, 260, 230, true);
+      drawText(`${formDataATS.periodeDebut ? moment(formDataATS.periodeDebut).format('DD-MM-YYYY') : ''}`, 60, 210, true);
+      drawText(`${formDataATS.periodeFin ? moment(formDataATS.periodeFin).format('DD-MM-YYYY') : ''}`, 190, 210, true);
+    } else {
+      drawText(`${formDataATS.joursTravail}`, 200, 78, true);
+      drawText(` ${formDataATS.heuresTravail}`, 260, 79, true);
+      drawText(`${formDataATS.periodeDebut ? moment(formDataATS.periodeDebut).format('DD-MM-YYYY') : ''}`, 60, 60, true);
+      drawText(`${formDataATS.periodeFin ? moment(formDataATS.periodeFin).format('DD-MM-YYYY') : ''}`, 190, 60, true);
+    }
+
+    //   // 💡 Gestion de la deuxième page (tableau BTP)
+    let y = 750;
+    const drawTextPage2 = (text, x, y) => {
+      page2.drawText(text.toString(), {
+        x,
+        y,
+        size: 12,
+        font: helveticaFont,
+        color: rgb(0, 0, 0),
+      });
+    };
+
+    if (ListeBTP) {
+      let y = 560;
+      for (let item of ListeBTP) {
+        if (y < 50) {
+          page2 = pdfDoc.addPage([595, 842]);
+          y = 560;
+        }
+        drawTextPage2(`${new Date(item.PeriodePaie?.dateDebut).toLocaleDateString('fr-FR', { month: 'long' }).toUpperCase()}-${new Date(item.PeriodePaie?.dateFin).toLocaleDateString('fr-FR', { month: 'long' }).toUpperCase()} `, 20, y);
+        drawTextPage2(`${item.nbrJrTrvMois}`, 150, y);
+        drawTextPage2(`${item.cotisations}`, 380, y);
+        drawTextPage2(`${item.RetenueSS}`, 480, y);
+        y -= 16;
+      }
+    }
 
 
-    
-       // Utiliser les données calculées
-  // drawText(`${formDataATS.joursTravail}`, 210, 230, true);
-  // drawText(`${formDataATS.salaire} DZD`, 100, 250, true);
-   
-    // // Ajouter les autres champs depuis formDataATS
-    // drawText(`Date de début : ${formDataATS.dateDebut}`, 100, 520,true);
-    // drawText(`Date de fin : ${formDataATS.dateFin}`, 100, 500,true);
-    // drawText(`Type de fichier : ${formDataATS.typeFichier}`, 100, 480);
-    // drawText(`Employé : ${formDataATS.employe}`, 100, 460);
-   
-    // drawText(`Raison de l'arrêt : ${formDataATS.raisonArret}`, 100, 380);
-   
-    // drawText(`Signataire : ${formDataATS.Signataire}`, 100, 280);
-    // drawText(`Reprise de travail : ${formDataATS.repriseTravail}`, 100, 260);
-    // drawText(`Salaire : ${selectedEmployee.SalairNeg}`, 100, 560,true);
-  
-  
     const pdfBytes = await pdfDoc.save();
     // Créer un Blob à partir des octets du PDF
     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
-  
-    // Ouvrir le PDF dans un nouvel onglet
     window.open(url);
-  
     // Optionnel : libérer l'URL après un certain temps
     setTimeout(() => URL.revokeObjectURL(url), 100); // Libérer l'URL après 100 ms
   };
-  
 
-  //DRT
+  // const genererATS = async (formDataATS) => {
+  //   if (!selectedEmployee) {
+  //     console.error('Aucun employé sélectionné');
+  //     return;
+  //   }
+
+  //   // Attendre les données de la liste si nécessaire
+  //   const listeBTPData = await ListeJP(selectedEmployee.id, formDataATS.dateDebut, formDataATS.dateFin);
+  //   if (!listeBTPData || listeBTPData.length === 0) {
+  //     console.warn('Aucune donnée BTP disponible');
+  //   }
+
+  //   const existingPdfBytes = await fetch('/ATSS.pdf').then(res => res.arrayBuffer());
+  //   const pdfDoc = await PDFDocument.load(existingPdfBytes);
+  //   const pages = pdfDoc.getPages();
+  //   const page1 = pages[0];
+  //   let page2 = pages[1]; // on autorise la modification plus tard
+
+  //   const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  //   const helveticaBoldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  //   const drawText = (text, x, y, bold = false, targetPage = page1) => {
+  //     targetPage.drawText(text, {
+  //       x,
+  //       y,
+  //       size: 13,
+  //       font: bold ? helveticaBoldFont : helveticaFont,
+  //       color: rgb(12 / 255, 6 / 255, 6 / 255),
+  //     });
+  //   };
+
+  //   // Données page 1 (identité de l’employé, périodes, etc.)
+  //   drawText(` ${formDataATS.nomPE}`, 100, 630, true);
+  //   drawText(` ${formDataATS.AdE}`, 230, 603, true);
+  //   drawText(` ${formDataATS.RSEmp}`, 100, 587, true);
+  //   drawText(` ${formDataATS.adressEmp}`, 100, 570, true);
+  //   drawText(`${selectedEmployee.User?.nom} ${selectedEmployee.User?.prenom}`, 120, 500, true);
+  //   drawText(`${selectedEmployee.NumAS || ''}`, 250, 470, true);
+  //   drawText(`${moment(selectedEmployee.User?.datenaiss).format('DD-MM-YYYY') || ''}`, 100, 450, true);
+  //   drawText(`${selectedEmployee.User?.lieuxnaiss || ''}`, 100, 430, true);
+  //   drawText(` ${selectedEmployee.Poste?.poste}`, 100, 410, true);
+  //   drawText(`${moment(selectedEmployee.daterecru).format('DD-MM-YYYY') || ''}`, 250, 347, true);
+  //   drawText(`${moment(formDataATS.dernierJourTravail).format('DD-MM-YYYY') || ''}`, 250, 330, true);
+  //   drawText(`${moment(formDataATS.dateRepriseTravail).format('DD-MM-YYYY') || ''}`, 250, 310, true);
+  //   drawText(`${moment(formDataATS.dateNonReprise).format('DD-MM-YYYY') || ''}`, 250, 290, true);
+
+  //   if (formDataATS.raisonArret === 'courte') {
+  //     drawText(`${formDataATS.joursTravail}`, 210, 230, true);
+  //     drawText(` ${formDataATS.heuresTravail}`, 260, 230, true);
+  //     drawText(`${moment(formDataATS.periodeDebut).format('DD-MM-YYYY') || ''}`, 60, 210, true);
+  //     drawText(`${moment(formDataATS.periodeFin).format('DD-MM-YYYY') || ''}`, 190, 210, true);
+  //   } else {
+  //     drawText(`${formDataATS.joursTravail}`, 200, 78, true);
+  //     drawText(` ${formDataATS.heuresTravail}`, 260, 79, true);
+  //     drawText(`${moment(formDataATS.periodeDebut).format('DD-MM-YYYY') || ''}`, 60, 60, true);
+  //     drawText(`${moment(formDataATS.periodeFin).format('DD-MM-YYYY') || ''}`, 190, 60, true);
+  //   }
+
+  //   // 💡 Gestion de la deuxième page (tableau BTP)
+  //   let y = 750;
+  //   const drawTextPage2 = (text, x, y) => {
+  //     page2.drawText(text.toString(), {
+  //       x,
+  //       y,
+  //       size: 12,
+  //       font: helveticaFont,
+  //       color: rgb(0, 0, 0),
+  //     });
+  //   };
+
+  //   if (ListeBTP) {
+  //     let y = 560; 
+
+  //     for (let item of ListeBTP) {
+  //       if (y < 50) {
+  //         page2 = pdfDoc.addPage([595, 842]); 
+  //         y = 560; 
+  //       }
+  //       drawTextPage2(`${new Date(item.PeriodePaie?.dateDebut).toLocaleDateString('fr-FR', { month: 'long' }).toUpperCase()}-${new Date(item.PeriodePaie?.dateFin).toLocaleDateString('fr-FR', { month: 'long' }).toUpperCase()} `, 20, y);
+  //       drawTextPage2(`${item.nbrJrTrvMois}`, 150, y);
+  //       drawTextPage2(`${item.cotisations}`, 380, y);
+  //       drawTextPage2(`${item.RetenueSS}`, 480, y);
+  //       y -= 16;
+  //     }
+  //   }
+
+
+
+
+  //   const pdfBytes = await pdfDoc.save();
+  //   const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+  //   const url = URL.createObjectURL(blob);
+  //   window.open(url);
+  //   setTimeout(() => URL.revokeObjectURL(url), 100);
+  // };
+
+
   const [showDRT, setShowDRT] = useState(false);
   const handleDRT = () => setShowDRT(true);
   const closeDRT = () => setShowDRT(false);
@@ -722,11 +793,11 @@ const ListeJP = async () => {
       alert('Aucun signataire sélectionné');
       return;
     }
- 
-    if (!formDataATS.dernierJourTravail || !formDataATS.dateRepriseTravail|| formDataATS.dateNonReprise ) {
-      alert('Veuillez saisir tous les champs obligatoires.');
-      return;
-    }
+
+    // if (!formDataATS.dernierJourTravail || !formDataATS.dateRepriseTravail|| formDataATS.dateNonReprise ) {
+    //   alert('Veuillez saisir tous les champs obligatoires.');
+    //   return;
+    // }
 
     const existingPdfBytes = await fetch('/DRT.pdf').then(res => res.arrayBuffer());
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
@@ -770,26 +841,36 @@ const ListeJP = async () => {
       moment(formDataATS.dernierJourTravail).format('DD  MM   YYYY') : ""
       } `, 230, 510, true);
 
-   
-      // Si l'employé a repris le travail
-if (formDataATS.repriseTravail === 'oui' && formDataATS.dateRepriseTravail) {
-  drawText(`${moment(formDataATS.dateRepriseTravail).format('DD  MM  YYYY')}`, 420, 490, true);
-}
 
-// Si l'employé n'a pas repris le travail
-if (formDataATS.repriseTravail === 'non' && formDataATS.dateNonReprise) {
-  drawText(`${moment(formDataATS.dateNonReprise).format('DD   MM  YYYY')}`, 420, 460, true);
-}
-if (formDataATS.repriseTravail === 'non' && formDataATS.dateNonReprise) {
-  drawText(`X`, 200, 460, true);
-}else if(formDataATS.repriseTravail === 'oui' && formDataATS.dateRepriseTravail){
-  drawText(`X`, 200, 480, true);
+    // Si l'employé a repris le travail
+    if (formDataATS.repriseTravail === 'oui' && formDataATS.dateRepriseTravail) {
+      drawText(`${moment(formDataATS.dateRepriseTravail).format('DD  MM  YYYY')}`, 420, 490, true);
+    }
 
-}
+    // Si l'employé n'a pas repris le travail
+    if (formDataATS.repriseTravail === 'non' && formDataATS.dateNonReprise) {
+      drawText(`${moment(formDataATS.dateNonReprise).format('DD   MM  YYYY')}`, 420, 460, true);
+    }
+    if (formDataATS.repriseTravail === 'non' && formDataATS.dateNonReprise) {
+      drawText(`X`, 200, 460, true);
+    } else if (formDataATS.repriseTravail === 'oui' && formDataATS.dateRepriseTravail) {
+      drawText(`X`, 200, 480, true);
+
+    }
     drawText(`${formDataATS.faitA || ""}`, 320, 426, true);
     drawText(`${moment().format('DD-MM-YYYY')}`, 430, 426, true);
-    drawText(` ${signataire.User ? signataire.User.nom : ""} ${signataire.User ? signataire.User?.prenom : ""}`, 280, 380,true);
-    drawText(` ${signataire.Poste ? signataire.Poste.poste : ""}`, 280, 360,true);
+    // drawText(` ${signataire.User ? signataire.User.nom : ""} ${signataire.User ? signataire.User?.prenom : ""}`, 280, 380, true);
+    // drawText(` ${signataire.Poste ? signataire.Poste.poste : ""}`, 280, 360, true);
+
+    if (signataire && signataire.User) {
+      // Cas où le signataire est un employé interne
+      drawText(` ${signataire.User.nom} ${signataire.User.prenom}`, 280, 380, true);
+      drawText(` ${signataire.Poste ? signataire.Poste.poste : ""}`, 280, 360, true);
+    } else if (signataire && signataire.nom) {
+      drawText(`${signataire.nom}`, 280, 380, true);
+    }
+
+
 
     const pdfBytes = await pdfDoc.save();
     // Créer un Blob à partir des octets du PDF
@@ -800,7 +881,7 @@ if (formDataATS.repriseTravail === 'non' && formDataATS.dateNonReprise) {
     window.open(url);
 
     // Optionnel : libérer l'URL après un certain temps
-    setTimeout(() => URL.revokeObjectURL(url), 100); 
+    setTimeout(() => URL.revokeObjectURL(url), 100);
     // download(pdfBytes, 'Attestation-Travail-Salaire.pdf', 'application/pdf');
   };
 
@@ -965,13 +1046,11 @@ if (formDataATS.repriseTravail === 'non' && formDataATS.dateNonReprise) {
                                   </div>
                                 </Modal.Body>
                               </Modal>
-                              <a className='btn btn-app p-1' href="#" onClick={handleExport}>
+                              <button className='btn btn-app p-1' onClick={handleExport}>
                                 <img src={excel} alt="" width="25px" /><br />Exporter
-                              </a>
+                              </button>
                             </div>
-                            <div className='col-md-4'>
 
-                            </div>
                             <div className="col-md-4" style={{ flex: '1', marginRight: '10px' }}>
                               <div className="input-group mr-2">
                                 <div className="form-outline" data-mdb-input-init> <input
@@ -989,6 +1068,24 @@ if (formDataATS.repriseTravail === 'non' && formDataATS.dateNonReprise) {
                                 </div>
                               </div>
                             </div>
+
+                            <div className="col-md-4" style={{ flex: '1', marginRight: '10px' }}>
+                              <select
+                                name="ecole"
+                                className="form-control"
+                                required
+                                style={{ height: '50px', borderRadius: '8px', backgroundColor: '#F8F8F8' }}
+                                onChange={(e) => setSelectedEcole(e.target.value)}
+                                value={selectedEcole || ''}
+                              >
+                                <option value="">Sélectionnez une école</option>
+                                {ecole.map((item) => (
+                                  <option key={item.id} value={item.id}>
+                                    {item.nomecole}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
                           </div>
                         </div>
                         <div className="card-body mt-2">
@@ -1003,6 +1100,7 @@ if (formDataATS.repriseTravail === 'non' && formDataATS.dateNonReprise) {
                                 <th>Poste attribué</th>
                                 <th>Actuellement employé</th>
                                 <th>Déclaration CNAS</th>
+                                <th>Ecole</th>
                                 <th>Action</th>
                               </tr>
                             </thead>
@@ -1035,6 +1133,7 @@ if (formDataATS.repriseTravail === 'non' && formDataATS.dateNonReprise) {
                                     )}
                                   </td>
                                   <td>{item.declaration == 1 ? 'Oui' : 'Non'}</td>
+                                  <td>{item.User?.Ecoles ? item.User?.Ecoles[0]?.nomecole : ''}</td>
                                   <td className="d-flex align-items-center gap-1">
                                     {/* Bouton Profil */}
                                     <button className="btn btn-outline-primary d-flex justify-content-center align-items-center p-1 mr-2"
@@ -1057,6 +1156,7 @@ if (formDataATS.repriseTravail === 'non' && formDataATS.dateNonReprise) {
                                       <img src={archive} alt="" width="22px" title='Archiver' />
                                     </button>
                                   </td>
+
                                 </tr>
                               ))}
                             </tbody>
@@ -1130,38 +1230,46 @@ if (formDataATS.repriseTravail === 'non' && formDataATS.dateNonReprise) {
         </Modal>
 
 
-        {/* modal ATS*/}
-        {/* <Modal show={showATS} onHide={closeATS}>
-                    <Modal.Header closeButton>
-                      <Modal.Title>Confirmer l'archivage</Modal.Title>
-                    </Modal.Header>
-                    <Modal.Body>
-                      <p>Êtes-vous sûr de vouloir archiver  ?</p>
-                    </Modal.Body>
-                    <Modal.Footer>
-                      <Button variant="secondary" onClick={closeATS}>
-                        Annuler
-                      </Button>
-                      <Button
-                        variant="danger"
-                        onClick={() => {
-                          ArchiverEmploye(demandeIdToDelete);
-                          closeATS();
-                        }}
-                      >
-                        Archiver
-                      </Button>
-                    </Modal.Footer>
-                  </Modal> */}
-
-
         {/* ATS */}
-        <Modal show={showATS} onHide={closeATS} size="lg">
+        <Modal show={showATS} onHide={closeATS} size="xl">
           <Modal.Header closeButton>
-            <Modal.Title>Attestation de travail et de salaire</Modal.Title>
+            <Modal.Title style={{ font: 'Times Nex Roman', fontSize: '20px', color: '#0056b3', textTransform: 'uppercase' }}>
+              Attestation de travail et de salaire</Modal.Title>
           </Modal.Header>
-          <Modal.Body>
+          <Modal.Body className='border p-5'>
             <Form>
+
+              <Row className="mb-3">
+                <Col>
+                  <Form.Group>
+                    <Form.Label> Nom et Prénom Employeur</Form.Label>
+                    <Form.Control type="text" name="nomPE" onChange={handleChangeATS} />
+                  </Form.Group>
+                </Col>
+                <Col>
+                  <Form.Group>
+                    <Form.Label>N° Adhérent Employeur(CNAS) </Form.Label>
+                    <Form.Control type="text" name="AdE" onChange={handleChangeATS} />
+                  </Form.Group>
+                </Col>
+
+              </Row>
+              <Row className="mb-3">
+                <Col>
+                  <Form.Group>
+                    <Form.Label>Raison sociale</Form.Label>
+                    <Form.Control type="text" name="RSEmp" onChange={handleChangeATS} />
+                  </Form.Group>
+                </Col>
+                <Col>
+                  <Form.Group>
+                    <Form.Label>Adresse</Form.Label>
+                    <Form.Control type="text" name="adressEmp" onChange={handleChangeATS} />
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <hr />
               <Row className="mb-3">
                 <Col>
                   <Form.Group>
@@ -1175,14 +1283,12 @@ if (formDataATS.repriseTravail === 'non' && formDataATS.dateNonReprise) {
                     <Form.Control type="date" name="dateFin" onChange={handleChangeATS} />
                   </Form.Group>
                 </Col>
-              </Row>
-
-              <Row className="mb-3">
                 <Col>
                   <Form.Group>
                     <Form.Label>Employé(s) *</Form.Label>
                     <div className="col-md-12">
                       <Select
+                        styles={customStyles}
                         options={employees}
                         onChange={(selected) => {
                           setSelectedEmployee(selected);
@@ -1198,8 +1304,10 @@ if (formDataATS.repriseTravail === 'non' && formDataATS.dateNonReprise) {
                 </Col>
               </Row>
 
+
+
               <hr />
-              <h6>Renseignements nécessaires à l'étude des droits</h6>
+              <h6 style={{ color: '#0056b3' }}>Renseignements nécessaires à l'étude des droits</h6>
               <Row className="mb-3">
                 <Col>
                   <Form.Group>
@@ -1227,7 +1335,7 @@ if (formDataATS.repriseTravail === 'non' && formDataATS.dateNonReprise) {
                   name="raisonArret"
                   value="courte"
                   checked={formDataATS.raisonArret === 'courte'}
-                  onChange={handleRadioChangeATS}
+                  onChange={handleChangeATS}
                 />
                 <Form.Check
                   type="radio"
@@ -1235,7 +1343,7 @@ if (formDataATS.repriseTravail === 'non' && formDataATS.dateNonReprise) {
                   name="raisonArret"
                   value="longue"
                   checked={formDataATS.raisonArret === 'longue'}
-                  onChange={handleRadioChangeATS}
+                  onChange={handleChangeATS}
                 />
               </Form.Group>
 
@@ -1257,7 +1365,6 @@ if (formDataATS.repriseTravail === 'non' && formDataATS.dateNonReprise) {
                   </Form.Group>
                 </Col>
               </Row>
-
               <Row>
                 <Col>
                   <Form.Group>
@@ -1272,7 +1379,6 @@ if (formDataATS.repriseTravail === 'non' && formDataATS.dateNonReprise) {
                   </Form.Group>
                 </Col>
               </Row>
-
             </Form>
           </Modal.Body>
           <Modal.Footer>
@@ -1288,11 +1394,11 @@ if (formDataATS.repriseTravail === 'non' && formDataATS.dateNonReprise) {
         {/* DRT */}
         <Modal show={showDRT} onHide={closeDRT} size="lg">
           <Modal.Header closeButton>
-            <Modal.Title style={{font: 'Times Nex Roman', fontSize: '20px', color: '#0056b3', textTransform: 'uppercase' }}>
+            <Modal.Title style={{ font: 'Times Nex Roman', fontSize: '20px', color: '#0056b3', textTransform: 'uppercase' }}>
               DECLARATION DE REPRISE OU DE NON REPRISE DE TRAVAIL
-              </Modal.Title>
+            </Modal.Title>
           </Modal.Header>
-        
+
 
           <Modal.Body className='border p-5'>
             <Form>
@@ -1314,7 +1420,7 @@ if (formDataATS.repriseTravail === 'non' && formDataATS.dateNonReprise) {
               </Row>
 
               <hr />
-              <h6 style={{color: '#0056b3'}}>Renseignements nécessaires à l'étude des droits</h6>
+              <h6 style={{ color: '#0056b3' }}>Renseignements nécessaires à l'étude des droits</h6>
 
               <Row className="mb-3">
                 <Col>
@@ -1361,7 +1467,7 @@ if (formDataATS.repriseTravail === 'non' && formDataATS.dateNonReprise) {
               )}
 
               <hr />
-              <h6 style={{color: '#0056b3'}}>Signature</h6>
+              <h6 style={{ color: '#0056b3' }}>Signature</h6>
               <Row className="mb-3">
                 <Col>
                   <Form.Group>
@@ -1374,29 +1480,56 @@ if (formDataATS.repriseTravail === 'non' && formDataATS.dateNonReprise) {
                     />
                   </Form.Group>
                 </Col>
-                {/* <Col>
-                  <Form.Group>
-                    <Form.Label>Le</Form.Label>
-                    <Form.Control
-                      type="text"
-                      readOnly
-                      value={moment().format('YYYY-MM-DD')}
-                    />
-                  </Form.Group>
-                </Col> */}
-                 <Col>
+
+                <Col>
                   <Form.Group>
                     <Form.Label>Signataire *</Form.Label>
-                    <Select
-                    styles={customStyles}
-                      options={employees}
-                      onChange={(selected) => {
-                        setsignataire(selected);
-                        const selectedSignataireData = data.find(emp => emp.id === selected.value);
-                        setsignataire(selectedSignataireData);
-                      }}
-                      placeholder="Sélectionner un signataire"
-                    />
+
+                    {/* Radios */}
+                    <div className="mb-2">
+                      <Form.Check
+                        inline
+                        type="radio"
+                        label="Employé"
+                        name="signataireType"
+                        checked={!isExterne}
+                        onChange={() => {
+                          setIsExterne(false);
+                          setsignataire(null);
+                        }}
+                      />
+                      <Form.Check
+                        inline
+                        type="radio"
+                        label="Externe"
+                        name="signataireType"
+                        checked={isExterne}
+                        onChange={() => {
+                          setIsExterne(true);
+                          setsignataire(null);
+                        }}
+                      />
+                    </div>
+
+                    {/* Affichage conditionnel */}
+                    {!isExterne ? (
+                      <Select
+                        styles={customStyles}
+                        options={employees}
+                        onChange={(selected) => {
+                          const selectedSignataireData = data.find(emp => emp.id === selected.value);
+                          setsignataire(selectedSignataireData);
+                        }}
+                        placeholder="Sélectionner un signataire"
+                      />
+                    ) : (
+                      <Form.Control
+                        type="text"
+                        placeholder="Nom et Prénom et Poste du signataire externe"
+                        onChange={(e) => setsignataire({ nom: e.target.value })}
+
+                      />
+                    )}
                   </Form.Group>
                 </Col>
               </Row>
@@ -1408,7 +1541,7 @@ if (formDataATS.repriseTravail === 'non' && formDataATS.dateNonReprise) {
               Annuler
             </Button>
             <Button onClick={() => genererDRT(formDataATS)}>
-              Générer ATS
+              Générer DRT
             </Button>
           </Modal.Footer>
         </Modal>

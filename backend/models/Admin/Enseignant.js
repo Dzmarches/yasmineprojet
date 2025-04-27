@@ -6,6 +6,7 @@ class Enseignant extends Employe { }
 
 Enseignant.init(
   {
+    id: { type: DataTypes.INTEGER,primaryKey: true,autoIncrement: true, },
     npe: { type: DataTypes.STRING, allowNull: false },
     pfe: { type: DataTypes.STRING, allowNull: false },
     ddn: { type: DataTypes.DATE, allowNull: true },
@@ -24,11 +25,10 @@ Enseignant.init(
         dimanche: { disponible: false, heures: [] }
       }
     },
-
     employe_id: {
       type: DataTypes.INTEGER,
       references: {
-        model: Employe,
+        model: 'employes',
         key: 'id',
       },
       onDelete: 'CASCADE',

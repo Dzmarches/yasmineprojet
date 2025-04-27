@@ -1,0 +1,1358 @@
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import moment from 'moment';
+import printer from '../../../../assets/imgs/printer.png';
+import sauvegarder from '../../../../assets/imgs/sauvegarder.png';
+import { Spinner } from 'react-bootstrap';
+
+
+const Bulteins_paieEmploye = ({ employeId, idPeriodepai }) => {
+
+  const [employe, setEmploye] = useState(null);
+  const [periodePaie, setPeriodePaie] = useState(null);
+  const [listeIRG, setListeIRG] = useState(null);
+  const [listepointages, setListepointages] = useState(null);
+  const [listeConge, setlisteConge] = useState(null);
+  const [isRecordExists, setIsRecordExists] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [PRetard, setPRetard] = useState(true);
+  const [JoursFeries, setJoursFeries] = useState([]);
+  
+
+  const PourcentageRS = 0.09;
+  const PourcentageAbbatement = 0.4;
+
+  const [formdata, setformdata] = useState({
+    Rirg: 0,
+    Rss: 0,
+    sommePC: 0,
+    SalaireBrut: 0,
+    TotalPrimeCotisable: 0,
+    TotalPrimes: 0,
+    CotisationS: 0,
+    SalairNet: 0,
+    SalaireImpos: 0,
+    heureSupOuvrable: 0,
+    heureSup: 0,
+    jourAbsent: 0,
+    AutreRetenues: 0,
+    heureAbs: null,
+    nomAutreRetenues: '',
+    nbrJTM: 0,
+    SalairNegAbsc: 0,
+    retenueAbs: 0,
+    SalaireBase: 0,
+    base: 0,
+    totalPrimesNonImpoNonCoti: 0,
+    heureRetard: 0,
+    nbrPresent: 0,
+    CA: 0,
+    MCA: 0, BCCA: 0,
+
+  });
+
+  const [userModified, setUserModified] = useState({
+    Rirg: false,
+    Rss: false,
+    heureSup: false,
+    SalaireImpos: false,
+    heureRetard: false,
+    nbrPresent: false,
+    CA: false,
+    BCCA: false,
+    MCA: false,
+  });
+
+  const handelChange = (e) => {
+    const { name, value } = e.target;
+    // Mettre à jour formdata
+    setformdata((prev) => ({ ...prev, [name]: value }));
+    // Marquer le champ comme modifié par l'utilisateur
+    setUserModified((prev) => ({ ...prev, [name]: true }));
+  };
+
+
+  function calculerDureeHeures(debut, fin) {
+    if (!debut || !fin) return 0;
+
+    const [h1, m1, s1] = debut.split(":").map(Number);
+    const [h2, m2, s2] = fin.split(":").map(Number);
+
+    const date1 = new Date(0, 0, 0, h1, m1, s1);
+    const date2 = new Date(0, 0, 0, h2, m2, s2);
+
+    let diff = (date2 - date1) / 1000 / 60 / 60; // différence en heures
+    return diff > 0 ? diff : 0; // on retourne 0 si la durée est négative
+  }
+
+  function customRound(value) {
+    const decimalPart = value % 1;
+    if (decimalPart > 0.5) {
+      return Math.ceil(value);
+    } else {
+      return Math.round(value * 10) / 10;
+    }
+  }
+  // Convertir le format d'heure (hh:mm:ss) en minutes
+  function convertToMinutes(timeStr) {
+    const [h, m, s] = timeStr.split(":").map(Number);
+    return h * 60 + m + s / 60;
+  }
+
+  
+  const ListeJoursFeries = async () => {
+    try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            alert("Vous devez être connecté");
+            return;
+        }
+        const response = await axios.get(`http://localhost:5000/joursferies/liste/`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+        });
+        if (response.status === 200 && Array.isArray(response.data)) {
+          setJoursFeries(response.data);
+        } else {
+            console.error("Les données ne sont pas un tableau !");
+        }
+    } catch (error) {
+        console.log(error);
+    }
+};
+useEffect(() => {
+    ListeJoursFeries();
+}, []);
+
+
+  //compaere les heures
+
+  function heureToSecondes(heure) {
+    if (!heure) return 0; // Return 0 if heure is null or undefined
+    const [h, m, s] = heure.split(":").map(Number);
+    return h * 3600 + m * 60 + s;
+}
+  
+  function comparerHeuresSortie(heurePointage, heureNormale) {
+    return heureToSecondes(heurePointage) > heureToSecondes(heureNormale) 
+      ? heureNormale 
+      : heurePointage;
+  }
+  function comparerHeuresEntree(heurePointage, heureNormale) {
+    return heureToSecondes(heurePointage) < heureToSecondes(heureNormale) 
+      ? heureNormale 
+      : heurePointage;
+  }
+
+  //les jours feries 
+  
+  function joursFeriesNonPointes(listePointages, listeJoursFeries, dateDebut, dateFin, employeId) {
+    const dateDeb = new Date(dateDebut);
+    const dateFin_ = new Date(dateFin);
+  
+    console.log('la liste qui vien ddeautre',listePointages)
+    // Extraire les dates formatées des jours fériés
+    const joursFeries = listeJoursFeries.map(jf =>
+      new Date(jf.date).toISOString().split('T')[0]
+    );
+  
+    // Extraire les dates où l'employé a pointé
+    const datesPointées = new Set(
+      listePointages
+        .filter(p => p.employe_id  === employeId)
+        .map(p => new Date(p.date).toISOString().split('T')[0])
+    );
+  
+    console.log("Dates pointées (formatées) :", [...datesPointées]);
+
+    let joursFeriesNonPointes = 0;
+  
+    for (let d = new Date(dateDeb); d <= dateFin_; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().split('T')[0];
+      const jour = d.getDay(); // 0 = dimanche, ..., 6 = samedi
+  
+      const estJourFerie = joursFeries.includes(dateStr);
+      const aPointe = datesPointées.has(dateStr);
+      console.log('aPointe',aPointe)
+      const estJourTravail = jour !== 5 && jour !== 6; // Exclure vendredi (5) et samedi (6)
+  
+      if (estJourFerie && !aPointe && estJourTravail) {
+        joursFeriesNonPointes++;
+      }
+    }
+    return joursFeriesNonPointes;
+  }
+  
+  const calculer = () => {
+    if (!employe || !employe.Primes) return;
+
+    const nbrJT = parseFloat(employe.nbrJourTravail);
+
+    const bcca = userModified.BCCA ? parseFloat(formdata.BCCA || 0) : (parseFloat(employe.SalairNeg) / nbrJT).toFixed(2);
+
+    const mca = userModified.MCA ? parseFloat(formdata.MCA || 0) : (bcca * formdata.CA).toFixed(2);
+
+    //trouver heure travail e l'employe dans la journnée
+    let totalHeuresTravailleesMois = 0;
+    const dureeMatinNormale = calculerDureeHeures(employe.HeureEM, employe.HeureSM);
+    const dureeApresMidiNormale = calculerDureeHeures(employe.HeureEAM, employe.HeureSAM);
+    let totalHeuresNormales = dureeMatinNormale + dureeApresMidiNormale;
+
+
+    // Filtrer pour garder uniquement les jours de la semaine (dimanche à jeudi) et exclure vendredi et samedi
+const pointagesFiltrésW = listepointages.filter(pointage => {
+  const datePointage = new Date(pointage.date);  // Crée un objet Date à partir de la date du pointage
+  const jourSemaine = datePointage.getDay();    // Utilise la méthode getDay() pour obtenir le jour de la semaine
+  // getDay() retourne un nombre entre 0 (dimanche) et 6 (samedi)
+  return jourSemaine !== 5 && jourSemaine !== 6; // Exclure vendredi (5) et samedi (6)
+});
+
+    //trouver le jours present selon pointage
+    const joursTravailles = pointagesFiltrésW.filter(pointage => {
+      const { HeureEMP, HeureSMP, HeureEAMP, HeureSAMP, statut ,date} = pointage;
+      // if (statut !== 'present' && statut !== 'retard') return false;
+
+     
+      console.log('les pointages',pointagesFiltrésW);
+      console.log('les HeureSAMP',HeureSAMP);
+      console.log('les HeureEMP',HeureEMP);
+
+      const heureSAMP = comparerHeuresSortie(HeureSAMP, employe.HeureSAM);
+      const heureSMP = comparerHeuresSortie(HeureSMP, employe.HeureSM);
+      const heureEMP = comparerHeuresEntree(HeureEMP, employe.HeureEM);
+      const heureEAMP = comparerHeuresEntree(HeureEAMP, employe.HeureEAM);
+
+      if (statut !== 'present') return false;
+
+      const dureeMatin = calculerDureeHeures(heureEMP, heureSMP);
+      console.log('dureeMatin',dureeMatin)
+      const dureeApresMidi = calculerDureeHeures(heureEAMP, heureSAMP);
+
+      const totalJour = dureeMatin + dureeApresMidi;
+
+      console.log('totalJour___________',totalJour);
+
+      totalHeuresTravailleesMois += totalJour;
+      console.log('totalHeuresTravailleesMois',totalHeuresTravailleesMois)
+      // On considère que la journée est comptée si l'employé a fait assez d'heures
+      return totalJour >= totalHeuresNormales;
+
+    }).length;
+
+    let nombrepresentfixe;
+     nombrepresentfixe = (totalHeuresTravailleesMois / totalHeuresNormales).toFixed(1);
+     console.log('nombrepresentfixe',nombrepresentfixe);
+
+    //jours feriés
+    const nbJoursFeriesAjoutes = joursFeriesNonPointes(listepointages,JoursFeries,
+      periodePaie.dateDebut,periodePaie.dateFin,employe.id
+    );
+  
+    if (isNaN(nombrepresentfixe)) {
+      nombrepresentfixe = 0; 
+    }
+    
+
+    // Fonction pour trouver la déduction en fonction du retard
+    function getDeductionFromBareme(retardEnHeures, bareme, heuresJourEmploye) {
+      const retardEnMinutes = retardEnHeures * 60;
+
+      for (let item of bareme) {
+        const min = convertToMinutes(item.Rmin);
+        const max = convertToMinutes(item.Rmax);
+
+        if (retardEnMinutes > min && retardEnMinutes <= max) {
+          // Retourner la déduction en fonction de ce qui est défini dans le barème
+          if (item.statut === "demi-journée") {
+            console.log('demi-journée')
+            // Si la déduction est une demi-journée, on la calcule par rapport aux heures de travail
+            return heuresJourEmploye / 2;
+          } else if (item.statut === "autre") {
+            // console.log('autre');
+            const HTHR = (calculerDureeHeures("00:00:00", item.HE));
+            console.log('HTHR', HTHR)
+            const test = (HTHR / heuresJourEmploye).toFixed(2);
+            console.log('test', test)
+            return test
+          } else if (item.statut === "journée") {
+            // console.log('journée');
+            return heuresJourEmploye;
+          }
+        }
+      }
+      return 0;
+    }
+
+    let totalADeduire = 0;
+    let JTR = 0;
+    listepointages.forEach(pointage => {
+      const { HeureEMP, HeureSMP, HeureEAMP, HeureSAMP, statut } = pointage;
+      if (statut !== 'retard') return;
+      const dureeMatin = calculerDureeHeures(HeureEMP, HeureSMP);
+      const dureeApresMidi = calculerDureeHeures(HeureEAMP, HeureSAMP);
+      const dureeTotaleRetard = totalHeuresNormales - (dureeMatin + dureeApresMidi);
+      console.log('dureeTotaleRetard', dureeTotaleRetard);
+
+      //appliquer selon le bréme
+      const heuresADeduire = getDeductionFromBareme(dureeTotaleRetard, PRetard, totalHeuresNormales);
+      totalADeduire += parseFloat(heuresADeduire);
+      JTR += (1 - heuresADeduire);
+    });
+
+    const JrRards = listepointages.filter(pointage => pointage.statut === 'retard').length;
+    const heuresRetards = userModified.heureRetard ? parseFloat(formdata.heureRetard || 0) : totalADeduire;
+
+
+    let nombrepresent = customRound(nombrepresentfixe)+parseFloat(nbJoursFeriesAjoutes);
+
+    if (heuresRetards) {
+
+      nombrepresent = parseFloat(nombrepresent) + (parseFloat(JrRards) - parseFloat(heuresRetards))
+    } else {
+      nombrepresent = parseFloat(nombrepresent) + (parseFloat(JrRards))
+
+    }
+
+    const sb = parseFloat(employe.SalairNeg) / nbrJT;
+    let SalaireBase = (nombrepresent * sb).toFixed(2);
+    const nbrHeureLegal = parseFloat(employe.nbrHeureLegale);
+    const nombreHeuresTravailJour = Math.round(nbrHeureLegal / nbrJT);
+
+    //calculer les heures supp
+    const heureSupOuvrable = listepointages
+      .filter(Heure => Heure.heuresupP)
+      .reduce((sum, Heure) => {
+        return sum + parseFloat(Heure.heuresupP || 0);
+      }, 0);
+
+    //calculer les montants des heures sup et abcences
+    const base = ((employe.SalairNeg) / nbrHeureLegal).toFixed(2);
+    // console.log('base is ', base)
+
+    //heure sup
+    const totalHeuresSup = listepointages
+      .filter(item => item.heuresupP && item.HeuresSup)
+      .reduce((sum, item) => {
+        const heuresSup = parseFloat(item.heuresupP) || 0;
+        const taux = parseFloat(item.HeuresSup?.taux) || 0;
+        return sum + (heuresSup * base * (1 + taux));
+      }, 0);
+
+    //nombre des jours en abences 
+    const nombreAbsences = listepointages.filter(pointage => pointage.statut === 'absent').length;
+    const NbrJTM = parseFloat(formdata.nbrPresent);
+
+    //les primes uniquement cotisables 
+    const totalPrimesCotisablesUni = employe.Primes
+      .filter((prime) => Number(prime.prime_cotisable) === 1 && Number(prime.prime_imposable) === 0)
+      .reduce((sum, prime) => {
+        let primeValue = parseFloat(prime.montant || 0);
+        if (prime.montantType === "pourcentage" && primeValue < 1) {
+          primeValue *= SalaireBase;
+        }
+        if (prime.montantType === "jour" && prime.deduire == 1) {
+          primeValue *= formdata.nbrJTM;
+        }
+        if (prime.montantType === "jour" && prime.deduire == 0) {
+          primeValue *= nbrJT;
+        }
+        return sum + primeValue;
+      }, 0);
+
+
+    const totalPrimesCotisables = employe.Primes
+      .filter((prime) => prime.prime_cotisable)
+      .reduce((sum, prime) => {
+        let primeValue = parseFloat(prime.montant || 0);
+        if (prime.montantType === "pourcentage" && primeValue < 1) {
+          primeValue *= SalaireBase;
+        }
+        if (prime.montantType === "jour" && prime.deduire == 1) {
+          primeValue *= formdata.nbrJTM;
+        }
+        if (prime.montantType === "jour" && prime.deduire == 0) {
+          primeValue *= nbrJT;
+        }
+
+        return sum + primeValue;
+      }, 0);
+
+    const totalPrimess = employe.Primes.reduce((sum, prime) => {
+      let primeValue = parseFloat(prime.montant || 0);
+      if (prime.montantType === "pourcentage" && primeValue <= 1) {
+        primeValue *= SalaireBase;
+      }
+      if (prime.montantType === "jour" && prime.deduire == 1) {
+        primeValue *= formdata.nbrJTM;
+      }
+      if (prime.montantType === "jour" && prime.deduire == 0) {
+        primeValue *= nbrJT;
+      }
+      return sum + primeValue;
+    }, 0);
+
+    const totalPrimesNonImpoNonCoti = employe.Primes.reduce((sum, prime) => {
+      let primeValue = parseFloat(prime.montant || 0);
+      // Vérifier si la prime est cotisable ou imposable avant de l'ajouter
+      if (!prime.prime_cotisable && !prime.prime_imposable) {
+        if (prime.montantType === "pourcentage" && primeValue <= 1) {
+          primeValue *= SalaireBase;
+        }
+        if (prime.montantType === "jour" && prime.deduire == 1) {
+          primeValue *= formdata.nbrJTM;
+        }
+        if (prime.montantType === "jour" && prime.deduire == 0) {
+          primeValue *= nbrJT;
+        }
+        return sum + primeValue;
+      }
+      return sum;
+    }, 0);
+
+
+    const CotisationS = (parseFloat(SalaireBase || 0) + parseFloat(totalPrimesCotisables) + parseFloat(formdata.heureSup) + parseFloat(formdata.MCA));
+    const totalPrimes = totalPrimess - totalPrimesNonImpoNonCoti;
+    const SalaireBrut = totalPrimes + parseFloat(SalaireBase || 0) + parseFloat(formdata.heureSup || 0)+ parseFloat(formdata.MCA);
+    // Vérifier si l'utilisateur a déjà modifié Rss, sinon recalculer
+    let Rss;
+    if (employe.declaration == 1) {
+      Rss = userModified.Rss ? parseFloat(formdata.Rss || 0) : CotisationS * PourcentageRS;
+    } else {
+      Rss = 0;
+    }
+    //caluler salaire imposable
+    const SalaireImpo = userModified.SalaireImpos ? parseFloat(formdata.SalaireImpos || 0) : SalaireBrut - Rss - totalPrimesCotisablesUni;
+
+    let Rirg;
+    if (employe.declaration == 1) {
+      Rirg = calculerIRG(SalaireImpo, listeIRG, nombreAbsences)
+    } else {
+      Rirg = 0;
+    }
+    // const Rirg = calculerIRG(SalaireImpo, listeIRG, nombreAbsences)
+
+    let SalairNet;
+    if (formdata.AutreRetenues) {
+      SalairNet = (SalaireBrut - Rss - Rirg + totalPrimesNonImpoNonCoti) - parseFloat(formdata.AutreRetenues);
+    } else {
+      SalairNet = (SalaireBrut - Rss - Rirg + totalPrimesNonImpoNonCoti)
+    }
+    //verifier si le champs est modifaible :
+    const heureSup = userModified.heureSup ? parseFloat(formdata.heureSup || 0) : totalHeuresSup.toFixed(2);
+
+
+    setformdata((prev) => ({
+      ...prev,
+      TotalPrimeCotisable: totalPrimesCotisables.toFixed(2),
+      TotalPrimes: totalPrimes.toFixed(2),
+      SalaireBrut: SalaireBrut.toFixed(2),
+      CotisationS: CotisationS.toFixed(2),
+      Rss: Rss.toFixed(2),
+      Rirg: Rirg.toFixed(2),
+      SalairNet: SalairNet.toFixed(2),
+      SalaireImpos: SalaireImpo.toFixed(2),
+      heureSupOuvrable: heureSupOuvrable,
+      jourAbsent: nombreAbsences,
+      heureSup: heureSup,
+      SalaireBase, nbrJTM: NbrJTM,
+      base,
+      totalPrimesNonImpoNonCoti: totalPrimesNonImpoNonCoti,
+      nbrPresent: nombrepresent.toFixed(1),
+      heureRetard: heuresRetards,
+      BCCA: bcca,
+      MCA: mca
+    }));
+  };
+
+
+  const calculerIRG = (salaireImpo, listeIRG, nombreAbsences) => {
+    let retenueIRG = 0;
+    // Si le salaire imposable est inférieur ou égal à 30 000, pas de retenue IRG
+    if (salaireImpo <= 30000 && !nombreAbsences) {
+      return 0;
+    }
+    // Parcourir les tranches IRG
+    let somme = 0;
+    let lastsomme = 0;
+    for (const tranche of listeIRG) {
+      const trancheMin = parseFloat(tranche.tranche_min);
+      const trancheMax = parseFloat(tranche.tranche_max);
+      const tauxImposition = parseFloat(tranche.taux_imposition);
+      // Si le salaire imposable est dans cette tranche
+      if (salaireImpo >= trancheMin && salaireImpo >= trancheMax) {
+        somme = somme + (parseFloat(trancheMax) - parseFloat(trancheMin)) * parseFloat(tauxImposition);
+      }
+      if (salaireImpo > trancheMin && salaireImpo < trancheMax) {
+        lastsomme = (parseFloat(salaireImpo) - parseFloat(trancheMin)) * parseFloat(tauxImposition);
+      }
+    }
+    const sommebareme = parseFloat(somme + lastsomme);
+    const abattement = sommebareme * parseFloat(PourcentageAbbatement);
+
+    if (abattement > 1500) {
+      const retenueIRG = sommebareme - 1500
+      return retenueIRG;
+
+    } else if (abattement > 1000) {
+      const retenueIRG = sommebareme - 1000;
+      return retenueIRG
+    }
+    // return retenueIRG;
+    return abattement;
+  };
+
+  useEffect(() => {
+    // console.log('employeId', employeId, "idPeriodepai", idPeriodepai)
+    if (employeId && idPeriodepai) {
+
+      const fetchData = async () => {
+        try {
+          const token = localStorage.getItem("token");
+          if (!token) {
+            alert("Vous devez être connecté pour accéder à ces informations.");
+            setIsRecordExists(true);
+            return;
+          }
+          // Vérifier si l'enregistrement existe déjà
+          const recordExistsResponse = await axios.get(
+            `http://localhost:5000/BultteinPaie/check-record/${employeId}/${idPeriodepai}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          // Mettre à jour l'état si l'enregistrement existe
+          if (recordExistsResponse.data.exists) {
+            setIsRecordExists(true);
+          }
+          const [employeRes, periodePaieRes, listeIRG, listepointages, listePRetard, listeConge, LCNonE] = await Promise.all([
+            axios.get(`http://localhost:5000/BultteinPaie/employe/${employeId}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            axios.get(`http://localhost:5000/BultteinPaie/periodepaie/${idPeriodepai}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            axios.get(`http://localhost:5000/BultteinPaie/IRG/liste/`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            axios.get(`http://localhost:5000/BultteinPaie/employePointage/${employeId}/${idPeriodepai}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            axios.get(`http://localhost:5000/ParametreRetard/liste/`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            axios.get(`http://localhost:5000/BultteinPaie/listeConge/${employeId}/${idPeriodepai}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            axios.get(`http://localhost:5000/BultteinPaie/listeCongeNonE/${employeId}`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            )
+          ]);
+
+          // console.log('liste des irgs', listeIRG.data)
+          setEmploye(employeRes.data);
+          setPeriodePaie(periodePaieRes.data);
+          setListeIRG(listeIRG.data);
+          setPRetard(listePRetard.data);
+          setlisteConge(listeConge.data?.details);
+
+
+          let jourRestant = null;
+          if (Array.isArray(LCNonE.data?.conges) && LCNonE.data.conges.length > 0) {
+            jourRestant = LCNonE.data.conges[0].jour_restant;
+          }
+
+          if (jourRestant != null) {
+            console.log('jourRestant', jourRestant);
+            setformdata(prev => ({ ...prev, CA: jourRestant }));
+          } else {
+            const datetoday = moment(LCNonE.data.dateActuelle);
+            const dateRecrutement = moment(employeRes.data.daterecru).format('YYYY-MM-DD');
+            const differenceInMonths = datetoday.diff(dateRecrutement, 'months');
+            const joursDeConge = differenceInMonths * 2.5;
+            setformdata(prev => ({ ...prev, CA: joursDeConge }));
+          }
+
+          setListepointages(listepointages.data)
+        } catch (error) {
+          console.error("Erreur lors de la récupération des données", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchData();
+    }
+  }, [employeId, idPeriodepai]);
+
+  useEffect(() => {
+    if (employe && periodePaie) {
+      calculer();
+    }
+  }, [employe, periodePaie, formdata.heureSup, formdata.Rirg,
+    formdata.SalaireImpos, formdata.AutreRetenues,
+    formdata.CotisationS, formdata.heureAbs, formdata.heureRetard,
+    formdata.CA, formdata.nbrPresent, formdata.BCCA, formdata.CA
+  ]);
+
+  const generateBulletinHTML = () => {
+    return `
+     <html>
+      <head>
+        <title>Bulletin de Paie</title>
+        <style>
+          @page { 
+            size: A4; 
+            margin: 15px;
+          }
+          body { 
+            font-family: Arial, sans-serif; 
+            text-align: center;
+          }
+          .container { 
+            width: 90%;
+            max-width: 800px; 
+            margin: 0 auto;
+            text-align: left;
+            box-sizing: border-box;
+           
+          }
+          .border { 
+            border: 1px solid #000; 
+            padding: 10px; 
+            margin-bottom: 10px; 
+          }
+          .text-end { text-align: right; }
+          .table { 
+            width: 100%; 
+            border-collapse: collapse; 
+          }
+          .table th { 
+            border: 1px solid #000; 
+            padding: 8px; 
+            background-color: #f2f2f2;
+          }
+         
+          /* Bordures verticales uniquement */
+          .table td, .table th {
+              border-left: 1px solid black;
+              border-right: 1px solid black;
+              padding: 5px;
+          }
+
+          /* Suppression des bordures horizontales */
+          .table tr:not(:first-child) td {
+              border-top: none;
+          }
+
+          .table tr:not(:last-child) td {
+              border-bottom: none;
+          }
+
+          /* Garder la bordure pour l'en-tête */
+          .table tr:first-child th {
+              border-top: 1px solid black;
+          }
+
+          /* Garder la bordure pour la dernière ligne */
+          .table tr:last-child td {
+              border-bottom: 1px solid black;
+          }
+          
+          .header { 
+            display: flex; 
+            justify-content: center; /* Centrage horizontal */
+            align-items: center; /* Centrage vertical */
+            text-align: center;
+          }
+          .info-section { 
+            display: flex; 
+            justify-content: space-between; 
+          }
+          .col { 
+            width: 48%; 
+          }
+          .no-border {
+            border: none !important;
+          }
+          .dual-container {
+            display: flex;
+            justify-content: space-between;           
+          }
+          .dual-box {
+            width: 48%;
+            border: 1px solid #000;
+            padding: 10px;
+          }
+          .logo-placeholder {
+            width: 100px;
+            height: 100px;
+            border: 1px dashed #ccc;
+            margin: 0 auto 10px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f9f9f9;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <!-- Deux cadres séparés pour école et période de paie -->
+          <div class="dual-container">
+            <!-- Cadre des informations de l'école -->
+            <div class="dual-box">
+              <p><strong>Ecole</strong> ${employe.User?.EcolePrincipal?.nomecole}</p>
+              <p><strong>Adresse :</strong> ${employe.User?.EcolePrincipal?.adresse}</p>
+            </div>
+            <!-- Cadre de la période de paie -->
+            <div class="dual-box">
+          <div class="logo-placeholder">
+             <img src="http://localhost:5000${employe.User?.EcolePrincipal?.logo}" alt="Logo de l'école" style="max-width: 70px; max-height: 70px;">
+          </div>
+            </div>
+          </div>
+
+          <div class="header border text-center p-2">
+            <h5 class="fw-bold text-uppercase ">BULLETIN DE PAIE 
+             ${new Date(periodePaie.dateDebut).toLocaleDateString('fr-FR', { month: 'long' }).toUpperCase()} -
+             ${new Date(periodePaie.dateFin).toLocaleDateString('fr-FR', { month: 'long' }).toUpperCase()}
+             ${moment(periodePaie.dateFin).format('YYYY')}
+            </h5>
+          </div>
+
+          <div class="border p-3">
+            <div class="info-section">
+              <div class="col">
+                <p><strong>Employé :</strong> ${employe.User?.nom} ${employe.User?.prenom}</p>
+                <p><strong>Code employé :</strong> ${employe.CE}</p>
+                <p><strong>Situation familiale :</strong> ${employe.sitfamiliale}</p>
+                <p><strong>N° SS :</strong> ${employe.NumAS}</p>
+              </div>
+              <div class="col">
+                <p><strong>Service :</strong> ${employe.Service?.service}</p>
+                <p><strong>Poste :</strong> ${employe.Poste?.poste}</p>
+                <p><strong>N°Compte :</strong> ${employe.Numpai}</p>
+                <p><strong>Date de recrutement :</strong> ${moment(employe.daterecru).format('DD-MM-YYYY')}</p>
+
+              </div>
+            </div>
+          </div>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Libellé</th>
+                <th>Qte/Base</th>
+                <th>Montant</th>
+                <th>Gain</th>
+                <th>Retenue</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>R1000</td>
+                <td>Salaire de base</td>
+                <td>${formdata.nbrPresent}</td>
+                <td>${(parseFloat(employe.SalairNeg) / parseFloat(employe.nbrJourTravail)).toFixed(2)}</td>
+                <td>${formdata.SalaireBase}</td>
+                <td></td>
+              </tr>
+  
+        ${formdata.heureSupOuvrable !== 0 ?
+        `
+                                <tr>
+                                  <td>R6000</td>
+                                  <td>heures Supplimentaires</td>
+                                  <td>${formdata.heureSupOuvrable}</td>
+                                  <td>${formdata.heureSup}</td>
+                                  <td>${formdata.heureSup}</td>
+                                  <td></td>
+                                </tr>
+                                    </tr>
+                                  `
+        : ''
+      }
+              ${employe.Primes.filter(prime => prime.prime_cotisable).map((prime) => `
+                <tr>
+                  <td>${prime.code}</td>
+                  <td>${prime.type_prime}</td>
+
+                 <td>
+                 ${(parseFloat(prime.montant) <= 1 && prime.montantType === "pourcentage") ?
+          (prime.montant) :
+          (prime.montantType === "jour" && prime.deduire == 1) ?
+            (formdata.nbrJTM)
+            : (prime.montantType === "jour" && prime.deduire == 0) ?
+              (employe.nbrJourTravail) :
+              parseFloat(prime.montant).toFixed(2)}
+                 </td>
+
+                 <td>
+  ${prime.montantType === "jour" && prime.deduire == 1
+          ? (parseFloat(prime.montant) * parseFloat(formdata.nbrJTM)).toFixed(2)
+          : prime.montantType === "jour" && prime.deduire == 0
+            ? (parseFloat(prime.montant) * parseFloat(employe.nbrJourTravail)).toFixed(2)
+            : (parseFloat(prime.montant) <= 1 && prime.montantType === "pourcentage")
+              ? (parseFloat(prime.montant) * parseFloat(formdata.SalaireBase)).toFixed(2)
+              : parseFloat(prime.montant).toFixed(2)
+        }
+</td>
+
+              <td>
+                ${prime.montantType === "jour" && prime.deduire == 1
+          ? (parseFloat(prime.montant) * parseFloat(formdata.nbrJTM)).toFixed(2)
+          : prime.montantType === "jour" && prime.deduire == 0
+            ? (parseFloat(prime.montant) * parseFloat(employe.nbrJourTravail)).toFixed(2)
+            : (parseFloat(prime.montant) <= 1 && prime.montantType === "pourcentage")
+              ? (parseFloat(prime.montant) * parseFloat(formdata.SalaireBase)).toFixed(2)
+              : parseFloat(prime.montant).toFixed(2)
+        }
+                </td>
+                  <td></td>
+                </tr>
+              `).join('')}
+
+
+               ${formdata.CA ? `
+                <tr>
+                  <td>CA</td>
+                  <td>Congé Annuel</td>
+                  <td>${formdata.CA}</td>
+                  <td>${formdata.BCCA}</td>
+                  <td>${formdata.MCA}</td>
+                  <td></td>
+                </tr>
+              ` : ''}
+              <tr>
+
+                <td>RSS</td>
+                <td>Retenue Sécurité Sociale Mois</td>
+                <td>${PourcentageRS}</td>
+                <td>${formdata.CotisationS}</td>
+                <td></td>
+                <td>${formdata.Rss}</td>
+              </tr>
+             
+              
+              ${employe.Primes.filter((prime) => prime.prime_imposable === true && prime.prime_cotisable === false).map((prime) => `
+                <tr>
+                  <td>${prime.code}</td>
+                  <td>${prime.type_prime}</td>
+                 <td>
+                      ${(parseFloat(prime.montant) <= 1 && prime.montantType === "pourcentage") ?
+            (prime.montant) :
+            (prime.montantType === "jour" && prime.deduire == 1) ?
+              (formdata.nbrJTM)
+              : (prime.montantType === "jour" && prime.deduire == 0) ?
+                (employe.nbrJourTravail) :
+                parseFloat(prime.montant).toFixed(2)}
+                 </td>
+
+                 <td>
+                    ${prime.montantType === "jour" && prime.deduire == 1
+            ? (parseFloat(prime.montant) * parseFloat(formdata.nbrJTM)).toFixed(2)
+            : prime.montantType === "jour" && prime.deduire == 0
+              ? (parseFloat(prime.montant) * parseFloat(employe.nbrJourTravail)).toFixed(2)
+              : (parseFloat(prime.montant) <= 1 && prime.montantType === "pourcentage")
+                ? (parseFloat(prime.montant) * parseFloat(formdata.SalaireBase)).toFixed(2)
+                : parseFloat(prime.montant).toFixed(2)
+          }
+                 </td>
+
+                  <td>
+                      ${prime.montantType === "jour" && prime.deduire == 1
+            ? (parseFloat(prime.montant) * parseFloat(formdata.nbrJTM)).toFixed(2)
+            : prime.montantType === "jour" && prime.deduire == 0
+              ? (parseFloat(prime.montant) * parseFloat(employe.nbrJourTravail)).toFixed(2)
+              : (parseFloat(prime.montant) <= 1 && prime.montantType === "pourcentage")
+                ? (parseFloat(prime.montant) * parseFloat(formdata.SalaireBase)).toFixed(2)
+                : parseFloat(prime.montant).toFixed(2)
+          }
+                    </td>
+
+                  <td></td>
+                </tr>
+              `).join('')}
+              <tr>
+                <td>IRG</td>
+                <td>Retenue IRG du Mois</td>
+                <td>1</td>
+                <td>${formdata.SalaireImpos}</td>
+                <td></td>
+                <td>${formdata.Rirg}</td>
+              </tr>
+              ${employe.Primes.filter(prime => !prime.prime_imposable && !prime.prime_cotisable).map((prime) => `
+                <tr>
+                  <td>${prime.code}</td>
+                  <td>${prime.type_prime}</td>
+                  <td>1</td>
+                  <td>${(parseFloat(prime.montant) <= 1 && prime.montantType === "pourcentage") ?
+              (parseFloat(prime.montant) * parseFloat(formdata.SalaireBase)).toFixed(2) : parseFloat(prime.montant).toFixed(2)}</td>
+                  <td>${(parseFloat(prime.montant) <= 1 && prime.montantType === "pourcentage") ?
+              (parseFloat(prime.montant) * parseFloat(formdata.SalaireBase)).toFixed(2) : parseFloat(prime.montant).toFixed(2)}</td>
+                  <td></td>
+                </tr>
+              `).join('')}
+              ${formdata.AutreRetenues ? `
+                <tr>
+                  <td>AR</td>
+                  <td>${formdata.nomAutreRetenues || 'Autre retenue'}</td>
+                  <td>1</td>
+                  <td>${formdata.AutreRetenues}</td>
+                  <td></td>
+                  <td>${formdata.AutreRetenues}</td>
+                </tr>
+              ` : ''}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan="4" class="text-end"><strong>Total</strong></td>
+                <td><strong>${(parseFloat(formdata.SalaireBrut) + parseFloat(formdata.totalPrimesNonImpoNonCoti)).toFixed(2)}</strong></td>
+                <td><strong>${(parseFloat(formdata.Rss) + parseFloat(formdata.Rirg) + (formdata.AutreRetenues ? parseFloat(formdata.AutreRetenues) : 0)).toFixed(2)}</strong></td>
+              </tr>
+            </tfoot>
+          </table>
+          <h4 class="text-end mt-3"><strong>Solde tout compte : ${formdata.SalairNet} DZD</strong></h4>
+          
+    <!-- Première table --> 
+          <table class="table table-bordered" style="margin-bottom: 3px; font-size: 12px;">
+            <thead color: white;">
+              <tr>
+                <th style="text-align: center; padding: 8px; color:black">Nbr jours de travail</th>
+                <th style="text-align: center; padding: 8px; color:black">Nbr jours de travail <br> pour ce mois</th>
+                <th style="text-align: center; padding: 8px; color:black">Jours d'Absence</th>
+                <th style="text-align: center; padding: 8px;color:black">Jours en retard</th>
+                <th style="text-align: center; padding: 8px;color:black">Total Heures Sup</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="text-align: center; padding: 6px; color:black">${employe.nbrJourTravail}</td>
+                <td style="text-align: center; padding: 6px; color:black">${formdata.nbrPresent}</td>
+                <td style="text-align: center; padding: 6px;color:black">${formdata.jourAbsent}</td>
+                <td style="text-align: center; padding: 6px;color:black">${formdata.heureRetard}</td>
+                <td style="text-align: center; padding: 6px;color:black">${formdata.heureSup}</td>
+              </tr>
+          </tbody>
+      </table>
+      
+
+    <!-- Deuxième table  -->
+    <table class="table table-bordered" style="font-size: 12px;">
+      <thead style="background-color: #007bff; color: white;">
+        <tr>
+          <th style="text-align: center; padding: 8px; color:black">Salaire de Base</th>
+          <th style="text-align: center; padding: 8px;color:black">Cotisations</th>
+          <th style="text-align: center; padding: 8px; color:black">Salaire Brut</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="text-align: center; padding: 6px; color:black">${employe.SalairNeg}</td>
+          <td style="text-align: center; padding: 6px;color:black">${formdata.CotisationS}</td>
+          <td style="text-align: center; padding: 6px;color:black">${formdata.SalaireBrut}</td>
+        </tr>
+      </tbody>
+    </table>
+    
+        </div>
+      </body>
+    </html>
+
+    `;
+  };
+  const handlePrint = async () => {
+    // if (!isRecordExists) {
+    //   await saveBulletinHTML(employe.id);
+    // }
+    const bulletinHTML = generateBulletinHTML();
+    const printWindow = window.open("", "_blank");
+    printWindow.document.write(bulletinHTML);
+    printWindow.document.close();
+    printWindow.print();
+  };
+  if (loading) return <Spinner animation="border" variant="primary" style={{ marginTop: '-100px', marginLeft: '50%' }} />
+  //  <div className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
+  //   <Spinner animation="border" variant="primary" />
+  // </div>;
+  if (!employe || !periodePaie) return <p>Erreur lors du chargement des données.</p>;
+  const handleSave = async (idEmploye) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Vous devez être connecté pour effectuer cette action.");
+      return;
+    }
+    const bulletinHTML = generateBulletinHTML();
+
+    const dataToSave = {
+      periodePaieId: idPeriodepai,
+      idEmploye: idEmploye,
+      nom_prenom: `${employe.User?.nom} ${employe.User?.prenom}`,
+      salaireBase: employe.SalairNeg,
+      NVSBaseAbsences: formdata.SalaireBase,
+      nbrJrTrvMois: formdata.nbrPresent,
+      salaireNet: formdata.SalairNet,
+      salaireBrut: formdata.SalaireBrut,
+      cotisations: formdata.CotisationS,
+      SalaireImposable: formdata.SalaireImpos,
+      RetenueIRG: formdata.Rirg,
+      nbrHRetard: formdata.heureRetard,
+      RetenueSS: formdata.Rss,
+      heuresSup: formdata.heureSupOuvrable,
+      joursAbsence: formdata.jourAbsent,
+      AutreRetenues: formdata.AutreRetenues,
+      NomAutreRetenues: formdata.nomAutreRetenues,
+      AbsenceRetenues: formdata.retenueAbs,
+      GeinheuresSup: formdata.heureSup,
+      bulletin_html: bulletinHTML,
+
+    };
+
+    try {
+      const response = await axios.post('http://localhost:5000/BultteinPaie/journalPaie', dataToSave, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.status === 200) {
+        alert("Bulletin de paie enregistré avec succès !");
+        setIsRecordExists(true);
+
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'enregistrement du bulletin de paie", error);
+      alert("Une erreur s'est produite lors de l'enregistrement.");
+    }
+  };
+
+
+  return (
+    <div className="modal fade" id="modal-bp" tabIndex="-1" aria-labelledby="modal-default-label" aria-hidden="true">
+      <div className="modal-dialog modal-xl modal-dialog-scrollable">
+        <div className="modal-content">
+          <div className="modal-header bg-info text-white">
+            <div className="widget-user-header d-flex align-items-center">
+              <button className='btn btn-app p-1' onClick={handlePrint}>
+                <img src={printer} alt="" width="30px" /><br />Imprimer
+              </button>
+
+              {periodePaie.statut === "Ouverte" ?
+                <button
+                  className='btn btn-app p-1 ml-2'
+                  title='Enregistrer dans journal de paie'
+                  onClick={() => handleSave(employe.id)}
+                // disabled={isRecordExists}>
+                >
+                  <img src={sauvegarder} alt="" width="30px" /><br />
+                  Validation de la paie
+                </button> : ''
+              }
+            </div>
+            <button type="button" className="close text-white" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div className="modal-body">
+            {/* Informations Personnelles */}
+            <h5 className="custom-title mb-4">Bulletin de paie periode: {moment(periodePaie.dateDebut).format('DD-MM-YYYY')} - {moment(periodePaie.dateFin).format('DD-MM-YYYY')}</h5>
+            <div className="card shadow-lg border-0 rounded-lg p-4 mb-4">
+              <div className="row">
+                <div className="col-md-2">
+                  <h6 className="font-weight-bold">Employé</h6>
+                  <p>{employe.User?.nom} {employe.User?.prenom}</p>
+                </div>
+                <div className="col-md-2">
+                  <h6 className="font-weight-bold">Code</h6>
+                  <p>{employe.CE}</p>
+                </div>
+                <div className="col-md-2">
+                  <h6 className="font-weight-bold">Situation familiale</h6>
+                  <p>{employe.sitfamiliale}</p>
+                </div>
+                <div className="col-md-2">
+                  <h6 className="font-weight-bold">Numero d'assurance sociale</h6>
+                  <p>{employe.NumAS}</p>
+                </div>
+                <div className="col-md-2">
+                  <h6 className="font-weight-bold">Poste attribué</h6>
+                  <p>{employe.Poste ? employe.Poste.poste : 'pas  de poste '}</p>
+                </div>
+                <div className="col-md-2">
+                  <h6 className="font-weight-bold">Service</h6>
+                  <p>{employe.Service?.service}</p>
+                </div>
+                <div className="col-md-2">
+                  <h6 className="font-weight-bold">Salaire de base</h6>
+                  <p>{employe.SalairNeg}</p>
+                </div>
+                <div className="col-md-2">
+                  <h6 className="font-weight-bold"> Déclaré à la CNAS</h6>
+                  <p>{employe.declaration == "1" ? "oui" : "Non"}</p>
+                </div>
+                <div className="col-md-2">
+                  <h6 className="font-weight-bold">Actuellement employé</h6>
+                  <p>{employe.User?.statuscompte === "activer" ? "oui" : "Non"}</p>
+                </div>
+                <div className="col-md-2">
+                  <h6 className="font-weight-bold">Date de recrutement</h6>
+                  <p>{moment(employe.daterecru).format('YYYY-MM-DD')}</p>
+                </div>
+              </div>
+              <hr />
+              {/* liste des primes employés */}
+              {employe.Primes && employe.Primes.length > 0 && (
+                <div className="row mt-3">
+                  <h5 >Primes de l'employé :</h5>
+                  <table className="table table-bordered">
+                    <thead className="thead-light">
+                      <tr>
+                        <th>Code</th>
+                        <th>Type</th>
+                        <th>Montant</th>
+                        <th>Type de Montant</th>
+                        <th>Imposable</th>
+                        <th>Cotisable</th>
+                        <th>Calculer en fonction des <br />jours de présence</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {employe.Primes.map((prime) => (
+                        <tr key={prime.id}>
+                          <td>{prime.code}</td>
+                          <td>{prime.type_prime}</td>
+                          <td>
+                            {prime.montant}
+                            {prime.montantType === "pourcentage" && parseFloat(prime.montant) <= 1 && (prime.deduire == 1) && (
+                              <div style={{ fontSize: "12px", color: "gray" }}>
+                                ({(parseFloat(prime.montant) * parseFloat(formdata.SalaireBase)).toFixed(2)} )
+                              </div>
+                            )}
+                            {prime.montantType === "pourcentage" && parseFloat(prime.montant) <= 1 && (prime.deduire == 0) && (
+                              <div style={{ fontSize: "12px", color: "gray" }}>
+                                ({(parseFloat(prime.montant) * parseFloat(employe.SalairNeg)).toFixed(2)} )
+                              </div>
+                            )}
+                            {(prime.montantType === "jour" && prime.deduire == 1) && (
+                              <div style={{ fontSize: "12px", color: "gray" }}>
+                                ({(parseFloat(prime.montant) * parseFloat(formdata.nbrJTM)).toFixed(2)} )
+                              </div>
+                            )}
+                            {(prime.montantType === "jour" && prime.deduire == 0) && (
+                              <div style={{ fontSize: "12px", color: "gray" }}>
+                                ({(parseFloat(prime.montant) * parseFloat(employe.nbrJourTravail)).toFixed(2)} )
+                              </div>
+                            )}
+
+                          </td>
+                          <td>{prime.montantType}</td>
+                          <td>{prime.prime_imposable ? "Oui" : "Non"}</td>
+                          <td>{prime.prime_cotisable ? "Oui" : "Non"}</td>
+                          <td>{prime.deduire ? "Oui" : "Non"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tr>
+                      <td style={{ color: 'green' }}>Total des Primes :</td>
+                      <td style={{ color: 'green' }}>{formdata.TotalPrimes}</td>
+                      <td style={{ color: 'green' }}>Total des primes cotisables :</td>
+                      <td style={{ color: 'green' }}>{formdata.TotalPrimeCotisable}</td>
+                    </tr>
+                  </table>
+                </div>
+              )}
+              <hr />
+
+              <div className="row">
+                <h5 className="w-100 mb-3">Nombre de jours Congés :</h5>
+                <div className="col-md-3">
+                  <p>Congé Annuel </p>
+                  <input type="number" className="form-control" name="CA" value={formdata.CA}
+                    onChange={(e) => {
+                      handelChange(e);
+                      setUserModified(prev => ({ ...prev, CA: true }))
+                    }}
+                  />
+                </div>
+
+                <div className="col-md-3">
+                  <p>Base de calcule CA</p>
+                  <input
+                    type="number"
+                    className="form-control"
+                    name="BCCA"
+                    value={formdata.BCCA}
+                    onChange={(e) => {
+                      handelChange(e);
+                      setUserModified(prev => ({ ...prev, BCCA: true }));
+                    }}
+                  />
+                </div>
+                <div className="col-md-3">
+                  <p>Montant CA</p>
+                  <input type="number" className="form-control" name="MCA" value={formdata.MCA}
+                    onChange={(e) => {
+                      handelChange(e);
+                      setUserModified(prev => ({ ...prev, MCA: true }))
+                    }} />
+                </div>
+              </div>
+              <hr />
+              <div className="row">
+                <h5 className="w-100 mb-3"> Autres :</h5>
+                <div className="col-md-3">
+                  <p> Nombre de jours de travail </p>
+                  <input type="number" className="form-control" name="nbrJour" read value={employe.nbrJourTravail} readOnly onChange={handelChange} />
+                </div>
+                <div className="col-md-3">
+                  <p>Heures de travail par  mois</p>
+                  <input type="number" className="form-control" name="htm" value={employe.nbrHeureLegale} readOnly onChange={handelChange} />
+                </div>
+                <div className="col-md-3">
+                  <p> Nbr jours de travail pour ce mois </p>
+                  <input type="number" className="form-control" name="nbrPresent" readOnly
+                    value={formdata.nbrPresent}
+                    onChange={(e) => {
+                      handelChange(e);
+                      setUserModified(prev => ({ ...prev, nbrPresent: true }));
+                    }}
+                  />
+                </div>
+                <div className="col-md-3">
+                  <p>Nombre des heures  supplémentaire</p>
+                  <input type="number" className="form-control" readOnly name="heureSupOuvrable" value={formdata.heureSupOuvrable} onChange={handelChange} />
+                  <small className='text-muted'>
+                    {(() => {
+                      const heuresParType = {};
+                      listepointages.forEach(item => {
+                        if (item.heuresupP && item.HeuresSup?.nom) {
+                          const type = item.HeuresSup.nom;
+                          heuresParType[type] = (heuresParType[type] || 0) + item.heuresupP;
+                        }
+                      });
+                      return Object.entries(heuresParType).map(([type, total]) => (
+                        <p key={type}>{total} : {type} </p>
+                      ));
+                    })()}
+                  </small>
+                </div>
+                <div className="col-md-3">
+                  <p>Nombre de jours d'absence</p>
+                  <input type="number" className="form-control" readOnly name="jourAbsent" value={formdata.jourAbsent} onChange={handelChange} />
+                </div>
+
+                <div className="col-md-3">
+                  <p>Nombre de jour  en retard</p>
+                  <input type="number" className="form-control" name="heureRetard"
+                    value={formdata.heureRetard}
+                    // onChange={handelChange} 
+                    onChange={(e) => {
+                      handelChange(e);
+                      setUserModified(prev => ({ ...prev, heureRetard: true }));
+                    }} />
+                </div>
+
+              </div>
+              <hr />
+
+              <div className="row w-100">
+                <h5 className="w-100 mb-3 text-green"> Calculer :</h5>
+
+                <div className="col-md-4 mt-3">
+                  <h6 className="font-weight-bold"> Salaire de base </h6><br />
+                  <input type="number" className="form-control" name="SalairNeg" readOnly value={formdata.SalaireBase} onChange={handelChange} />
+                </div>
+                <div className="col-md-4 mt-3">
+                  <h6 className="font-weight-bold"> Montant total des heures <br /> supplémentaires</h6>
+                  <input type="number" className="form-control" name="heureSup" value={formdata.heureSup} onChange={handelChange} />
+                </div>
+
+                <div className="col-md-4  mt-3">
+                  <h6 className="font-weight-bold">Cotisations Sociale ou Salaire de Poste</h6>
+                  <input type="number" className="form-control" name="CotisationS" readOnly value={formdata.CotisationS} onChange={handelChange} />
+                  <small>Salaire Base + Primes Cotisables +heures Supplimentaires</small>
+                </div>
+                <div className="col-md-4 mt-3">
+                  <h6 className="font-weight-bold"> Salaire Brut </h6>
+                  <input type="number" className="form-control" readOnly name="SalaireBrut" value={formdata.SalaireBrut} />
+                  <small>Salaire Base +Total  Primes + Heures Supplimentaires</small>
+                </div>
+
+                <div className="col-md-4  mt-3">
+                  <h6 className="font-weight-bold"> Salaire Imposable </h6>
+                  <input type="number" className="form-control" readOnly name="SalaireImpos" value={formdata.SalaireImpos} />
+                  <small>Salaire Brut-Retenue Sécurité Sociale Mois-primes cotisable et non imposable</small>
+                  <small style={{ color: 'red' }}>  .{parseFloat(employe.SalaireImpos) <= 30000 ? "pas IRG" : "appliquer IRG"}</small>
+                </div>
+              </div>
+              <hr />
+
+              {/* Les retenues */}
+              <div className="row w-100">
+                <h5 className="w-100 mb-3 text-red">Les retenues :</h5><br />
+                <div className="col-md-3">
+                  <h6 className="font-weight-bold">Retenue Sécurité Sociale Mois</h6>
+                  <input type="number" className="form-control" readOnly name="Rss" value={formdata.Rss} onChange={handelChange} />
+                  <small> Cotisations Sociale * {PourcentageRS}</small>
+                </div>
+                <div className="col-md-3">
+                  <h6 className="font-weight-bold">Retenue IRG du Mois</h6>
+                  <input type="number" className="form-control" readOnly name="Rirg" value={formdata.Rirg} onChange={handelChange} />
+                </div>
+                <div className="col-md-3">
+                  <h6 className="font-weight-bold">Autres retenues</h6>
+                  <input type="number" className="form-control" name='AutreRetenues' value={formdata.AutreRetenues} onChange={handelChange} />
+                </div>
+                <div className="col-md-3">
+                  <h6 className="font-weight-bold">Nom de la  retenue</h6>
+                  <input type="text" className="form-control" name='nomAutreRetenues' value={formdata.nomAutreRetenues} onChange={handelChange} />
+                </div>
+              </div>
+              <hr />
+
+              <div className="row w-100">
+                <h5 className="w-100 mb-3 text-primary">Salaire Net :</h5>
+                <div className="col-md-6">
+                  <h6 className="font-weight-bold">Salaire Net</h6>
+                  <input type="number" className="form-control" readOnly name="SalairNet" value={formdata.SalairNet} onChange={handelChange} />
+                  <small> Salaire Brut - Retenue Sécurité Sociale Mois - Retenue IRG du Mois</small>
+                </div>
+              </div>
+              <hr />
+
+              {/* liste des primes employés */}
+              {listeIRG && listeIRG.length > 0 && (
+                <div className="row mt-3">
+                  <h4 >Barème IRG algerie :</h4>
+                  <table className="table table-bordered">
+                    <thead className="thead-light">
+                      <tr>
+                        <th>Tranche Minimale</th>
+                        <th>Tranche Maximale</th>
+                        <th>Taux Imposition</th>
+                        <th>Année Fiscale</th>
+                        <th>Pays</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {listeIRG.map((item) => (
+                        <tr key={item.id}>
+                          <td>{item.tranche_min}</td>
+                          <td>{item.tranche_max}</td>
+                          <td>{item.taux_imposition}</td>
+                          <td>{item.annee_fiscale}</td>
+                          <td>{item.pays}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <hr />
+
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Bulteins_paieEmploye;

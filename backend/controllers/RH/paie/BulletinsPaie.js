@@ -414,12 +414,10 @@ export const ImprimerBTEmploye = async (req, res) => {
 
 export const VoirFichesPaie = async (req, res) => {
   try {
-
     const ecoleId = req.user.ecoleId;
     const journalPaie = await JournalPaie.findAll(
       {
         where: { archiver: 0 },
-
         include: [
           {
             model: PeriodePaie, attributes: ["id", "code", "dateDebut", "dateFin", "statut"],
@@ -428,7 +426,10 @@ export const VoirFichesPaie = async (req, res) => {
           },
           {
             model: Employe, attributes: ['photo', 'daterecru','declaration'],
-            include: [{ model: Poste, attributes: ['poste'] }, { model: Service, attributes: ['service'], }]
+            include: [
+              { model: Poste, attributes: ['poste'] }, 
+            { model: Service, attributes: ['service'] },
+            { model: User, attributes: ['statuscompte'] }]
           }
         ]
       }
@@ -503,6 +504,56 @@ export const listeCongeNonEmploye = async (req, res) => {
 
   } catch (error) {
     console.error("Erreur lors de la récupération des congés :", error);
+    return res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+
+//fonction pour ats
+export const journalpaieATS = async (req, res) => {
+  try {
+    const { employeId, dateDebut, dateFin } = req.body;
+
+    // 1. Trouver les périodes entre dateDebut et dateFin
+    const findPeriodeP = await PeriodePaie.findAll({
+      where: {
+        dateDebut: { [Op.gte]: dateDebut },
+        dateFin: { [Op.lte]: dateFin }
+      }
+    });
+
+    // extraire les IDs des périodes
+    const periodeIds = findPeriodeP.map(p => p.id); 
+
+    console.log('Les périodes de paie sont :', periodeIds);
+
+    // 2. Récupérer les bulletins de paie de l'employé pour ces périodes
+    const findBP = await JournalPaie.findAll({
+      where: {
+        idEmploye: employeId,
+        periodePaieId: {
+          [Op.in]: periodeIds
+        }
+      },
+      attributes: [
+        'id',
+        'periodePaieId',
+        'idEmploye',
+        'joursAbsence',
+        'nbrJrTrvMois',
+        'RetenueSS',
+        'cotisations'
+      ],
+      include: [
+        {
+          model: PeriodePaie, 
+          attributes: ['dateDebut', 'dateFin'] 
+        }
+      ]
+    });
+    return res.status(200).json(findBP);
+
+  } catch (error) {
+    console.error("Erreur lors de la récupération des bulletins de paie :", error);
     return res.status(500).json({ message: "Erreur serveur" });
   }
 };

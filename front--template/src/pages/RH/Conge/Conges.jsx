@@ -48,6 +48,40 @@ const Conges = () => {
         poste: true,
     });
 
+
+
+    const [selectedEcole, setSelectedEcole] = useState(null);
+    const [filteredEcoles, setFilteredEcoles] = useState([]);
+    const [ecole, setEcoles] = useState([]);
+    useEffect(() => {
+        const fetchEcoles = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    console.error('Aucun token trouvé. Veuillez vous connecter.');
+                    return;
+                }
+
+                const response = await axios.get('http://localhost:5000/ecoles', {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                // Vérifier que les données contiennent bien les champs nécessaires
+                const ecolesWithDefaults = response.data.map(ecole => ({
+                    ...ecole,
+                    nomecole: ecole.nomecole || '', // Valeur par défaut si undefined
+                    nom_arecole: ecole.nom_arecole || '', // Valeur par défaut si undefined
+                }));
+                setEcoles(ecolesWithDefaults);
+                setFilteredEcoles(ecolesWithDefaults);
+            } catch (error) {
+                console.error('Erreur lors de la récupération des écoles', error);
+            }
+        };
+        fetchEcoles();
+    }, []);
+
     const options = [
         { value: 'enseignant', label: 'enseignant' },
     ];
@@ -98,13 +132,9 @@ const Conges = () => {
             });
             if (response.status === 200) {
                 if (Array.isArray(response.data)) {
-
-                    const employeCactif=response.data.filter((item) => item.Employe.User?.statuscompte==="activer")
-
-                    console.log('response.data',employeCactif)
+                    const employeCactif = response.data.filter((item) => item.Employe.User?.statuscompte === "activer")
                     setData(employeCactif);
-
-                    const demandeAttente = response.data.filter((att) => att.statut === "En attente").length
+                    const demandeAttente = response.data.filter((att) => att.statut === "En attente" && att.Employe.User?.statuscompte === "activer").length
                     setAttenteC(demandeAttente);
 
                 } else {
@@ -150,15 +180,24 @@ const Conges = () => {
         const itemDateDebut = moment(item.dateDebut).format('YYYY-MM-DD');
         const itemDateFin = moment(item.dateFin).format('YYYY-MM-DD');
         const matchesSearchTerm =
-            // (item.Employe && item.Employe.nom.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            // (item.Employe && item.Employe.prenom.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (item.Employe.User && item.Employe?.User.nom.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (item.Employe.User&& item.Employe?.User.prenom.toLowerCase().includes(searchTerm.toLowerCase())) ||
             (item.type_demande && item.type_demande.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (item.Employe.Poste?.poste && item.Employe.Poste.poste.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
             (item.statut && item.statut.toLowerCase().includes(searchTerm.toLowerCase()));
 
         const matchesDateRange =
             (!startDate || itemDateDebut >= startDate) &&
             (!endDate || itemDateFin <= endDate);
-        return matchesSearchTerm && matchesDateRange;
+
+        // Filtre par école
+        const matchesEcole = !selectedEcole ||
+            (item.Employe?.User?.Ecoles.some(ecole => ecole.id === parseInt(selectedEcole))) ||
+            (item.Employe?.User?.Ecoles[0]?.id === parseInt(selectedEcole));
+
+        return matchesSearchTerm && matchesDateRange && matchesEcole;
+
+
     });
 
     const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
@@ -314,7 +353,6 @@ const Conges = () => {
     };
     // Fonction pour exporter les données vers Excel
     const handleExport = () => {
-
         const ws = XLSX.utils.json_to_sheet(currentItems.map(item => ({
             "Nom et Prénom": `${item.Employe?.User?.nom} ${item.Employe?.User?.prenom}`,
             "Poste": item.Employe?.Poste?.poste,
@@ -368,42 +406,46 @@ const Conges = () => {
                             </a> */}
                         </div>
                     </div>
-                    <div className="row">
-                        <div className="select-search col-12">
-                            <div className="col-6">
-                                {/* <div className="form-group">
-                                    <label htmlFor="">Filtrer par status</label>
-                                    <Select
-                                        value={selectedOption}
-                                        onChange={handleChange}
-                                        options={options}
+
+
+                    <div className="row ">
+
+                        <div className="col-3 mt-5" style={{ flex: '1', marginRight: '10px',}}>
+                            <select
+                                name="ecole"
+                                className="form-control"
+                                required
+                                style={{ height: '35px', borderRadius: '8px', backgroundColor: '#F8F8F8' }}
+                                onChange={(e) => setSelectedEcole(e.target.value)}
+                                value={selectedEcole || ''}
+                            >
+                                <option value="">Sélectionnez une école</option>
+                                {ecole.map((item) => (
+                                    <option key={item.id} value={item.id}>
+                                        {item.nomecole}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="col-3" style={{ flex: '1' ,marginTop:'40px',height:'30px'}}>
+                            <div className="input-group mr-2">
+                                <div className="form-outline">
+                                    <input
+                                        type="search"
+                                        id="form1"
+                                        className="form-control"
+                                        placeholder="Recherche par type et statut"
+                                        style={{ height: "38px", width: "250px" }}
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
                                     />
-                                </div> */}
-                            </div>
-                            <div className="col-6">
-                                <div className="input-group mr-2">
-                                    <div className="form-outline">
-                                        <input
-                                            type="search"
-                                            id="form1"
-                                            className="form-control"
-                                            placeholder="Recherche par type et statut"
-                                            style={{ height: "38px", width: "250px" }}
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                        />
-                                    </div>
-                                    <div style={{ background: "rgb(202, 200, 200)", padding: "3px", height: "37px", borderRadius: "2px" }}>
-                                        <img src={recherche} alt="" height="30px" width="30px" />
-                                    </div>
+                                </div>
+                                <div style={{ background: "rgb(202, 200, 200)", padding: "3px", height: "37px", borderRadius: "2px" }}>
+                                    <img src={recherche} alt="" height="20px" width="20px" />
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    {/* Filtres par date */}
-                    <div className="row mt-3">
-                        <div className="col-6">
+                        <div className="col-3">
                             <label htmlFor="">Date debut</label>
                             <input
                                 type="date"
@@ -412,7 +454,7 @@ const Conges = () => {
                                 onChange={(e) => setStartDate(e.target.value)}
                             />
                         </div>
-                        <div className="col-6">
+                        <div className="col-3">
                             <label htmlFor="">Date fin</label>
                             <input
                                 type="date"
@@ -421,6 +463,7 @@ const Conges = () => {
                                 onChange={(e) => setEndDate(e.target.value)}
                             />
                         </div>
+                       
                     </div>
                 </div>
                 {/* Filtre de visibilité des colonnes */}
@@ -429,7 +472,7 @@ const Conges = () => {
 
 
                 <div className="card-body ">
-                    <table id="example2" className="table table-bordered ">
+                    <table id="example2" className="table table-bordered table-sm ">
                         <thead>
                             <tr>
                                 {columnVisibility.id && <th>Id</th>}
@@ -442,6 +485,7 @@ const Conges = () => {
                                 {columnVisibility.statut && (
                                     <th>Statut {AttenteC > 0 && (<span className="badge bg-danger ms-2"> {AttenteC}</span>)}</th>
                                 )}
+                                <th>Ecole</th>
                                 {columnVisibility.actions && <th>Actions</th>}
                             </tr>
                         </thead>
@@ -454,29 +498,36 @@ const Conges = () => {
                                     {columnVisibility.type_demande && <td>{item.type_demande}</td>}
                                     {columnVisibility.dateDebut && <td>{moment(item.dateDebut).format('YYYY-MM-DD')}</td>}
                                     {columnVisibility.dateFin && <td>{moment(item.dateFin).format('YYYY-MM-DD')}</td>}
-                                    {columnVisibility.duree && ( <td>{moment(item.dateFin).diff(moment(item.dateDebut), 'days') +1} jours</td> )}
-                                    {columnVisibility.statut && <td>{item.statut}</td>}
+                                    {columnVisibility.duree && (<td>{moment(item.dateFin).diff(moment(item.dateDebut), 'days') + 1} jours</td>)}
+                                    {columnVisibility.statut && <td><strong>{item.statut}</strong></td>}
+                                    <td>{item.Employe?.User?.Ecoles ? item.Employe?.User?.Ecoles[0]?.nomecole : ''}</td>
                                     {columnVisibility.actions && (
-                                        <td width="300px" className='text-center'>
-                                            <button className='btn btn-outline-success' data-toggle="modal" data-target="#ModifierCA">
-                                                <img src={edit} alt="" width="22px" title='profile' onClick={() => handleIDdemande(item.id, item.employe_id)} />
-                                            </button>&nbsp; &nbsp; &nbsp;
-                                            &nbsp;&nbsp;&nbsp;&nbsp;
-                                            <a
-                                                className="btn btn-outline-warning p-2"
-                                                onClick={() => handleShow(item.id)}
-                                            >
-                                                <img src={deletee} alt="" width="27px" title="Supprimer" />
-                                            </a>
+                                        <td className="text-center">
+                                            <div className="d-flex justify-content-center align-items-center gap-2">
+                                                {/* Bouton Modifier */}
+                                                <button
+                                                    className="btn btn-outline-success d-flex justify-content-center align-items-center p-1"
+                                                    data-toggle="modal"
+                                                    data-target="#ModifierCA"
+                                                    onClick={() => handleIDdemande(item.id, item.employe_id)}
+                                                    style={{ width: "35px", height: "35px" }}
+                                                >
+                                                    <img src={edit} alt="Modifier" width="20px" title="Modifier" />
+                                                </button>
 
-                                            {/* <button className='btn btn-outline-success' onClick={() => changeStatut(item.id, "Accepter")}>
-                                                <img src={accept} alt="" width="15px" title='Accepter' />
-                                            </button>&nbsp; &nbsp; &nbsp;
-                                            <button className='btn btn-outline-danger' onClick={() => changeStatut(item.id, "Refuser")}>
-                                                <img src={reject} alt="" width="15px" title='Refuser' />
-                                            </button> */}
+                                                {/* Bouton Supprimer */}
+                                                <button
+                                                    className="btn btn-outline-danger d-flex justify-content-center align-items-center p-1"
+                                                    onClick={() => handleShow(item.id)}
+                                                    style={{ width: "35px", height: "35px" }}
+                                                >
+                                                    <img src={deletee} alt="Supprimer" width="20px" title="Supprimer" />
+                                                </button>
+                                            </div>
                                         </td>
+
                                     )}
+
                                 </tr>
                             ))}
                         </tbody>

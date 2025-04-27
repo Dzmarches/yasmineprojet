@@ -299,6 +299,7 @@ const CongeAnnuel = () => {
                                         <th>Id</th>
                                         <th>Date Début</th>
                                         <th>Date Fin</th>
+                                        <th>Ecole principale</th>
                                         <th>Ecole</th>
                                         <th>Action</th>
                                     </tr>
@@ -336,7 +337,8 @@ const CongeAnnuel = () => {
                                                 <>
                                                     <td>{item.dateDebut}</td>
                                                     <td>{item.dateFin}</td>
-                                                    <td>{item.EcolePrincipal?.nomecole}</td>
+                                                    <td>{item.EcolePrincipal? item.EcolePrincipal?.nomecole:'' }</td>
+                                                    <td>{item.Ecole? item.Ecole?.nomecole:''}</td>
                                                     <td>
                                                         <button className="btn btn-outline-success" onClick={() => handleEdit(item)}>
                                                             <img src={edit} alt="" width="24px" title='modifier' />

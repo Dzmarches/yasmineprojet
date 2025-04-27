@@ -1,9 +1,8 @@
-// controllers/presenceController.js
 import Presence from '../../models/Admin/Presence.js';
 import Eleve from '../../models/Admin/Eleve.js';
-import User from '../../models/User.js'; // Importez le modèle User si nécessaire
 import Enseignant from '../../models/Admin/Enseignant.js';
 import Employe from '../../models/RH/employe.js';
+import User from '../../models/User.js';
 import { Op } from 'sequelize';
 import fs from 'fs';
 import path from 'path';
@@ -13,11 +12,124 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Créer le dossier s'il n'existe pas
-const justificationsDir = path.join(__dirname, '../../public/justificationsEleve');
+// Répertoire de stockage des justificatifs
+const justificationsDir = path.join(__dirname, '../../public/images/justificationabsenceEleve');
 if (!fs.existsSync(justificationsDir)) {
     fs.mkdirSync(justificationsDir, { recursive: true });
 }
+
+export const savePresences = async (req, res) => {
+  try {
+      const { presences, date, heure, enseignantId } = req.body;
+      
+      if (!presences || !date) {
+          return res.status(400).json({ success: false, message: "Champs requis manquants." });
+      }
+
+      // Convertir les présences en tableau si ce n'est pas déjà le cas
+      const parsedPresences = Array.isArray(presences) ? presences : JSON.parse(presences);
+
+      const results = await Promise.all(parsedPresences.map(async (presenceStr) => {
+          const presence = typeof presenceStr === 'string' ? JSON.parse(presenceStr) : presenceStr;
+          
+          const existingPresence = await Presence.findOne({
+              where: { eleveId: presence.eleveId, date }
+          });
+
+          let justificationMatinPath = null;
+          let justificationApresMidiPath = null;
+
+          // Traitement des fichiers
+          const matinFileKey = `justificationMatin-${presence.eleveId}`;
+          const apresMidiFileKey = `justificationApresMidi-${presence.eleveId}`;
+
+          if (req.files) {
+              // Fichier pour le matin
+              const matinFile = req.files.find(f => f.fieldname === matinFileKey);
+              if (matinFile) {
+                  const fileName = `justif_${presence.eleveId}_matin_${Date.now()}${path.extname(matinFile.originalname)}`;
+                  fs.writeFileSync(path.join(justificationsDir, fileName), matinFile.buffer);
+                  justificationMatinPath = `/images/justificationabsenceEleve/${fileName}`;
+              }
+
+              // Fichier pour l'après-midi
+              const apresMidiFile = req.files.find(f => f.fieldname === apresMidiFileKey);
+              if (apresMidiFile) {
+                  const fileName = `justif_${presence.eleveId}_apresmidi_${Date.now()}${path.extname(apresMidiFile.originalname)}`;
+                  fs.writeFileSync(path.join(justificationsDir, fileName), apresMidiFile.buffer);
+                  justificationApresMidiPath = `/images/justificationabsenceEleve/${fileName}`;
+              }
+          }
+
+          if (existingPresence) {
+              return await existingPresence.update({
+                  matin: presence.matin,
+                  apres_midi: presence.apres_midi,
+                  heure,
+                  enseignantId,
+                  justificationMatin: justificationMatinPath || existingPresence.justificationMatin,
+                  justificationApresMidi: justificationApresMidiPath || existingPresence.justificationApresMidi
+              });
+          } else {
+              return await Presence.create({
+                  eleveId: presence.eleveId,
+                  enseignantId,
+                  date,
+                  matin: presence.matin,
+                  apres_midi: presence.apres_midi,
+                  heure,
+                  justificationMatin: justificationMatinPath,
+                  justificationApresMidi: justificationApresMidiPath
+              });
+          }
+      }));
+
+      res.status(200).json({ success: true, data: results });
+  } catch (error) {
+      console.error('Erreur lors de la sauvegarde:', error);
+      res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getPresencesByDate = async (req, res) => {
+    try {
+        const { date } = req.params;
+
+        const presences = await Presence.findAll({
+            where: { date },
+            include: [
+                {
+                    model: Eleve,
+                    as: 'eleve'
+                },
+                {
+                    model: Enseignant,
+                    as: 'enseignant',
+                    include: [
+                        {
+                            model: Employe,
+                            include: [
+                                {
+                                    model: User,
+                                    attributes: ['id', 'nom', 'prenom']
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        });
+
+        res.status(200).json(presences);
+    } catch (error) {
+        console.error("Erreur lors de la récupération des présences:", error);
+        res.status(500).json({
+            message: "Erreur serveur",
+            error: error.message
+        });
+    }
+};
+
 
 // export const savePresences = async (req, res) => {
 //   try {
@@ -77,106 +189,3 @@ if (!fs.existsSync(justificationsDir)) {
 //     });
 //   }
 // };
-
-export const savePresences = async (req, res) => {
-  try {
-      const { presences, date, heure, enseignantId } = req.body;
-      const parsedPresences = JSON.parse(presences);
-      
-      const results = await Promise.all(parsedPresences.map(async (presence) => {
-          // Vérifier si une présence existe déjà pour cet élève à cette date
-          const existingPresence = await Presence.findOne({
-              where: {
-                  eleveId: presence.eleveId,
-                  date: date
-              }
-          });
-
-          let justificationMatinPath = null;
-          let justificationApresMidiPath = null;
-
-          // Gérer l'upload des fichiers
-          if (req.files) {
-              if (req.files[`justificationMatin-${presence.eleveId}`]) {
-                  const file = req.files[`justificationMatin-${presence.eleveId}`][0];
-                  const ext = path.extname(file.originalname);
-                  justificationMatinPath = `/justifications/justif_${presence.eleveId}_matin_${Date.now()}${ext}`;
-                  fs.writeFileSync(path.join(__dirname, '../../public' + justificationMatinPath), file.buffer);
-              }
-              
-              if (req.files[`justificationApresMidi-${presence.eleveId}`]) {
-                  const file = req.files[`justificationApresMidi-${presence.eleveId}`][0];
-                  const ext = path.extname(file.originalname);
-                  justificationApresMidiPath = `/justifications/justif_${presence.eleveId}_apresmidi_${Date.now()}${ext}`;
-                  fs.writeFileSync(path.join(__dirname, '../../public' + justificationApresMidiPath), file.buffer);
-              }
-          }
-
-          if (existingPresence) {
-              // Mise à jour de la présence existante
-              return await existingPresence.update({
-                  matin: presence.matin,
-                  apres_midi: presence.apres_midi,
-                  heure: heure,
-                  enseignantId: enseignantId,
-                  justification: justificationMatinPath || justificationApresMidiPath || existingPresence.justification
-              });
-          } else {
-              // Création d'une nouvelle présence
-              return await Presence.create({
-                  eleveId: presence.eleveId,
-                  enseignantId: enseignantId,
-                  date: date,
-                  matin: presence.matin,
-                  apres_midi: presence.apres_midi,
-                  heure: heure,
-                  justification: justificationMatinPath || justificationApresMidiPath
-              });
-          }
-      }));
-
-      res.status(200).json({ success: true, data: results });
-  } catch (error) {
-      console.error('Erreur lors de la sauvegarde des présences:', error);
-      res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-export const getPresencesByDate = async (req, res) => {
-  try {
-    const { date } = req.params;
-
-    const presences = await Presence.findAll({
-      where: { date },
-      include: [
-        {
-          model: Eleve,
-          as: 'eleve'
-        },
-        {
-          model: Enseignant,
-          as: 'enseignant',
-          include: [
-            {
-              model: Employe,
-              include: [
-                {
-                  model: User,
-                  attributes: ['id', 'nom', 'prenom']
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    });
-
-    res.status(200).json(presences);
-  } catch (error) {
-    console.error("Erreur lors de la récupération des présences:", error);
-    res.status(500).json({ 
-      message: "Erreur serveur", 
-      error: error.message 
-    });
-  }
-};

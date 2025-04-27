@@ -5,15 +5,27 @@ import cron from 'node-cron'
 import Pointage from '../models/RH/pointage.js'; 
 import Employe from '../models/RH/employe.js';
 import moment from 'moment' 
+import User from '../models/User.js';
+import { Op } from 'sequelize';
 
 // Planification de la tâche à 17h00 chaque jour
-cron.schedule('22 14 * * *', async () => {
-  const date = moment().format('YYYY-MM-DD');
-  console.log('date',date)
+
+  cron.schedule('46 11 * * *', async () => {
+    const date = moment().tz('Africa/Algiers').format('YYYY-MM-DD');
+    console.log("Tâche lancée pour la date :", date);
 
   try {
 
-    const employes = await Employe.findAll();
+const users=await User.findAll({where:{archiver:0,statuscompte:"activer"}});
+const userId=users.map((item)=>item.id);
+    const employes = await Employe.findAll({
+      where: {
+        archiver: 0,
+        userId: {
+          [Op.in]: userId,
+        },
+      },
+     });
     for (let employe of employes) {
 
       const pointage = await Pointage.findOne({

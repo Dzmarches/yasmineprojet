@@ -1,6 +1,6 @@
-import Pointage from '../../models/RH/pointage.js'; 
-import Employe from '../../models/RH/employe.js'; 
-import Poste from '../../models/RH/poste.js'; 
+import Pointage from '../../models/RH/pointage.js';
+import Employe from '../../models/RH/employe.js';
+import Poste from '../../models/RH/poste.js';
 import moment from 'moment';
 import { Op, where } from 'sequelize';
 // import Ecole from '../../models/RH/Ecole.js';
@@ -12,172 +12,217 @@ import UserEcole from '../../models/Admin/UserEcole.js';
 import PeriodePaie from '../../models/RH/paie/PeriodesPaie.js';
 import HeuresSup from '../../models/RH/HeuresSup.js';
 
-
-
 export const AjouterPointage = async (req, res) => {
-    try {
-        const date = moment().format("YYYY-MM-DD");
-        const type_pointage="manuel"
-        if (!moment(date, 'YYYY-MM-DD', true).isValid()) {
-            return res.status(400).json({ error: "Format de date invalide" });
-        }
-
-        const employes = await Employe.findAll({
-          where: { archiver: 0 },
-          include: [
-            {
-              model: User,
-              where: { statuscompte: 'activer' }, 
-            }
-          ]
-        });
-       
-        const pointagesAjoutes = [];
-
-        for (const employe of employes) {
-            // ✅ Vérifier si un pointage existe déjà pour cet employé
-            const pointageExistant = await Pointage.findOne({
-                where: { employe_id: employe.id, date }
-            });
-          
-            if (!pointageExistant) {
-                const nouveauPointage = await Pointage.create({
-                    employe_id: employe.id,
-                    date,
-                    HeureEMP:employe.HeureEM,
-                    HeureSMP:employe.HeureSM,
-                    HeureEAMP:employe.HeureEAM,
-                    HeureSAMP:employe.HeureSAM,
-                    statut: 'present', 
-                    type_pointage
-                });
-                pointagesAjoutes.push(nouveauPointage);
-            }
-        }
-
-        res.status(200).json({
-            message: 'Pointages par défaut ajoutés avec succès',
-            pointages: pointagesAjoutes
-        });
-    } catch (error) {
-        console.error('❌ Erreur lors de l\'ajout des pointages :', error);
-        res.status(500).json({ message: 'Erreur serveur' });
-    }
-};
-
-export const Listepointage=async(req,res)=>{
   try {
     const ecoleId = req.user.ecoleId;
     const ecoleeId = req.user.ecoleeId;
     const roles = req.user.roles;
-    const isAdminPrincipal = roles.includes('AdminPrincipal');
+
+
+    const date = moment().format("YYYY-MM-DD");
+    const type_pointage = "manuel"
+    if (!moment(date, 'YYYY-MM-DD', true).isValid()) {
+      return res.status(400).json({ error: "Format de date invalide" });
+    }
+
+    let users;
+    if (!ecoleeId && ecoleId) {
+      const users_e = await User.findAll({
+        where: {
+          archiver: 0,
+          ecoleId: ecoleId,
+          statuscompte: 'activer'
+        },
+        include: [
+          {
+            model: Ecole,
+            through: { attributes: [] },
+            required: false 
+          }
+        ]
+      });
+
+       users = users_e.filter(user => user.Ecoles.length === 0);
+
+    }
+    if (ecoleeId) {
+      users = await User.findAll({
+        where: { archiver: 0, ecoleId: ecoleId ,statuscompte: 'activer'},
+        include: [
+          { model: EcolePrincipal },
+          { model: Ecole, where: { id: ecoleeId }, through: UserEcole }
+        ]
+      });
+    }
+
+    const userIds = users.map(user => user.id);
+    console.log('usersIds',userIds);
+
+    const employes = await Employe.findAll({
+      where: { archiver: 0, userId: userIds },
+      include: [
+        {
+          model: User,
+          where: { statuscompte: 'activer' },
+        }
+      ]
+    });
+
+
+    const pointagesAjoutes = [];
+
+    for (const employe of employes) {
+      // ✅ Vérifier si un pointage existe déjà pour cet employé
+      const pointageExistant = await Pointage.findOne({
+        where: { employe_id: employe.id, date }
+      });
+
+      if (!pointageExistant) {
+        const nouveauPointage = await Pointage.create({
+          employe_id: employe.id,
+          date,
+          HeureEMP: employe.HeureEM,
+          HeureSMP: employe.HeureSM,
+          HeureEAMP: employe.HeureEAM,
+          HeureSAMP: employe.HeureSAM,
+          statut: 'present',
+          type_pointage
+        });
+        pointagesAjoutes.push(nouveauPointage);
+      }
+    }
+
+
+    res.status(200).json({
+      message: 'Pointages par défaut ajoutés avec succès',
+      pointages: pointagesAjoutes
+    });
+  } catch (error) {
+    console.error('❌ Erreur lors de l\'ajout des pointages :', error);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+};
+
+export const Listepointage = async (req, res) => {
+  try {
+    const ecoleId = req.user.ecoleId;
+    const ecoleeId = req.user.ecoleeId;
+    const roles = req.user.roles;
     const today = moment().format("YYYY-MM-DD");
 
+    
+    const isAdminPrincipal = roles.includes('AdminPrincipal');
+    const includeEcole = {
+      model: Ecole,
+      through: UserEcole,
+    };
+    if (ecoleeId) {
+      includeEcole.where = { id: ecoleeId };
+      includeEcole.required = true;
+    }
+
+
     let pointages;
-       if (isAdminPrincipal) {
-          // console.log('AdminPrincipal détecté');
-          pointages = await Pointage.findAll({
-            where: { archiver: 0, date: { [Op.eq]: today } },
+    if (isAdminPrincipal) {
+      // console.log('AdminPrincipal détecté');
+      pointages = await Pointage.findAll({
+        where: { archiver: 0, date: { [Op.eq]: today } },
+        include: [
+          // { model: HeuresSup,attributes: ["nom","taux"] },
+          {
+            model: Employe,
+            required: true,
+            where: {
+              id: { [Op.ne]: null },
+              archiver: 0
+            },
             include: [
-              // { model: HeuresSup,attributes: ["nom","taux"] },
               {
-                model: Employe,
-                required: true, 
+                model: Poste,
+                attributes: ["poste"],
+              },
+              {
+                model: User,
+                attributes: ["nom", "prenom", "statuscompte"],
                 where: {
-                  id: { [Op.ne]: null },
-                  archiver:0 
+                  ecoleId: ecoleId, // L'utilisateur doit appartenir à l'école principale
                 },
                 include: [
                   {
-                    model: Poste,
-                    attributes: ["poste"],
+                    model: EcolePrincipal,
+                    where: { id: ecoleId }, // Vérifie bien que c'est l'école principale
                   },
                   {
-                    model: User,
-                    attributes: ["nom", "prenom","statuscompte"],
-                    where: {
-                      ecoleId: ecoleId, // L'utilisateur doit appartenir à l'école principale
-                    },
-                    include: [
-                      {
-                        model: EcolePrincipal,
-                        where: { id: ecoleId }, // Vérifie bien que c'est l'école principale
-                      },
-                      {
-                        model: Ecole,
-                        through: UserEcole,
-                        required: false, // Permet d'inclure les utilisateurs qui ne sont pas dans une sous-école
-                      },
-                    ],
+                    model: Ecole,
+                    through: UserEcole,
+                    required: false, // Permet d'inclure les utilisateurs qui ne sont pas dans une sous-école
                   },
                 ],
               },
-              { model: HeuresSup,attributes: ["nom","taux"] }
             ],
-          });
-        }
-          
-         else {
-          console.log('Autre rôle détecté');
-        
-          pointages = await Pointage.findAll({
-            where: { archiver: 0, date: { [Op.eq]: today } },
+          },
+          { model: HeuresSup, attributes: ["nom", "taux"] }
+        ],
+      });
+    }
+
+    else {
+      console.log('Autre rôle détecté');
+
+      pointages = await Pointage.findAll({
+        where: { archiver: 0, date: { [Op.eq]: today } },
+        order: [['date', 'DESC']],
+        include: [
+          // { model: HeuresSup,attributes: ["nom","taux"] },
+          {
+            model: Employe,
+            required: true,
+            where: {
+              id: { [Op.ne]: null },
+              archiver: 0
+            },
             include: [
-              // { model: HeuresSup,attributes: ["nom","taux"] },
               {
-                model: Employe,
-                required: true, 
+                model: Poste,
+                attributes: ["poste"],
+              },
+              {
+                model: User,
+                attributes: ["nom", "prenom", "statuscompte"],
                 where: {
-                  id: { [Op.ne]: null },
-                  archiver:0
+                  ecoleId: ecoleId,
                 },
                 include: [
                   {
-                    model: Poste,
-                    attributes: ["poste"],
+                    model: EcolePrincipal,
+                    where: { id: ecoleId },
                   },
-                  {
-                    model: User,
-                    attributes: ["nom", "prenom","statuscompte"],
-                    where: {
-                      ecoleId: ecoleId, 
-                    },
-                    include: [
-                      {
-                        model: EcolePrincipal,
-                        where: { id: ecoleId },
-                      },
-                      {
-                         model: Ecole,
-                         required: false, 
-                        through: UserEcole,
-                       
-                      },
-                    ],
-                  },
+                  includeEcole
                 ],
               },
-              { model: HeuresSup,attributes: ["nom","taux"] }
             ],
-          });
-        }
- 
+          },
+          { model: HeuresSup, attributes: ["nom", "taux"] }
+        ],
+      });
+    }
+
 
     if (!pointages || pointages.length === 0) {
       return res.status(404).json({ message: "Pas de pointages" });
     }
-      return res.status(201).json(pointages);
-    
+    return res.status(201).json(pointages);
+
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur' }); 
+    return res.status(500).json({ message: 'Erreur serveur' });
   }
 
 }
 
 export const AjouterPointagee = async (req, res) => {
   try {
-     const {
+    const {
       id,
       statut,
       justificationab,
@@ -197,7 +242,7 @@ export const AjouterPointagee = async (req, res) => {
     }
 
     const newPointage = await Pointage.create({
-      employeId: id, 
+      employeId: id,
       statut,
       justificationab,
       justificationret,
@@ -233,7 +278,7 @@ export const ModifierPointage = async (req, res) => {
   }
 
   // Vérifie si c'est bien un nombre
-  updatedData.heuresupP = parseInt(updatedData.heuresupP);
+  updatedData.heuresupP = parseFloat(updatedData.heuresupP);
   if (isNaN(updatedData.heuresupP)) {
     updatedData.heuresupP = 0;
   }
@@ -263,61 +308,61 @@ export const ModifierPointage = async (req, res) => {
 
 export const Listepointagedate = async (req, res) => {
   try {
-      const { datedu, datea } = req.query;
-      // console.log('date du ',datedu,'datea',datea)
-      // Construire l'objet de conditions pour Sequelize
-      const conditions = {};
+    const { datedu, datea } = req.query;
+    // console.log('date du ',datedu,'datea',datea)
+    // Construire l'objet de conditions pour Sequelize
+    const conditions = {};
 
-      // Vérifier si datedu est défini
-      if (datedu) {
-          conditions.date = {
-              ...conditions.date,
-              [Op.gte]: moment(datedu).startOf('day').toDate() // date >= datedu
-          };
-      }
-      // Vérifier si datea est défini
-      if (datea) {
-          conditions.date = {
-              ...conditions.date,
-              [Op.lte]: moment(datea).endOf('day').toDate() // date <= datea
-          };
-      }
-      // Si aucune date n'est fournie, renvoyer une erreur
-      if (!datedu && !datea) {
-          return res.status(400).json({ message: 'Veuillez fournir au moins une date.' });
-      }
+    // Vérifier si datedu est défini
+    if (datedu) {
+      conditions.date = {
+        ...conditions.date,
+        [Op.gte]: moment(datedu).startOf('day').toDate() // date >= datedu
+      };
+    }
+    // Vérifier si datea est défini
+    if (datea) {
+      conditions.date = {
+        ...conditions.date,
+        [Op.lte]: moment(datea).endOf('day').toDate() // date <= datea
+      };
+    }
+    // Si aucune date n'est fournie, renvoyer une erreur
+    if (!datedu && !datea) {
+      return res.status(400).json({ message: 'Veuillez fournir au moins une date.' });
+    }
 
-      // Récupérer les pointages en fonction des conditions
-      const pointages = await Pointage.findAll({
-          where: conditions,
+    // Récupérer les pointages en fonction des conditions
+    const pointages = await Pointage.findAll({
+      where: conditions,
+      include: [
+        {
+          model: Employe,
+
+
           include: [
             {
-              model: Employe,
-          
-              
-              include: [
-                {
-                  model: Poste,
-                  attributes: ["poste"], 
-                },
-                {
-                  model: User,
-                  attributes: ["nom","prenom"], 
-                }
-              ],
+              model: Poste,
+              attributes: ["poste"],
             },
-           { model: HeuresSup,attributes: ["nom","taux"] }
+            {
+              model: User,
+              attributes: ["nom", "prenom"],
+            }
           ],
-      });
+        },
+        { model: HeuresSup, attributes: ["nom", "taux"] }
+      ],
+    });
 
-      if (!pointages || pointages.length === 0) {
-          return res.status(404).json({ message: "Pas de pointages trouvés pour les dates spécifiées." });
-      }
+    if (!pointages || pointages.length === 0) {
+      return res.status(404).json({ message: "Pas de pointages trouvés pour les dates spécifiées." });
+    }
 
-      return res.status(200).json(pointages);
+    return res.status(200).json(pointages);
   } catch (error) {
-      console.error('Erreur lors de la récupération des pointages par date:', error);
-      return res.status(500).json({ message: 'Erreur serveur' });
+    console.error('Erreur lors de la récupération des pointages par date:', error);
+    return res.status(500).json({ message: 'Erreur serveur' });
   }
 };
 
@@ -340,16 +385,16 @@ export const Listepointagedate = async (req, res) => {
 //       if(ecoleId && !ecoleeId){
 //         const findEcoleP=await EcolePrincipal.findByPk(ecoleId);
 //         const positionEcole=findEcoleP.maps;
-       
+
 //       }
 
 //       if (ecoleeId){
 //         const findEcole=await Ecole.findByPk(ecoleeId);
 //         const mapEcole=findEcole.maps;
-       
+
 //       }
 //     }
- 
+
 //     const { lat, long,  time, BTN ,comment} = req.body;
 //     const date = moment.format("YYYY-MM-DD");
 
@@ -363,7 +408,7 @@ export const Listepointagedate = async (req, res) => {
 //     }
 //     const latlong = `${lat};${long}`;
 
-    
+
 //     // Vérifier si l'employé a déjà un pointage à cette date
 //     let findemploye = await Pointage.findOne({
 //       where: {
@@ -390,8 +435,8 @@ export const Listepointagedate = async (req, res) => {
 //     // Définition des champs à mettre à jour selon BTN
 //     const updateFields = {};
 //     switch (BTN) {
-      
-    
+
+
 //       case 'EMP':
 //         if (!findemploye.HeureEMP || !findemploye.latlogEMP) {
 //           if (
@@ -403,15 +448,15 @@ export const Listepointagedate = async (req, res) => {
 //           } else {
 //             updateFields.statut = "present";
 //           }
-          
+
 //           updateFields.justificationret=`retard entrée du matin :${comment}`
 //           updateFields.HeureEMP = time;
 //           updateFields.latlogEMP = latlong;
-         
+
 //         }
 //         break;
 //       case 'SMP':
-        
+
 //         if (!findemploye.HeureSMP || !findemploye.latlogSMP) {
 //           // if (
 //           // moment(employeinfo.HeureSM, "HH:mm:ss").isAfter(moment(time, "HH:mm:ss")) 
@@ -422,7 +467,7 @@ export const Listepointagedate = async (req, res) => {
 //           // } 
 //           updateFields.HeureSMP = time;
 //           updateFields.latlogSMP = latlong;
-          
+
 //         }else{
 //           console.log('vous avez pas le droit')
 //         }
@@ -438,11 +483,11 @@ export const Listepointagedate = async (req, res) => {
 //               updateFields.statut = "retard";
 //             }
 //             }
-            
+
 
 //              updateFields.justificationret=`${findemploye.justificationret}
 //              , retard entrée aprés midi :${comment}`
-    
+
 //           updateFields.HeureEAMP = time;
 //           updateFields.latlogEAMP = latlong;
 //         }
@@ -458,7 +503,7 @@ export const Listepointagedate = async (req, res) => {
 //         //       updateFields.statut = "retard";
 //         //     }
 //         //   }
-      
+
 //           updateFields.HeureSAMP = time;
 //           updateFields.latlogSAMP = latlong;
 //         }
@@ -498,7 +543,7 @@ export const AjouterPointageLocalisation = async (req, res) => {
     const ecoleId = req.user.ecoleId;
     const ecoleeId = req.user.ecoleeId;
     const roles = req.user.roles;
-    const type_pointage="localisation"
+    const type_pointage = "localisation"
 
     // Vérifier si l'utilisateur est un employé
     const isEmploye = roles.includes("Employé");
@@ -515,13 +560,13 @@ export const AjouterPointageLocalisation = async (req, res) => {
     // Récupérer la position de l'école ou sous-école
 
     let maps = [];
-if (ecoleId && !ecoleeId) {
-  const findEcoleP = await EcolePrincipal.findByPk(ecoleId);
-  maps = Array.isArray(findEcoleP?.maps) ? findEcoleP.maps : [];
-} else if (ecoleeId) {
-  const findEcole = await Ecole.findByPk(ecoleeId);
-  maps = Array.isArray(findEcole?.maps) ? findEcole.maps : [];
-}
+    if (ecoleId && !ecoleeId) {
+      const findEcoleP = await EcolePrincipal.findByPk(ecoleId);
+      maps = Array.isArray(findEcoleP?.maps) ? findEcoleP.maps : [];
+    } else if (ecoleeId) {
+      const findEcole = await Ecole.findByPk(ecoleeId);
+      maps = Array.isArray(findEcole?.maps) ? findEcole.maps : [];
+    }
 
 
     // Récupérer les données du pointage
@@ -535,7 +580,7 @@ if (ecoleId && !ecoleeId) {
     );
 
     // Vérifier les champs requis
-    if (!lat || !long || !date || !time) {
+    if (!lat || !long || !date ) {
       return res.status(400).json({ message: "Tous les champs sont requis." });
     }
 
@@ -566,43 +611,44 @@ if (ecoleId && !ecoleeId) {
         type_pointage
       });
     }
+    // const serverTime = moment().format("HH:mm:ss");
+    const serverTime = moment().tz("Africa/Algiers").format("HH:mm");
 
     // Définition des champs à mettre à jour
     const updateFields = {};
-
     switch (BTN) {
       case "EMP":
         if (!findemploye.HeureEMP || !findemploye.latlogEMP) {
-          updateFields.statut = moment(employeinfo.HeureEM, "HH:mm:ss").isBefore(moment(time, "HH:mm:ss"))
+          updateFields.statut = moment(employeinfo.HeureEM, "HH:mm:ss").isBefore(moment(serverTime, "HH:mm:ss"))
             ? "retard"
             : "present";
           updateFields.justificationret = `retard entrée du matin : ${comment}`;
-          updateFields.HeureEMP = time;
+          updateFields.HeureEMP = serverTime;
           updateFields.latlogEMP = latlong;
         }
         break;
-      
+
       case "SMP":
         if (!findemploye.HeureSMP || !findemploye.latlogSMP) {
-          updateFields.HeureSMP = time;
+          updateFields.HeureSMP = serverTime;
           updateFields.latlogSMP = latlong;
         }
         break;
-      
+
       case "EAMP":
         if (!findemploye.HeureEAMP || !findemploye.latlogEAMP) {
-          updateFields.statut = moment(employeinfo.HeureEAM, "HH:mm:ss").isBefore(moment(time, "HH:mm:ss"))
+          updateFields.statut = moment(employeinfo.HeureEAM, "HH:mm:ss").isBefore(moment(serverTime, "HH:mm:ss"))
             ? "retard"
             : findemploye.statut;
           updateFields.justificationret = `${findemploye.justificationret || ""}, retard entrée après-midi : ${comment}`;
-          updateFields.HeureEAMP = time;
+          updateFields.HeureEAMP = serverTime;
           updateFields.latlogEAMP = latlong;
         }
         break;
 
       case "SAMP":
         if (!findemploye.HeureSAMP || !findemploye.latlogSAMP) {
-          updateFields.HeureSAMP = time;
+          updateFields.HeureSAMP = serverTime;
           updateFields.latlogSAMP = latlong;
         }
         break;
@@ -635,105 +681,102 @@ if (ecoleId && !ecoleeId) {
     return res.status(500).json({ message: "Erreur serveur" });
   }
 };
-
-
-
 export const InfoPointageToday = async (req, res) => {
+  try {
 
-    try {
+    const userconnect = req.user.id;
+    const ecoleId = req.user.ecoleId;
+    const ecoleeId = req.user.ecoleeId;
+    const roles = req.user.roles;
+    const isEmploye = roles.includes("Employé");
+    const dateToday = moment().format("YYYY-MM-DD");
 
-      const userconnect = req.user.id;
-      const ecoleId = req.user.ecoleId;
-      const ecoleeId = req.user.ecoleeId;
-      const roles = req.user.roles;
-      const isEmploye = roles.includes("Employé");
-      const dateToday = moment().format("YYYY-MM-DD");
-    
-      if (!isEmploye) {
-        return res.status(403).json({ message: "Accès refusé" });
-      }
-      const findEmploye = await Employe.findOne({ where: { userId: userconnect } });
-  
-      if (!findEmploye) {
-        return res.status(404).json({ message: "Employé non trouvé" });
-      }
-
-        const findPointage= await Pointage.findOne({
-            where: {
-                employe_id: findEmploye.id,
-                date: dateToday
-            }
-            
-        });
-
-        if (!findPointage) {
-            return res.status(404).json({ message: 'Aucun pointage trouvé pour aujourd\'hui.' });
-        }
-        return res.status(200).json(findPointage);
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: 'Erreur lors de la récupération des informations de pointage.' });
+    if (!isEmploye) {
+      return res.status(403).json({ message: "Accès refusé" });
     }
+    const findEmploye = await Employe.findOne({ where: { userId: userconnect } });
+
+    if (!findEmploye) {
+      return res.status(404).json({ message: "Employé non trouvé" });
+    }
+
+    const findPointage = await Pointage.findOne({
+      where: {
+        employe_id: findEmploye.id,
+        date: dateToday
+      }
+
+    });
+
+    if (!findPointage) {
+      return res.status(404).json({ message: 'Aucun pointage trouvé pour aujourd\'hui.' });
+    }
+    return res.status(200).json(findPointage);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Erreur lors de la récupération des informations de pointage.' });
+  }
 };
 
-export const setAllpoinates=async(req,res)=>{
+export const setAllpoinates = async (req, res) => {
   try {
-    
-  const userconnect = req.user.id;
-  const ecoleId = req.user.ecoleId;
-  const ecoleeId = req.user.ecoleeId;
-  const roles = req.user.roles;
 
-  const isEmploye = roles.includes("Employé");
-  if (!isEmploye) {
-    return res.status(403).json({ message: "Accès refusé" });
-  }
+    const userconnect = req.user.id;
+    const ecoleId = req.user.ecoleId;
+    const ecoleeId = req.user.ecoleeId;
+    const roles = req.user.roles;
 
-  // Récupérer les données de l'employé
-  const findEmploye = await Employe.findOne({ where: { userId: userconnect } });
-  
-  if (!findEmploye) {
-    return res.status(404).json({ message: "Employé non trouvé" });
-  }
-      const dateToday = moment().format("YYYY-MM-DD");
-      const findpointage = await Pointage.findAll({
-          where: {
-              employe_id: findEmploye.id,
-          },
+    const isEmploye = roles.includes("Employé");
+    if (!isEmploye) {
+      return res.status(403).json({ message: "Accès refusé" });
+    }
+
+    // Récupérer les données de l'employé
+    const findEmploye = await Employe.findOne({ where: { userId: userconnect } });
+
+    if (!findEmploye) {
+      return res.status(404).json({ message: "Employé non trouvé" });
+    }
+    const dateToday = moment().format("YYYY-MM-DD");
+    const findpointage = await Pointage.findAll({
+      where: {
+        employe_id: findEmploye.id,
+      },
+      order: [['date', 'DESC']],
+      include: [
+        {
+          model: Employe,
           include: [
             {
-                model: Employe,
-                include: [
-                    {
-                        model: User,
-                        include:[{model:EcolePrincipal}]
-                    }
-                ]
+              model: User,
+              include: [{ model: EcolePrincipal }]
             }
-        ]
-      });
-  
-      if (!findpointage) {
-          return res.status(404).json({ message: 'Aucun pointage trouvé pour aujourd\'hui.' });
-      }
-      return res.status(200).json(findpointage);
+          ]
+        }
+      ]
+    });
+
+    if (!findpointage) {
+      return res.status(404).json({ message: 'Aucun pointage trouvé pour aujourd\'hui.' });
+    }
+    return res.status(200).json(findpointage);
   } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: 'Erreur lors de la récupération des informations de pointage.' });
+    console.error(error);
+    return res.status(500).json({ message: 'Erreur lors de la récupération des informations de pointage.' });
   }
 };
 
-export const ecoleD=async(req,res)=>{
+export const ecoleD = async (req, res) => {
   try {
     const ecoleId = req.user.ecoleId;
-    const ecoleeId = req.user.ecoleeId; 
+    const ecoleeId = req.user.ecoleeId;
     const roles = req.user.roles;
-  
+
     if (ecoleId && !ecoleeId) {
       const findEcoleP = await EcolePrincipal.findOne({
         where: { id: ecoleId },
       });
-  
+
       if (findEcoleP) {
         return res.status(200).json(findEcoleP);
       } else {
@@ -741,12 +784,12 @@ export const ecoleD=async(req,res)=>{
         return res.status(404).json({ message: 'Ecole principale non trouvée' });
       }
     }
-  
+
     if (ecoleeId && ecoleId) {
       const findEcole = await Ecole.findOne({
         where: { id: ecoleeId, ecoleId },
       });
-  
+
       if (findEcole) {
         return res.status(200).json(findEcole);
       } else {
@@ -756,12 +799,12 @@ export const ecoleD=async(req,res)=>{
     }
 
     return res.status(400).json({ message: 'Données manquantes' });
-  
+
   } catch (error) {
     console.log(error);
     return res.status(500).json({ message: 'Erreur serveur', error: error.message });
   }
-  
+
 }
 
 
@@ -769,108 +812,106 @@ export const ecoleD=async(req,res)=>{
 
 export const ListepointageRapport = async (req, res) => {
   try {
-    const ecoleId = req.user.ecoleId;   
-    const ecoleeId = req.user.ecoleeId; 
+    const ecoleId = req.user.ecoleId;
+    const ecoleeId = req.user.ecoleeId;
     const roles = req.user.roles;
-    
+
     const isAdminPrincipal = roles.includes('AdminPrincipal');
-      
+
     const includeEcole = {
       model: Ecole,
       through: UserEcole,
     };
     if (ecoleeId) {
       includeEcole.where = { id: ecoleeId };
-      includeEcole.required = true; 
+      includeEcole.required = true;
+    }
+    let pointages;
+    if (isAdminPrincipal) {
+      console.log('AdminPrincipal détecté y');
+      pointages = await Pointage.findAll({
+        where: { archiver: 0 },
+        order: [['date', 'DESC']],
+        include: [
+          {
+            model: Employe,
+            required: true,
+            where: {
+              id: { [Op.ne]: null },
+            },
+            include: [
+              {
+                model: Poste,
+                attributes: ["poste"],
+              },
+              {
+                model: User,
+                attributes: ["nom", "prenom"],
+                where: {
+                  ecoleId: ecoleId,
+                },
+                include: [
+                  {
+                    model: EcolePrincipal,
+                    where: { id: ecoleId },
+                  },
+                  {
+                    model: Ecole,
+                    through: UserEcole,
+                    required: false,
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            model: HeuresSup,
+            attributes: ["nom", "taux"]
+          }
+        ],
+      });
+    }
+    else {
+      console.log('Autre rôle détecté');
+      pointages = await Pointage.findAll({
+        where: { archiver: 0 },
+        order: [['date', 'DESC']],
+        include: [
+          {
+            model: Employe,
+            required: true,
+            where: {
+              id: { [Op.ne]: null },
+            },
+            include: [
+              {
+                model: Poste,
+                attributes: ["poste"],
+              },
+              {
+                model: User,
+                attributes: ["nom", "prenom"],
+                where: {
+                  ecoleId: ecoleId,
+                },
+                include: [
+                  {
+                    model: EcolePrincipal,
+                    where: { id: ecoleId },
+                  },
+                  includeEcole
+                ],
+              },
+            ],
+          },
+          {
+            model: HeuresSup,
+            attributes: ["nom", "taux"]
+          }
+        ],
+      });
     }
 
-    let pointages;
-       if (isAdminPrincipal) {
-          console.log('AdminPrincipal détecté');
-          pointages = await Pointage.findAll({
-            where: { archiver: 0 },
-            order: [['createdAt', 'DESC']],
-            include: [
-              {
-                model: Employe,
-                required: true, 
-                where: {
-                  id: { [Op.ne]: null }, 
-                },
-                include: [
-                  {
-                    model: Poste,
-                    attributes: ["poste"],
-                  },
-                  {
-                    model: User,
-                    attributes: ["nom", "prenom"],
-                    where: {
-                      ecoleId: ecoleId, 
-                    },
-                    include: [
-                      {
-                        model: EcolePrincipal,
-                        where: { id: ecoleId },
-                      },
-                      {
-                        model: Ecole,
-                        through: UserEcole,
-                        required: false,
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                model: HeuresSup,
-                attributes: ["nom","taux"] 
-              }
-            ],
-          });
-        }
-          
-         else {
-          console.log('Autre rôle détecté');
-          pointages = await Pointage.findAll({
-            where: { archiver: 0 },
-            order: [['createdAt', 'DESC']],
-            include: [
-              {
-                model: Employe,
-                required: true, 
-                where: {
-                  id: { [Op.ne]: null },
-                },
-                include: [
-                  {
-                    model: Poste,
-                    attributes: ["poste"],
-                  },
-                  {
-                    model: User,
-                    attributes: ["nom", "prenom"],
-                    where: {
-                      ecoleId: ecoleId, 
-                    },
-                    include: [
-                      {
-                        model: EcolePrincipal,
-                        where: { id: ecoleId },
-                      },
-                      includeEcole
-                    ],
-                  },
-                ],
-              },
-              {
-                model: HeuresSup,
-                attributes: ["nom","taux"] 
-              }
-            ],
-          });
-        }
- 
 
     // Vérification si des pointages ont été trouvés
     if (!pointages || pointages.length === 0) {
@@ -879,63 +920,111 @@ export const ListepointageRapport = async (req, res) => {
 
     // Retourner les pointages trouvés
     return res.status(200).json(pointages);
-    
+
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur' }); 
+    return res.status(500).json({ message: 'Erreur serveur' });
   }
 };
 
-export const ecoleEmployerUser=async(req,res)=>{
+export const ecoleEmployerUser = async (req, res) => {
   try {
-    console.log('dkhelna',req.params.id)
     const ecoleId = req.user.ecoleId;
-    const ecoleeId = req.user.ecoleeId; 
+    const ecoleeId = req.user.ecoleeId;
     const roles = req.user.roles;
-    console.log('params',req.params)
-    const UserEmploye=req.params.id;
-  
-    if (UserEmploye ) {
+    console.log('params', req.params)
+    const UserEmploye = req.params.id;
+
+    if (UserEmploye) {
 
       let findUsermaps;
-          findUsermaps = await User.findOne({
+      findUsermaps = await User.findOne({
         where: { id: UserEmploye },
-        include:[
+        include: [
           {
             model: Ecole,
-            required: true, 
-           through: UserEcole,
-           attributes:['maps'],
+            required: true,
+            through: UserEcole,
+            attributes: ['maps'],
           }
-         
+
         ]
       });
 
-      if(!findUsermaps){
-         findUsermaps = await User.findOne({
+      if (!findUsermaps) {
+        findUsermaps = await User.findOne({
           where: { id: UserEmploye },
-          include:[
+          include: [
             {
               model: EcolePrincipal,
-              attributes:['maps'],
-              required: true, 
+              attributes: ['maps'],
+              required: true,
             }
-           
+
           ]
         });
       }
-
       return res.status(200).json(findUsermaps);
-      
-  
     }
-
-    
-   
-  
   } catch (error) {
     console.log(error);
     return res.status(500).json({ message: 'Erreur serveur', error: error.message });
   }
-  
+
 }
+export const marquerabsences = async (req, res) => {
+    try {
+      console.log('hello');
+      const date = moment().tz('Africa/Algiers').format('YYYY-MM-DD');
+      const users=await User.findAll({where:{archiver:0,statuscompte:"activer"}});
+      const userId=users.map((item)=>item.id);
+          const employes = await Employe.findAll({
+            where: {
+              archiver: 0,
+              userId: {
+                [Op.in]: userId,
+              },
+            },
+           });
+          for (let employe of employes) {
+      
+            const pointage = await Pointage.findOne({
+              where: { employe_id: employe.id, date },
+            });
+      
+            if (!pointage) {
+              await Pointage.create({
+                date,
+                statut: 'absent',
+                employe_id: employe.id,
+                HeureEMP: null,
+                HeureSMP: null,
+                HeureEAMP: null,
+                HeureSAMP: null,
+                latlogEMP: null,
+                latlogSMP: null,
+                latlogEAMP: null,
+                latlogSAMP: null,
+               type_pointage :"auto"
+      
+              });
+              continue;
+            }
+      
+            const aucunPointageFait =
+              !pointage.HeureEMP &&
+              !pointage.HeureSMP &&
+              !pointage.HeureEAMP &&
+              !pointage.HeureSAMP;
+      
+            if (aucunPointageFait) {
+              await pointage.update({ statut: 'absent' });
+            }
+          }
+          return res.status(200).json({ message: "Les absences ont été marquées avec succès." });
+
+        } catch (error) {
+          return res.status(500).json({ message: "Une erreur s'est produite lors du marquage des absences." });
+        }
+}
+

@@ -18,6 +18,8 @@
     "axios": "^1.8.1",
     "chart.js": "^4.4.7",
     "downloadjs": "^1.4.7",
+    "file-saver": "^2.0.5",
+    "fontkit": "^2.0.4",
     "jodit-react": "^5.2.15",
     "jwt-decode": "^4.0.0",
     "leaflet-providers": "^2.0.0",

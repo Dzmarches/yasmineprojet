@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
                         userId: localStorage.getItem("userId"),
                         ecoleId: localStorage.getItem("ecoleId"),
                         ecoleeId: decodedToken.ecoleeId || localStorage.getItem("ecoleeId"),
-                        roles: decodedToken.roles || [],
+                        roles: decodedToken.roles || localStorage.getItem("roles"),
                         roleIds: decodedToken.roleIds || [], // Récupérer les IDs des rôles
                         permissions: JSON.parse(localStorage.getItem("permissions")) || [], // Récupérer les permissions
                     };
@@ -33,12 +33,13 @@ export const AuthProvider = ({ children }) => {
         return null;
     });
 
-    const login = (token, username, userId, ecoleId, ecoleeId, permissions) => {
+    const login = (token, username, userId, ecoleId, ecoleeId, permissions,roles) => {
         localStorage.setItem("token", token);
         localStorage.setItem("username", username);
         localStorage.setItem("userId", userId);
         localStorage.setItem("ecoleId", ecoleId);
         localStorage.setItem("ecoleeId", ecoleeId);
+        localStorage.setItem("roles", roles);
         localStorage.setItem("permissions", JSON.stringify(permissions)); // Stocker les permissions
 
         try {

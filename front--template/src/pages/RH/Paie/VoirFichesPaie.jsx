@@ -37,23 +37,62 @@ const VoirFichesPaie = () => {
     setPeriodeSelectionnee(selectedOption.value);
   }
 
+  
+
+  // const filteredData = data.filter(item => {
+  //   if (periodeSelectionnee) {
+  //     return item.PeriodePaie?.id === periodeSelectionnee;
+  //   }
+
+  //   const periodePaieString = item.PeriodePaie
+  //     ? `${new Date(item.PeriodePaie.dateDebut).toLocaleDateString('fr-FR', { month: 'long' }).toUpperCase()} - ${new Date(item.PeriodePaie.dateFin).toLocaleDateString('fr-FR', { month: 'long' }).toUpperCase()}`
+  //     : '';
+
+  //   return (item.nom_prenom && item.nom_prenom.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
+  //     (item?.Employe?.daterecru && item.Employe.daterecru.toString().includes(searchTerm.toLowerCase().trim())) ||
+  //     (item.salaireBase && item.salaireBase.toString().includes(searchTerm.toLowerCase().trim())) ||
+  //     (item?.salaireNet && item?.salaireNet.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
+  //     (item?.salaireNet && item?.salaireNet.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
+  //     (periodePaieString && periodePaieString.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
+  //     (item.Employe?.Poste?.poste && item.Employe?.Poste?.poste.toLowerCase().includes(searchTerm.toLowerCase().trim()));
+  // });
+
   const filteredData = data.filter(item => {
-    if (periodeSelectionnee) {
-      return item.PeriodePaie?.id === periodeSelectionnee;
-    }
+    const matchesPeriode = !periodeSelectionnee || item.PeriodePaie?.id === periodeSelectionnee;
 
     const periodePaieString = item.PeriodePaie
-      ? `${new Date(item.PeriodePaie.dateDebut).toLocaleDateString('fr-FR', { month: 'long' }).toUpperCase()} - ${new Date(item.PeriodePaie.dateFin).toLocaleDateString('fr-FR', { month: 'long' }).toUpperCase()}`
-      : '';
+        ? `${new Date(item.PeriodePaie.dateDebut).toLocaleDateString('fr-FR', { month: 'long' }).toUpperCase()} - ${new Date(item.PeriodePaie.dateFin).toLocaleDateString('fr-FR', { month: 'long' }).toUpperCase()}`
+        : '';
 
-    return (item.nom_prenom && item.nom_prenom.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
+    const search = searchTerm.toLowerCase().trim();
+
+    const matchesSearchTerm = search === '' || (
+      (item.nom_prenom && item.nom_prenom.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
       (item?.Employe?.daterecru && item.Employe.daterecru.toString().includes(searchTerm.toLowerCase().trim())) ||
       (item.salaireBase && item.salaireBase.toString().includes(searchTerm.toLowerCase().trim())) ||
       (item?.salaireNet && item?.salaireNet.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
       (item?.salaireNet && item?.salaireNet.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
       (periodePaieString && periodePaieString.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
-      (item.Employe?.Poste?.poste && item.Employe?.Poste?.poste.toLowerCase().includes(searchTerm.toLowerCase().trim()));
-  });
+      (item?.statut && item?.statut.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
+      (item.Employe?.Poste?.poste && item.Employe?.Poste?.poste.toLowerCase().includes(searchTerm.toLowerCase().trim()))||
+        (
+            item.Employe?.declaration !== undefined &&
+            (
+                (search === 'oui' && item.Employe.declaration === true) ||
+                (search === 'non' && item.Employe.declaration === false)
+            )
+        ) ||
+        (
+            item.Employe?.User?.statuscompte !== undefined &&
+            (
+                (search === 'employé' && item.Employe.User.statuscompte.toLowerCase() === 'activer') ||
+                (search === 'non employé' && item.Employe.User.statuscompte.toLowerCase() === 'désactiver')
+            )
+        )
+    );
+
+    return matchesPeriode && matchesSearchTerm;
+});
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -155,7 +194,6 @@ const VoirFichesPaie = () => {
       alert("Une erreur s'est produite lors de l'enregistrement.");
     }
   };
-
   const fetchPeriodesPaie = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -376,7 +414,7 @@ const VoirFichesPaie = () => {
                                   <td>{item.salaireNet} DZD</td>
                                   <td>{item.statut}</td>
                                   <td>{item.Employe.declaration == 1 ? 'Oui' : 'Non'}</td>
-                                  <td>{item.Employe?.User?.statuscompte==='activer'?'Employé':'Non Employé'}</td>
+                                  <td>{item.Employe?.User?.statuscompte==='activer' ? 'Employé':'Non Employé'}</td>
                                   <td className="d-flex align-items-center gap-1">
                                     <button className="btn btn-outline d-flex justify-content-center align-items-center p-1"
                                       style={{ width: "35px", height: "35px", marginRight: '12px' }}

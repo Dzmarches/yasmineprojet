@@ -1,11 +1,13 @@
 import { DataTypes } from 'sequelize';
 import db from '../../config/Database.js';
+import Anneescolaire from './Anneescolaires.js';
+import Trimest from './Trimest.js';
 
 const Note = db.define('Note', {
   id: {
-    type: DataTypes.INTEGER, 
-    primaryKey: true, 
-    autoIncrement: true, 
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
   },
   EleveId: {
     type: DataTypes.INTEGER,
@@ -41,16 +43,24 @@ const Note = db.define('Note', {
       key: 'id',
     }
   },
-  // periodeId: {
-  //   type: DataTypes.INTEGER,
-  //   allowNull: true,
-  //   references: {
-  //     model: 'periodes',
-  //     key: 'id',
-  //   }
-  // },
-  
-  // Champs pour Primaire
+
+  annescolaireId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: Anneescolaire,
+      key: 'id',
+    }
+  },
+  trimestId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: Trimest,
+      key: 'id',
+    }
+  },
+
   expression_orale: {
     type: DataTypes.FLOAT,
     allowNull: true
@@ -67,7 +77,7 @@ const Note = db.define('Note', {
     type: DataTypes.FLOAT,
     allowNull: true
   },
-  
+
   // Champs pour CEM
   eval_continue: {
     type: DataTypes.FLOAT,
@@ -81,7 +91,7 @@ const Note = db.define('Note', {
     type: DataTypes.FLOAT,
     allowNull: true
   },
-  
+
   // Champs pour Lycée
   travaux_pratiques: {
     type: DataTypes.FLOAT,
@@ -91,7 +101,7 @@ const Note = db.define('Note', {
     type: DataTypes.FLOAT,
     allowNull: true
   },
-  
+
   // Champs communs
   examens: {
     type: DataTypes.FLOAT,
@@ -113,8 +123,45 @@ const Note = db.define('Note', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  // Champs spécifiques aux mathématiques pour le Primaire
+  calcul: {
+    type: DataTypes.FLOAT,
+    allowNull: true
+  },
+  grandeurs_mesures: {
+    type: DataTypes.FLOAT,
+    allowNull: true
+  },
+  organisation_donnees: {
+    type: DataTypes.FLOAT,
+    allowNull: true
+  },
+  espace_geometrie: {
+    type: DataTypes.FLOAT,
+    allowNull: true
+  },
+  moyenne_eval_math: {
+    type: DataTypes.FLOAT,
+    allowNull: true
+  },
+  examens_math: {
+    type: DataTypes.FLOAT,
+    allowNull: true
+  },
+  moyenne_math: {
+    type: DataTypes.FLOAT,
+    allowNull: true
+  },
+  remarque_math: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   cycle: {
     type: DataTypes.ENUM('Primaire', 'Cem', 'Lycée'),
+    allowNull: true
+  },
+  exemption: {
+    type: DataTypes.STRING,
     allowNull: true
   }
 }, {
