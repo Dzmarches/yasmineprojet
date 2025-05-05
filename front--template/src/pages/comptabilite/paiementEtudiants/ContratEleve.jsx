@@ -5,11 +5,13 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import moment from 'moment';
 import Select from 'react-select';
-import { Modal, Button } from 'react-bootstrap';
+import { Modal, Button, Spinner } from 'react-bootstrap';
 import recherche from '../../../assets/imgs/recherche.png';
 import excel from '../../../assets/imgs/excel.png'
 import archive from '../../../assets/imgs/archive.png';
 import fichier from '../../../assets/imgs/fichier.png';
+import PlanningModal from './ModalPlanning.jsx'
+import plan from '../../../assets/imgs/leave.png';
 import * as XLSX from 'xlsx';
 
 const ContratEleve = () => {
@@ -25,8 +27,9 @@ const ContratEleve = () => {
     const [SelectedNV, setSelectedNV] = useState(null);
 
     const [fileName, setFileName] = useState("");
-    const [selectedTR, setSelectedTR] = useState(null);
-    const [TypeRevenu, setTypeRevenu] = useState([]);
+    const [loadingSelects, setLoadingSelects] = useState(false);
+    const [loadingModalPP, setLoadingModalPP] = useState(false);
+
 
     const [formData, setFormData] = useState({
         code: "",
@@ -36,11 +39,11 @@ const ContratEleve = () => {
         date_debut_paiement: moment().format('YYYY-MM-DD'),
         date_creation: moment().format('YYYY-MM-DD'),
         remarque: "",
-        nombre_echeances: 0,
         typePaiment: "",
         totalApayer: 0,
         fichier: null,
         frais_insc: "",
+        date_sortie: moment().format('2025-05-30'),
     });
 
     const [selectedEcole, setSelectedEcole] = useState(null);
@@ -74,21 +77,24 @@ const ContratEleve = () => {
         fetchEcoles();
     }, []);
 
-    const isImage = (filename) => {
-        return /\.(jpg|jpeg|png|gif)$/i.test(filename);
-    };
+
     const [data, setData] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+    const [isPlanningModalOpen, setIsPlanningModalOpen] = useState(false);
+    const [planning, setPlanning] = useState(null);
+
     const [isEditMode, setIsEditMode] = useState(false);
     const [editId, setEditId] = useState(null);
-    const [revenuIdToDelete, setRevenuIdToDelete] = useState(null);
+    const [ContratIdDelete, setContratIdDelete] = useState(null);
 
     useEffect(() => {
         handleListAnneScolaire();
         handleListeNiveaux();
         ListeContrats();
     }, []);
+
 
     const handleListAnneScolaire = async () => {
         try {
@@ -142,41 +148,6 @@ const ContratEleve = () => {
             alert('Une erreur est survenue lors de la récupération des niveaux');
         }
     };
-
-    //select change etudiants
-    // const handleSelectChange = (selectedOption, name) => {
-    //     console.log("Option sélectionnée:", selectedOption); // Debug
-
-    //     switch (name) {
-    //         case 'annee_scolaire':
-    //             setSelectedAS(selectedOption);
-    //             setFormData({ ...formData, annee_scolaire: selectedOption.value })
-    //             break;
-    //         case 'niveau':
-    //             setSelectedNV(selectedOption);
-    //             setFormData({ ...formData, niveau: selectedOption.value })
-    //             break;
-    //         case 'eleve':
-    //             setSelectedE(selectedOption);
-    //             // setFormData({ ...formData, eleve: selectedOption.value ,frais_insc:selectedOption.fraisInscription});
-    //             // setFormData({
-    //             //     ...formData,
-    //             //     eleve: selectedOption.value,
-    //             //     frais_insc: selectedOption.fraisInscription
-    //             // });
-    //             setFormData({ 
-    //                 ...formData, 
-    //                 eleve: selectedOption.value,
-    //                 frais_insc: selectedOption.fraisInscription || "0" // Valeur par défaut si undefined
-    //             });
-
-    //             console.log('formadata',formData.frais_insc)
-    //             break;
-    //         default:
-    //             break;
-    //     }
-    //     setFormData({ ...formData, [name]: selectedOption.value });
-    // };
 
     const handleSelectChange = (selectedOption, name) => {
         console.log("Option sélectionnée:", selectedOption);
@@ -242,12 +213,11 @@ const ContratEleve = () => {
                                 <div>
                                     {item.User?.nom} {item.User?.prenom} {"     "}
                                     <span style={{ fontSize: "17px", color: "#888" }}>
-                                        {item.User?.datenaiss ? moment(item.User?.datenaiss).format('DD-MM-YYYY') : ''}
+                                        {item.numinscription ? item.numinscription : ''}
                                     </span>
                                 </div>
                             )
                         }));
-                    console.log('frais', ASOptions)
 
                     setOptionsE(ASOptions);
                 } catch (error) {
@@ -258,26 +228,40 @@ const ContratEleve = () => {
         }
     }, [formData.niveau]);
 
-
-
+    const [editItem, setEditItem] = useState(null);
     const handleEdit = (item) => {
-        setIsEditMode(true);
+        setEditItem(item); // On sauvegarde l'item pour remplir plus tard
         setEditId(item.id);
+        setIsEditMode(true);
+        setLoadingSelects(true);
+        FindContrat(item.id);
         setFormData({
             code: item.code,
-            type: item.TypeRevenue.id,
-            cause_ar: item.cause_ar,
-            cause_fr: item.cause_fr,
-            montant: item.montant,
-            date: moment(item.date).format('YYYY-MM-DD'),
-            par_ar: item.par_ar,
-            par_fr: item.par_fr,
-            mode_paie: item.mode_paie,
-            remarque: item.remarque,
-            fichier: null,
+            niveau: item.Eleve?.Niveaux?.id,
+            annee_scolaire: item.Anneescolaire?.id,
+            eleve: item.Eleve?.id,
+            date_debut_paiement: moment(item.date_debut_paiement).format('YYYY-MM-DD'),
+            date_creation: moment(item.date_creation).format('YYYY-MM-DD'),
+            remarque: item.Remarque,
+            typePaiment: item.typePaiment,
+            totalApayer: item.totalApayer,
+            frais_insc: item.Eleve?.fraixinscription,
+            date_sortie: moment(item.date_sortie).format('YYYY-MM-DD')
         });
-        setSelectedTR(TypeRevenu.find(tr => tr.value === item.TypeRevenue.id));
     };
+
+    // Ce useEffect écoute quand OptionsE sont prêtes ET qu'on a cliqué sur Modifier
+    useEffect(() => {
+        if (editItem && OptionsE.length > 0 && OptionsAS.length > 0 && OptionsNV.length > 0) {
+            setSelectedE(OptionsE.find(tr => tr.value === editItem.Eleve?.id) || null);
+            setSelectedAS(OptionsAS.find(tr => tr.value === editItem.Anneescolaire?.id) || null);
+            setSelectedNV(OptionsNV.find(tr => tr.value === editItem.Eleve?.Niveaux?.id) || null);
+            setLoadingSelects(false);
+            // Facultatif : une fois que tout est rempli tu peux vider editItem
+            // setEditItem(null);
+        }
+    }, [editItem, OptionsE, OptionsAS, OptionsNV]);
+
 
     const handleChange = (e) => {
         const { name, value, type } = e.target;
@@ -314,8 +298,11 @@ const ContratEleve = () => {
     };
 
     const handleClose = () => setShowDeleteModal(false);
+    const handleCloseP = () => setIsPlanningModalOpen(false);
+
+
     const handleShow = (id) => {
-        setRevenuIdToDelete(id);
+        setContratIdDelete(id);
         setShowDeleteModal(true);
     };
 
@@ -328,15 +315,27 @@ const ContratEleve = () => {
         const matchesSearchTerm = search === '' || (
             (item.id && item.id.toString().includes(searchTerm)) ||
             (item.code && item.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (item.type && item.type.toString().includes(searchTerm)) ||
-            (item.cause_ar && item.cause_ar.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (item.cause_fr && item.cause_fr.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (item.montant && item.montant.toString().includes(searchTerm)) ||
-            (item.par_ar && item.par_ar.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (item.par_fr && item.par_fr.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (item.date && moment(item.date).format('DD-MM-YYYY').includes(searchTerm)) ||
-            (item.TypeRevenue?.type && item.TypeRevenue.type.includes(searchTerm)) ||
-            (item.mode_paie && item.mode_paie.toLowerCase().includes(searchTerm.toLowerCase()))
+            (item.date_debut_paiement && moment(item.date_debut_paiement).format('DD-MM-YYYY').includes(searchTerm)) ||
+            (item.date_creation && moment(item.date_creation).format('DD-MM-YYYY').includes(searchTerm)) ||
+            (item.date_sortie && moment(item.date_sortie).format('DD-MM-YYYY').includes(searchTerm)) ||
+            (item.typePaiment && item.typePaiment.includes(searchTerm)) ||
+            (item.totalApayer && item.totalApayer.includes(searchTerm)) ||
+            (item.Eleve.User?.nom && item.Eleve.User.nom.includes(searchTerm)) ||
+            (item.Eleve.User?.prenom && item.Eleve.User.prenom.includes(searchTerm)) ||
+            (item.Eleve.numinscription && item.Eleve?.numinscription.includes(searchTerm)) ||
+            (item.Eleve?.fraixinscription && item.Eleve?.fraixinscription.includes(searchTerm)) ||
+            (item.Eleve?.Niveaux?.nomniveau && item.Eleve?.Niveaux?.nomniveau.includes(searchTerm)) ||
+            (
+                item.Anneescolaire?.datedebut && item.Anneescolaire?.datefin &&
+                (`${moment(item.Anneescolaire.datedebut).format('YYYY')}/${moment(item.Anneescolaire.datefin).format('YYYY')}`).includes(searchTerm)
+            ) ||
+            (
+                item.Eleve?.User?.nom && item.Eleve?.User?.prenom &&
+                (`${item.Eleve?.User?.nom} ${item.Eleve?.User?.prenom}`).includes(searchTerm)
+            )
+
+
+
         );
         // Filtre par école
         const matchesEcole = !selectedEcole ||
@@ -372,7 +371,7 @@ const ContratEleve = () => {
         printWindow.document.write(`
       <html>
         <head>
-          <title>Liste des Revenus</title>
+          <title>Liste des Contrats</title>
           <style>
             @page { margin: 0; }
             body {
@@ -419,20 +418,20 @@ const ContratEleve = () => {
           </style>
         </head>
         <body>
-          <h5>Liste des Revenus</h5>
+          <h5>Liste des Contrats</h5>
           <table>
             <thead>
               <tr>
                 <th>ID</th>
                 <th>Code</th>
-                <th>Type</th>
-                <th>Cause (AR)</th>
-                <th>Cause (FR)</th>
-                <th>Montant</th>
-                <th>Date</th>
-                <th>Par(AR)</th>
-                <th>Par(FR)</th>
-                <th>Mode Paiement</th>
+                <th>Niveau </th>
+                <th>Nom Prenom </th>
+                <th>Debut paiment</th>
+                <th>Date de fin de paiement</th>
+                <th>Type Paiment</th>
+                <th>Total a payer</th>
+                <th>Frais d'inscriptions</th>
+                <th>Date création</th>
               </tr>
             </thead>
             <tbody>
@@ -440,14 +439,22 @@ const ContratEleve = () => {
                 <tr>
                   <td>${item.id}</td>
                   <td>${item.code || ''}</td>
-                  <td>${item.TypeRevenue ? item.TypeRevenue.type : ""}</td>
-                  <td>${item.cause_ar || ''}</td>
-                  <td>${item.cause_fr || ''}</td>
-                  <td>${item.montant || ''}</td>
-                  <td>${item.date ? moment(item.date).format('DD-MM-YYYY') : ''}</td>
-                  <td>${item.par_ar || ''}</td>
-                  <td>${item.par_fr || ''}</td>
-                  <td>${item.mode_paie || ''}</td>
+                  <td>
+                  ${item.Eleve?.Niveaux?.nomniveau || ''}
+                  ${moment(item.Anneescolaire?.datedebut).format('YYYY')}/${moment(item.Anneescolaire?.datefin).format('YYYY') || ''}
+                  </td>
+                  <td>${item.Eleve.User.nom} 
+                  ${item.Eleve.User.prenom}
+                  <br/>
+                  ${item.Eleve.numinscription}
+                  </td>
+                  <td>${item.date_debut_paiement ? moment(item.date_debut_paiement).format('DD-MM-YYYY') : ''}</td>
+                  <td>${item.date_sortie ? moment(item.date_debut_paiement).format('DD-MM-YYYY') : ''}</td>
+                  <td>${item.typePaiment}</td>
+                  <td>${item.totalApayer}</td>
+                  <td>${item.Eleve?.fraixinscription}</td>
+                  <td>${item.date_creation ? moment(item.date_creation).format("DD-MM-YYYY") : ""}</td>
+                
                 </tr>
               `).join('')}
             </tbody>
@@ -461,23 +468,27 @@ const ContratEleve = () => {
 
     const handleExport = () => {
         const ws = XLSX.utils.json_to_sheet(currentItems.map(item => ({
+
             "ID": item.id,
             "Code": item.code || '',
-            "Type": item.TypeRevenue ? item.TypeRevenue.type : "",
-            "Cause (AR)": item.cause_ar || '',
-            "Cause (FR)": item.cause_fr || '',
-            "Montant": item.montant || '',
-            "Date": item.date ? moment(item.date).format('DD-MM-YYYY') : '',
-            "Par (AR)": item.par_ar || '',
-            "Par (FR)": item.par_fr || '',
-            "Mode Paiement": item.mode_paie || '',
+            "Année Scolaire": `${moment(item.Anneescolaire?.datedebut).format('YYYY')} / ${moment(item.Anneescolaire?.datefin).format('YYYY')}`,
+            "Niveau": item.Eleve?.Niveaux?.nomniveau || "",
+            "Nom Prenom": `${item.Eleve?.User?.nom} ${item.Eleve?.User?.prenom}`,
+            "Num Inscription": item.Eleve?.numinscription || '',
+            "Debut paiement": item.date_debut_paiement ? moment(item.date_debut_paiement).format('DD-MM-YYYY') : '',
+            "Date de fin de paiement": item.date_sortie ? moment(item.date_sortie).format('DD-MM-YYYY') : '',
+            "Type Paiement": item.typePaiment || '',
+            "Total à payer": item.totalApaye || '',
+            "Frais d'inscription": item.Eleve?.fraixinscription || '',
+            "Date création": item.date_creation ? moment(item.date_creation).format("DD-MM-YYYY") : ''
+
         })));
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Revenus");
-        XLSX.writeFile(wb, "liste_revenus.xlsx");
+        XLSX.utils.book_append_sheet(wb, ws, "Contrats");
+        XLSX.writeFile(wb, "liste_contrats.xlsx");
     };
 
-    const ArchiverRevenu = async (id) => {
+    const Archiver = async (id) => {
         try {
             const token = localStorage.getItem("token");
             if (!token) {
@@ -496,24 +507,6 @@ const ContratEleve = () => {
         }
     };
 
-    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/jpg", "application/pdf",
-        "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "text/plain"
-    ];
-    const maxSize = 5 * 1024 * 1024; // 5 Mo
-
-    const validateFile = (file) => {
-        if (file) {
-            if (!allowedTypes.includes(file.type)) {
-                return "Format non autorisé. Veuillez choisir une image, un PDF, un document Word ou un fichier texte.";
-            }
-            if (file.size > maxSize) {
-                return "Le fichier est trop volumineux. La taille maximale est de 5 Mo.";
-            }
-        }
-        return "";
-    };
-
     const validateForm = () => {
         const newErrors = {};
 
@@ -523,45 +516,139 @@ const ContratEleve = () => {
         if (!formData.code) newErrors.code = "Code est requis";
         if (!formData.date_debut_paiement) newErrors.date_debut_paiement = "Date debut de paiment est requis";
         if (!formData.date_creation) newErrors.date_creation = "Date ceation est requis";
-        if (!formData.nombre_echeances) newErrors.nombre_echeances = "Nombre d'écheances est requis";
         if (!formData.totalApayer) newErrors.totalApayer = "Total a payer est requis";
         if (!formData.typePaiment) newErrors.typePaiment = "Type paiement est requis";
         if (!formData.frais_insc) newErrors.frais_insc = "Frais Inscription est requis";
-
-
-        const fileError = validateFile(formData.fichier);
-        if (fileError) {
-            newErrors.fichier = fileError;
-        }
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
+    const showModalPP = async (id) => {
+        await FindContrat(id);
+        setIsPlanningModalOpen(true);
+    }
+
+    const [canEdit, setCanEdit] = useState(false);
+    const FindContrat = async (id) => {
+        try {
+            setLoadingSelects(true);
+            const token = localStorage.getItem("token");
+            if (!token) {
+                alert("Vous devez être connecté");
+                return;
+            }
+            const response = await axios.get(`http://localhost:5000/contrat/find/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+            });
+            if (response.status === 200) {
+                setPlanning(response.data);
+                if (response.data.length === 0) {
+                    setCanEdit(false);
+                } else {
+                    // const allArchived = response.data.filter(p => p.archiver === 0).length === 0;
+                    // console.log('allArchived',allArchived)
+                    setCanEdit(true);
+                }
+                return response.data;
+            }
+        } catch (error) {
+            console.error("❌ Erreur Axios :", error);
+            if (error.response) {
+                alert(`❌ Erreur ${error.response.status}: ${error.response.data.message || "Problème inconnu"}`);
+            } else if (error.request) {
+                alert("❌ Erreur : Le serveur ne répond pas !");
+            } else {
+                alert("❌ Une erreur est survenue !");
+            }
+        }
+    };
+
+    useEffect(() => {
+    }, [canEdit]);
+    //visibilité
+    const [columnVisibility, setColumnVisibility] = useState({
+        id: true,
+        code: true,
+        niveau: true,
+        annee_scolaire: true,
+        eleve: true,
+        date_debut_paiement: true,
+        date_creation: false,
+        remarque: false,
+        date_sortie: true,
+        typePaiment: false,
+        totalApayer: true,
+        frais_insc: true,
+        action: true,
+    });
+    // Composant pour basculer la visibilité des colonnes
+    const ColumnVisibilityFilter = ({ columnVisibility, setColumnVisibility }) => {
+        const columns = [
+            { key: "id", label: "Id" },
+            { key: "code", label: "Code" },
+            { key: "niveau", label: "Niveau" },
+            { key: "annee_scolaire", label: "Année Scolaire " },
+            { key: "eleve", label: "Eléve" },
+            { key: "date_debut_paiement", label: "Date Debut Paiment" },
+            { key: "date_creation", label: "Date creation Contrat" },
+            { key: "date_sortie", label: "Date de fin de paiement" },
+            { key: "typePaiment", label: "Type Paiment" },
+            { key: "totalApayer", label: "Total a payer" },
+            { key: "remarque", label: "Remarque" },
+            { key: "frais_insc", label: "Frais inscription" },
+            { key: "numInsc", label: "Num Insciption" },
+            { key: "ecole", label: "Ecole" },
+            { key: "action", label: "Action" },
+        ];
+
+        // Fonction pour gérer la sélection/désélection des colonnes
+        const handleSelectChange = (selectedOptions) => {
+            const newColumnVisibility = { ...columnVisibility };
+            // Met à jour l'état columnVisibility en fonction des options sélectionnées
+            columns.forEach(({ key }) => {
+                newColumnVisibility[key] = selectedOptions.some(option => option.value === key);
+            });
+            setColumnVisibility(newColumnVisibility);
+        };
+
+        return (
+            <div className="mb-3 p-3">
+                <h6>Choisir les colonnes à afficher :</h6>
+                <Select
+                    isMulti
+                    options={columns.map(({ key, label }) => ({
+                        value: key,
+                        label: label,
+                    }))}
+                    value={columns
+                        .filter(({ key }) => columnVisibility[key])
+                        .map(({ key, label }) => ({
+                            value: key,
+                            label: label,
+                        }))}
+                    onChange={handleSelectChange}
+                    placeholder="Choisir les colonnes à afficher"
+                    isClearable={false}
+                />
+            </div>
+        );
+    };
+
     const AjouterContrat = async () => {
         if (!validateForm()) return;
-
         try {
             const token = localStorage.getItem("token");
             if (!token) {
                 alert("Vous devez être connecté");
                 return;
             }
-
-            // const formDataToSend = new FormData();
-            // Object.keys(formData).forEach(key => {
-            //     console.log('paq de fichier 5')
-            //     if (key !== 'fichier' && formData[key] !== null && formData[key] !== undefined) {
-            //         console.log('paq de fichier 9')
-            //         formDataToSend.append(key, formData[key]);
-            //     }
-            // });
-            // if (formData.fichier) {
-            //     formDataToSend.append('fichier', formData.fichier);
-            // }
-
             let response;
             if (isEditMode) {
+                console.log('editId', editId)
                 response = await axios.put(`http://localhost:5000/contrat/modifier/${editId}`, formData, {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -588,12 +675,10 @@ const ContratEleve = () => {
                 date_debut_paiement: moment().format('YYYY-MM-DD'),
                 date_creation: moment().format('YYYY-MM-DD'),
                 remarque: "",
-                nombre_echeances: 0,
+                date_sortie: moment().format('2025-05-30'),
                 typePaiment: "",
                 totalApayer: 0,
                 frais_insc: "",
-                fichier: null,
-                frais_insc: ""
             });
             setFileName("");
             setSelectedE(null);
@@ -615,74 +700,193 @@ const ContratEleve = () => {
         }
     };
 
-    //visibilité
-    const [columnVisibility, setColumnVisibility] = useState({
-        id: true,
-        code: true,
-        niveau: true,
-        annee_scolaire: true,
-        eleve: true,
-        date_debut_paiement: true,
-        date_creation: true,
-        remarque: false,
-        nombre_echeances: true,
-        typePaiment: true,
-        totalApayer: true,
-        fichier: false,
-        frais_insc: true,
+    // les statistiques
+
+    // Dans votre composant ContratEleve, ajoutez cet état
+    const [stats, setStats] = useState({
+        totalPaye: 0,
+        totalNonPaye: 0,
+        parAnneeScolaire: [],
+        parNiveau: []
     });
 
-    // Composant pour basculer la visibilité des colonnes
-    // Composant pour basculer la visibilité des colonnes
-    const ColumnVisibilityFilter = ({ columnVisibility, setColumnVisibility }) => {
-        const columns = [
-            { key: "id", label: "Id" },
-            { key: "code", label: "Code" },
-            { key: "niveau", label: "Niveau" },
-            { key: "annee_scolaire", label: "Année Scolaire " },
-            { key: "eleve", label: "Eléve" },
-            { key: "date_debut_paiement", label: "Date Debut Paiment" },
-            { key: "date_creation", label: "Date creration Contrat" },
-            { key: "nombre_echeances", label: "Nombre echeances" },
-            { key: "typePaiment", label: "Type Paiment" },
-            { key: "totalApayer", label: "Total a payer" },
-            { key: "remarque", label: "Remarque" },
-            { key: "fichier", label: "Fichier" },
-            { key: "frais_insc", label: "Frais inscription" },
-        ];
-        // Fonction pour gérer la sélection/désélection des colonnes
-        const handleSelectChange = (selectedOptions) => {
-            const newColumnVisibility = { ...columnVisibility };
-            // Met à jour l'état columnVisibility en fonction des options sélectionnées
-            columns.forEach(({ key }) => {
-                newColumnVisibility[key] = selectedOptions.some(option => option.value === key);
+    // Fonction pour calculer les statistiques
+    const calculerStats = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            const response = await axios.get('http://localhost:5000/contrat/stats', {
+                headers: { Authorization: `Bearer ${token}` }
             });
-            setColumnVisibility(newColumnVisibility);
-        };
-        return (
-            <div className="mb-3 p-3">
-                <h6>Choisir les colonnes à afficher :</h6>
-                <Select
-                    isMulti
-                    options={columns.map(({ key, label }) => ({
-                        value: key,
-                        label: label,
-                    }))}
-                    value={columns
-                        .filter(({ key }) => columnVisibility[key])
-                        .map(({ key, label }) => ({
-                            value: key,
-                            label: label,
-                        }))}
-                    onChange={handleSelectChange}
-                    placeholder="Choisir les colonnes à afficher"
-                    isClearable={false}
-                />
-
-            </div>
-        );
+            setStats(response.data);
+        } catch (error) {
+            console.error("Erreur lors du calcul des stats", error);
+        }
     };
 
+    // Appelez cette fonction dans useEffect
+    useEffect(() => {
+        calculerStats();
+        // ... autres initialisations
+    }, []);
+
+
+
+    const handleListeDE = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                alert("Vous devez être connecté");
+                return;
+            }
+            const response = await axios.get('http://localhost:5000/attestation/liste',
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+            const filteredDocs = response.data.filter((doc) => doc.module === "eleve" && doc.nom === "Contrat Paiment Eléve");
+            const options = filteredDocs.map((doc) => ({
+                value: doc.id, // Utilisez l'ID ou un autre champ unique comme valeur
+                label: doc.nom, // Utilisez le nom du document comme libellé
+                modele: doc.modeleTexte
+            }));
+            return options
+        } catch (error) {
+            console.log("Erreur lors de la récupération des attestations", error);
+        }
+    };
+
+    //imprimer Contrat:
+    const Printcontrat = async (id) => {
+        const data = await FindContrat(id);
+        console.log('data is', data)
+        const planning = data[0];
+        const contrat = planning.Contrat;
+        const eleve = contrat?.Eleve;
+        const user = eleve?.User;
+        const ecolePrincipal = user?.EcolePrincipal;
+        const pere = eleve?.Parents?.find(p => p.typerole === "Père");
+        const mere = eleve?.Parents?.find(p => p.typerole === "Mère");
+
+        const reponse = await handleListeDE();
+        const modeleText = reponse[0].modele;
+
+        if (!contrat || !modeleText) {
+            alert('Contrat ou model du contrat non défini')
+            return;
+        }
+        const dateToday = moment().format('DD/MM/YYYY');
+        //plannig 
+        const planningHtml = data.map((p, index) => `
+            <tr>
+            <td>${index + 1}</td>
+            <td>${moment(p.date_echeance).format("DD/MM/YYYY")}</td>
+            <td>${p.codePP} DA</td>
+            <td>${p.montant_echeance} DA</td>
+        </tr>
+    `).join("");
+        const planningTable = `
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Date Échéance</th>
+                <th>Code</th>
+                <th>Montant</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${planningHtml}
+        </tbody>
+    </table>
+`;
+
+        const modeleTextupdate = modeleText
+            .replace(/\[nomecolePE\]/g, ecolePrincipal?.nomecole || "")
+            .replace(/\[adressePE\]/g, ecolePrincipal?.adresse || "")
+            .replace(/\[nomE\]/g, user?.nom || "")
+            .replace(/\[nomAbE\]/g, user?.nom_ar || "")
+            .replace(/\[prenomE\]/g, user?.prenom || "")
+            .replace(/\[prenomAbE\]/g, user?.prenom_ar || "")
+            .replace(/\[LieunaisE\]/g, user?.lieuxnaiss || "")
+            .replace(/\[LieunaisAbE\]/g, user?.adresse || "")
+            .replace(/\[AdresseE\]/g, user?.prenom_ar || "")
+            .replace(/\[AdresseAbE\]/g, user?.adresse_ar || "")
+            .replace(/\[datenaissE\]/g, user?.datenaiss ? moment(user.datenaiss).format("DD/MM/YYYY") : "")
+            .replace(/\[numInscription\]/g, eleve?.numinscription || "")
+            .replace(/\[FraisInsc\]/g, eleve?.fraixinscription || "")
+            .replace(/\[NV\]/g, `${eleve?.Niveaux?.nomniveau} ${eleve?.Niveaux?.cycle} ` || "")
+            .replace(/\[nomP\]/g, pere?.User?.nom || "")
+            .replace(/\[prenomP\]/g, pere?.User?.prenom || "")
+            .replace(/\[EmailP\]/g, pere?.User?.email || "")
+            .replace(/\[TelP\]/g, pere?.User?.telephone || "")
+            .replace(/\[AdresseP\]/g, pere?.User?.adresse || "")
+            .replace(/\[dateToday\]/g, moment().format("DD/MM/YYYY"))
+
+            //contrat
+            .replace(/\[AS\]/g, `${moment(contrat.Anneescolaire?.datedebut).format("YYYY")}/${moment(contrat.Anneescolaire?.datefin).format("YYYY")}` || "")
+            .replace(/\[codeC\]/g, contrat?.code || "")
+            .replace(/\[ddP\]/g, `${moment(contrat.date_debut_paiement).format("DD-MM-YYYY")}` || "")
+            .replace(/\[dfP\]/g, `${moment(contrat.date_sortie).format("DD-MM-YYYY")}` || "")
+            .replace(/\[dcC\]/g, `${moment(contrat.date_creation).format("DD-MM-YYYY")}` || "")
+            .replace(/\[totalC\]/g, contrat?.totalApayer || "")
+            .replace(/\[TypeP\]/g, contrat?.typePaiment || "")
+            .replace(/\[planning\]/g, planningTable)
+
+        //plannig
+
+
+
+
+
+
+
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+
+        const iframeDocument = iframe.contentWindow.document;
+        iframeDocument.open();
+        // @page{ margin: 0;}
+        iframeDocument.write(`
+            <html>
+              <head>
+                <title>${contrat.Contrat?.Eleve?.User?.nom}.${contrat.Contrat?.Eleve?.User?.prenom}</title>
+                <style>
+                  @media print {
+                    body { margin: 0 !important ; padding: 40px !important ; }
+                    table {
+                      border-collapse: collapse;
+                      width: 100%;
+                    }
+                    table, th, td {
+                      border: 1px solid #EBEBEB;
+                    }
+                  }
+                </style>
+              </head>
+              <body>
+              <body>
+                <div class="containerEditor">
+                  <div class="ql-editor">
+                    ${modeleTextupdate}
+                  </div>
+                </div>
+              </body>
+            </html>
+          `);
+        iframeDocument.close();
+        const originalTitle = document.title;
+        document.title = `${contrat.Contrat?.Eleve?.User?.nom}.${contrat.Contrat?.Eleve?.User?.prenom}`;
+        setTimeout(() => {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+            document.title = originalTitle;
+            document.body.removeChild(iframe);
+        }, 1000);
+    };
 
     return (
         <>
@@ -752,26 +956,15 @@ const ContratEleve = () => {
                                                                     value={formData.totalApayer}
                                                                     onChange={handleChange}
                                                                     style={{ height: "40px" }}
+                                                                    readOnly={canEdit}
                                                                 />
                                                                 {errors.totalApayer && <span className="text-danger">{errors.totalApayer}</span>}
                                                             </div>
-                                                            <div className="col-md-4">
-                                                                <label>Date de début de paiement  *</label>
-                                                                <input
-                                                                    type="date"
-                                                                    className="form-control"
-                                                                    name="date_debut_paiement"
-                                                                    value={formData.date_debut_paiement}
-                                                                    onChange={handleChange}
-                                                                    style={{ height: "40px" }}
-                                                                />
-                                                                {errors.date_debut_paiement && <span className="text-danger">{errors.date_debut_paiement}</span>}
-                                                            </div>
-
 
                                                             <div className="col-md-4">
                                                                 <label htmlFor="typePaiment">Type de paiement</label>
                                                                 <select
+                                                                    disabled={canEdit}
                                                                     name='typePaiment'
                                                                     className="form-control"
                                                                     value={formData.typePaiment}
@@ -779,32 +972,14 @@ const ContratEleve = () => {
                                                                     style={{ height: "40px" }}
                                                                 >
                                                                     <option value="">Sélectionnez un mode</option>
-                                                                    <option value="Paiement unique">Paiement unique</option>
-                                                                    <option value="Paiement échelonné">Paiement échelonné</option>
-
-                                                                    {/* 💵 Paiement unique	L'étudiant paie la totalité en une seule fois.
-                                                                    📅 Paiement mensuel	Le montant total est divisé sur plusieurs mois (ex. : chaque mois).
-                                                                    📅 Paiement trimestriel	Paiement tous les 3 mois (souvent : 4 paiements par an).
-                                                                    📅 Paiement semestriel	Deux paiements dans l'année, un tous les 6 mois.
-                                                                    📅 Paiement annuel	Paiement une fois par an.
-                                                                    📅 Paiement échelonné	Paiement en plusieurs échéances définies librement (pas forcément régulières).
-                                                                    📅 Paiement immédiat (comptant)	Paiement total dès l'inscription, sans délai.*/}
+                                                                    <option value="Paiement mensuel">Paiement mensuel</option>
+                                                                    <option value="Paiement trimestriel">Paiement trimestriel</option>
+                                                                    <option value="Paiement semestriel">Paiement semestriel</option>
+                                                                    <option value="Paiement annuel">Paiement annuel</option>
                                                                 </select>
                                                                 {errors.typePaiment && <span className="text-danger">{errors.typePaiment}</span>}
+                                                            </div>
 
-                                                            </div>
-                                                            <div className="col-md-4">
-                                                                <label>Nombre d'écheances</label>
-                                                                <input
-                                                                    type="number"
-                                                                    className="form-control"
-                                                                    name="nombre_echeances"
-                                                                    value={formData.nombre_echeances}
-                                                                    onChange={handleChange}
-                                                                    style={{ height: "40px" }}
-                                                                />
-                                                                {errors.nombre_echeances && <span className="text-danger">{errors.nombre_echeances}</span>}
-                                                            </div>
                                                             <div className="col-md-4">
                                                                 <label>Date Creation Contrat </label>
                                                                 <input
@@ -818,6 +993,33 @@ const ContratEleve = () => {
                                                                 {errors.date_creation && <span className="text-danger">{errors.date_creation}</span>}
                                                             </div>
                                                             <div className="col-md-4">
+                                                                <label>Date de début du paiement  *</label>
+                                                                <input
+                                                                    type="date"
+                                                                    className="form-control"
+                                                                    name="date_debut_paiement"
+                                                                    value={formData.date_debut_paiement}
+                                                                    onChange={handleChange}
+                                                                    style={{ height: "40px" }}
+                                                                    readOnly={canEdit}
+                                                                />
+                                                                {errors.date_debut_paiement && <span className="text-danger">{errors.date_debut_paiement}</span>}
+                                                            </div>
+                                                            <div className="col-md-4">
+                                                                <label>Date de Fin du paiement*</label>
+                                                                <input
+                                                                    type="date"
+                                                                    className="form-control"
+                                                                    name="date_sortie"
+                                                                    value={formData.date_sortie}
+                                                                    onChange={handleChange}
+                                                                    readOnly={canEdit}
+                                                                    style={{ height: "40px" }}
+                                                                />
+                                                                {errors.date_sortie && <span className="text-danger">{errors.date_sortie}</span>}
+                                                            </div>
+
+                                                            <div className="col-md-4">
                                                                 <label>Frais d'inscription</label>
                                                                 <input
                                                                     type="text"
@@ -829,7 +1031,6 @@ const ContratEleve = () => {
                                                                 />
                                                                 {errors.frais_insc && <span className="text-danger">{errors.frais_insc}</span>}
                                                             </div>
-
                                                             <div className="col-md-8">
                                                                 <label>Remarque</label>
                                                                 <input
@@ -842,25 +1043,6 @@ const ContratEleve = () => {
                                                                 />
                                                             </div>
 
-                                                            {/* <div className="col-md-12 mb-3 mt-3" style={{ border: "1px solid rgb(192, 193, 194)", height: "40px", display: "flex", alignItems: "center", justifyContent: "center", padding: "5px", borderRadius: "5px", cursor: "pointer" }}>
-                                                                <label htmlFor="file" style={{ marginRight: "10px", fontWeight: "bold", cursor: "pointer", color: 'rgb(65, 105, 238)' }}>
-                                                                    {!fileName ? "Ajouter une pièce jointe" : <span style={{ marginLeft: "10px", fontSize: "14px" }}>{fileName}</span>}
-                                                                </label>
-                                                                <input
-                                                                    id="file"
-                                                                    type="file"
-                                                                    name="fichier"
-                                                                    style={{
-                                                                        opacity: 0,
-                                                                        position: 'absolute',
-                                                                        zIndex: -1,
-                                                                        width: "100%",
-                                                                        height: "100%",
-                                                                    }}
-                                                                     onChange={handleChange}
-                                                                />
-                                                            </div> */}
-                                                            {/* {errors.fichier && <span className="text-danger">{errors.fichier}</span>} */}
                                                             <div className="col-md-12 mt-3">
                                                                 <button type="button" className="btn btn-outline-primary" onClick={AjouterContrat}>
                                                                     {isEditMode ? "Modifier" : "Ajouter"}
@@ -872,6 +1054,7 @@ const ContratEleve = () => {
                                                                         onClick={() => {
                                                                             setIsEditMode(false);
                                                                             setEditId(null);
+                                                                            setEditItem(null);
                                                                             setFormData({
                                                                                 code: "",
                                                                                 niveau: "",
@@ -880,14 +1063,15 @@ const ContratEleve = () => {
                                                                                 date_debut_paiement: moment().format('YYYY-MM-DD'),
                                                                                 date_creation: moment().format('YYYY-MM-DD'),
                                                                                 remarque: "",
-                                                                                nombre_echeances: 0,
+                                                                                date_sortie: moment().format('2025-05-30'),
                                                                                 typePaiment: "",
                                                                                 totalApayer: 0,
-                                                                                fichier: null,
                                                                                 frais_insc: ""
                                                                             });
                                                                             setFileName("");
-                                                                            setSelectedTR(null);
+                                                                            setSelectedE(null);
+                                                                            setSelectedAS(null);
+                                                                            setSelectedNV(null);
                                                                         }}
                                                                     >
                                                                         Annuler
@@ -945,11 +1129,9 @@ const ContratEleve = () => {
                                                     </div>
                                                 </div>
 
-
-                                                <p>Liste des Revenus</p>
                                                 {/* Filtre de visibilité des colonnes */}
                                                 <ColumnVisibilityFilter columnVisibility={columnVisibility} setColumnVisibility={setColumnVisibility} />
-
+                                                <p>Liste des Contrats</p>
                                                 <table id="example2" className="table table-bordered table-sm">
                                                     <thead>
                                                         <tr>
@@ -958,15 +1140,17 @@ const ContratEleve = () => {
                                                             {columnVisibility.niveau && <th>Niveau</th>}
                                                             {columnVisibility.annee_scolaire && <th>Année Scolaire</th>}
                                                             {columnVisibility.eleve && <th>Eléve</th>}
+                                                            {columnVisibility.numInsc && <th>Num Inscription</th>}
                                                             {columnVisibility.date_debut_paiement && <th>Debut Paiement</th>}
                                                             {columnVisibility.date_creation && <th>Date Creation</th>}
-                                                            {columnVisibility.nombre_echeances && <th>Nbr Echeances</th>}
+                                                            {columnVisibility.date_sortie && <th>Fin Paiement</th>}
                                                             {columnVisibility.typePaiment && <th>Type Paiement</th>}
                                                             {columnVisibility.totalApayer && <th>Total a payer</th>}
                                                             {columnVisibility.frais_insc && <th>Frais d'inscription</th>}
                                                             {columnVisibility.remarque && <th>Remarque</th>}
-                                                            <th>Ecole</th>
-                                                            <th>Action</th>
+                                                            {columnVisibility.ecole && <th>Ecole</th>}
+                                                            {columnVisibility.action && <th style={{ width: "180px" }}>Action</th>}
+
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -986,36 +1170,63 @@ const ContratEleve = () => {
                                                                 )}
                                                                 {columnVisibility.eleve && (
                                                                     <td>  {item.Eleve?.User ? (
-                                                                            <>
-                                                                                <div>{item.Eleve.User.nom} {item.Eleve.User.prenom}</div>
-                                                                                <div style={{ fontSize: '0.85em', color: '#666' }}>
-                                                                                    {item.Eleve.User.datenaiss
-                                                                                        ? moment(item.Eleve.User.datenaiss).format('DD/MM/YYYY')
-                                                                                        : '-'}
-                                                                                </div>
-                                                                            </>
-                                                                        ) : (
-                                                                            '-'
-                                                                        )}
+                                                                        <>
+                                                                            <div>{item.Eleve.User.nom} {item.Eleve.User.prenom}</div>
+                                                                            {/* <div style={{ fontSize: '0.85em', color: '#666' }}>
+                                                                                {item.Eleve.numinscription
+                                                                                    ? item.Eleve.numinscription
+                                                                                    : '-'}
+                                                                            </div> */}
+                                                                        </>
+                                                                    ) : (
+                                                                        '-'
+                                                                    )}
                                                                     </td>
                                                                 )}
+                                                                {columnVisibility.numInsc && <td> {item.Contrat?.Eleve?.numinscription}</td>}
                                                                 {columnVisibility.date_debut_paiement && <td>{item.date_debut_paiement ? moment(item.date_debut_paiement).format("DD-MM-YYYY") : ""}</td>}
                                                                 {columnVisibility.date_creation && <td>{item.date_creation ? moment(item.date_creation).format("DD-MM-YYYY") : ""}</td>}
-                                                                {columnVisibility.nombre_echeances && <td>{item.nombre_echeances || '-'}</td>}
+                                                                {columnVisibility.date_sortie && <td>{item.date_sortie ? moment(item.date_sortie).format("DD-MM-YYYY") : '-'}</td>}
                                                                 {columnVisibility.typePaiment && <td>{item.typePaiment || '-'}</td>}
                                                                 {columnVisibility.totalApayer && <td>{item.totalApayer || '-'}</td>}
                                                                 {columnVisibility.frais_insc && <td>{item.Eleve?.fraixinscription || '-'}</td>}
                                                                 {columnVisibility.remarque && <td>{item.remarque || '-'}</td>}
-                                                                <td>{item.Ecole?.nomecole}</td>
-                                                                <td className="text-center" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                                                    <a className="btn btn-outline-success" style={{ maxWidth: '40px', maxHeight: '40px', display: 'flex', justifyContent: 'center', alignItems: 'center' }} onClick={() => handleEdit(item)}>
-                                                                        <img src={edit} alt="" style={{ maxWidth: '30px', maxHeight: '30px' }} title="Modifier" />
-                                                                    </a>
-                                                                    &nbsp;&nbsp;&nbsp;&nbsp;
-                                                                    <a className="btn btn-outline-warning" style={{ maxWidth: '40px', maxHeight: '40px', display: 'flex', justifyContent: 'center', alignItems: 'center' }} onClick={() => handleShow(item.id)}>
-                                                                        <img src={archive} alt="" style={{ maxWidth: '35px', maxHeight: '35px' }} width="20px" title="Archiver" />
-                                                                    </a>
-                                                                </td>
+                                                                {columnVisibility.ecole && <td>{item.Eleve?.User?.Ecole?.nomecole}</td>}
+                                                                {columnVisibility.action &&
+                                                                    <td style={{ display: 'flex', justifyContent: '', width: "180px", alignItems: 'center', textAlign: 'center' }}>
+                                                                        <button
+                                                                            className="btn btn-outline-info action-btn"
+                                                                            onClick={() => Printcontrat(item.id)}
+                                                                            title="Imprimer"
+                                                                        >
+                                                                            <img src={print} alt="Imprimer" className="action-icon" />
+                                                                        </button>
+                                                                        <button
+                                                                            className="btn btn-outline-success action-btn"
+                                                                            onClick={() => handleEdit(item)}
+                                                                            title="Modifier"
+                                                                        >
+                                                                            <img src={edit} alt="Modifier" className="action-icon" />
+                                                                        </button>
+                                                                        <button
+                                                                            className="btn btn-outline-warning action-btn"
+                                                                            onClick={() => handleShow(item.id)}
+                                                                            title="Archiver"
+                                                                        >
+                                                                            <img src={archive} alt="Archiver" className="action-icon" />
+                                                                        </button>
+                                                                        <button
+                                                                            className="btn btn-outline-info action-btn"
+                                                                            onClick={() => showModalPP(item.id)}
+                                                                            title="Planning"
+                                                                        >
+                                                                            <img src={plan} alt="Planning" className="action-icon" />
+                                                                        </button>
+
+                                                                    </td>
+                                                                }
+
+
                                                             </tr>
                                                         ))}
                                                     </tbody>
@@ -1027,7 +1238,6 @@ const ContratEleve = () => {
                                 </div>
                             </div>
                         </section>
-
                         {/* Pagination */}
                         <div className="pagination">
                             <button
@@ -1060,7 +1270,7 @@ const ContratEleve = () => {
                             <Modal.Title>Confirmer l'archivage</Modal.Title>
                         </Modal.Header>
                         <Modal.Body>
-                            <p>Êtes-vous sûr de vouloir archiver ce revenu ?</p>
+                            <p>Êtes-vous sûr de vouloir archiver  ?</p>
                         </Modal.Body>
                         <Modal.Footer>
                             <Button variant="secondary" onClick={handleClose}>
@@ -1069,7 +1279,7 @@ const ContratEleve = () => {
                             <Button
                                 variant="danger"
                                 onClick={() => {
-                                    ArchiverRevenu(revenuIdToDelete);
+                                    Archiver(ContratIdDelete);
                                     handleClose();
                                 }}
                             >
@@ -1077,8 +1287,16 @@ const ContratEleve = () => {
                             </Button>
                         </Modal.Footer>
                     </Modal>
-                </div>
-            </div>
+
+                    <PlanningModal
+                        show={isPlanningModalOpen}
+                        handleCloseP={handleCloseP}
+                        planning={planning}
+                        FindContrat={FindContrat}
+                    />
+
+                </div >
+            </div >
 
         </>
     );

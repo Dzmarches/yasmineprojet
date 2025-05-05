@@ -7,7 +7,7 @@ import moment from 'moment';
 import fichier from '../../../assets/imgs/fichier.png';
 
 
-const ModifierCA = ({ IDemande, IDEmploye }) => {
+const ModifierCA = ({ IDemande, IDEmploye ,listeDCA}) => {
     const url = 'http://localhost:5000'
 
 
@@ -86,7 +86,6 @@ const ModifierCA = ({ IDemande, IDEmploye }) => {
             remarque: remarque,
             deduireCongeAnnuel: deduireCongeAnnuel,
         };
-        console.log('Remarque:', updatedData.remarque);
 
         try {
             const token = localStorage.getItem("token");
@@ -104,14 +103,13 @@ const ModifierCA = ({ IDemande, IDEmploye }) => {
                     },
                 }
             );
-
             if (response.status === 200) {
                 alert("Demande mise à jour avec succès.");
                 // Fermer la modal après succès
                 window.$('#ModifierCA').modal('hide');
+                await listeDCA();
             }
-
-
+            
         } catch (error) {
             if (error.status === 404) {
                 alert(error.response.data.message);
@@ -127,6 +125,8 @@ const ModifierCA = ({ IDemande, IDEmploye }) => {
         return /\.(jpg|jpeg|png|gif)$/i.test(filename);
     };
 
+    
+    
     return (
         <div className="modal fade" id="ModifierCA" tabIndex="-1" aria-labelledby="modal-default-label" aria-hidden="true">
             <div className="modal-dialog modal-lg">

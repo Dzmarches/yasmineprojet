@@ -21,7 +21,7 @@ const PeriodeNote = db.define('PeriodeNote', {
         type: DataTypes.DATE,
         allowNull: true
     },
-    ecoleId: {  // Clé étrangère vers EcolePrincipal
+    ecoleId: {
         type: DataTypes.INTEGER,
         references: {
             model: EcolePrincipal,
@@ -29,7 +29,7 @@ const PeriodeNote = db.define('PeriodeNote', {
         },
         onDelete: "CASCADE",
     },
-    ecoleeId: {  // Clé étrangère vers Ecole
+    ecoleeId: {
         type: DataTypes.INTEGER,
         allowNull: true,
         references: {
@@ -40,10 +40,17 @@ const PeriodeNote = db.define('PeriodeNote', {
     },
 }, {
     timestamps: true,
-    // L'index sur `niveauId` n'a pas de champ défini dans ce modèle. À corriger si nécessaire.
+    hooks: {
+        beforeSave: async (periode) => {
+            // Vérifier si la date de fin est dépassée
+            if (periode.dateFinPeriode && new Date() > new Date(periode.dateFinPeriode)) {
+                periode.status = false;
+            }
+        }
+    }
 });
 
-/// 📌 Associations
+// Associations
 PeriodeNote.belongsTo(EcolePrincipal, {
     foreignKey: 'ecoleId',
     as: 'ecolePrincipal'
@@ -54,7 +61,6 @@ PeriodeNote.belongsTo(Ecole, {
     as: 'ecole'
 });
 
-// Tu peux aussi faire les relations inverses :
 EcolePrincipal.hasMany(PeriodeNote, {
     foreignKey: 'ecoleId',
     as: 'periodesNotes'
@@ -64,5 +70,22 @@ Ecole.hasMany(PeriodeNote, {
     foreignKey: 'ecoleeId',
     as: 'periodesEcole'
 });
+
+// Méthode pour vérifier et mettre à jour les périodes expirées
+PeriodeNote.checkAndUpdateExpiredPeriods = async function() {
+    try {
+        await this.update(
+            { status: false },
+            {
+                where: {
+                    status: true,
+                    dateFinPeriode: { [db.Sequelize.Op.lt]: new Date() }
+                }
+            }
+        );
+    } catch (error) {
+        console.error('Error updating expired periods:', error);
+    }
+};
 
 export default PeriodeNote;

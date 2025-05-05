@@ -6,6 +6,7 @@ import NoteModal from './NoteModal';
 import AbsenceRemarqueRow from './AbsenceRemarqueRow';
 import DecisionFinaleRow from './DecisionFinaleRow';
 import add from '../../assets/imgs/add.png';
+import show from '../../assets/imgs/vu.png';
 import './modal.css';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { FaCalendarAlt, FaUsers, FaUserCheck, FaChartLine, FaClipboardList } from 'react-icons/fa';
@@ -41,12 +42,74 @@ const HorizontalStepper = () => {
     const [showNoteModal, setShowNoteModal] = useState(false);
     const [showModalRemarque, setShowModalRemarque] = useState(false);
     const [enseignantsParMatiere, setEnseignantsParMatiere] = useState({});
+    const [selectedStudents, setSelectedStudents] = useState([]);
+    const [selectAll, setSelectAll] = useState(false);
+
 
     const [remarque, setRemarque] = useState([]);
     const [trimestreDates, setTrimestreDates] = useState({
         debut: '',
         fin: ''
     });
+
+    const handleSelectStudent = (eleveId) => {
+        setSelectedStudents(prev => {
+            if (prev.includes(eleveId)) {
+                return prev.filter(id => id !== eleveId);
+            } else {
+                return [...prev, eleveId];
+            }
+        });
+    };
+
+    // Fonction pour sélectionner/désélectionner tous les élèves
+    const toggleSelectAll = () => {
+        if (selectAll) {
+            setSelectedStudents([]);
+        } else {
+            setSelectedStudents(eleves.map(eleve => eleve.id));
+        }
+        setSelectAll(!selectAll);
+    };
+
+    // Fonction pour mettre à jour le statut
+    const handleUpdateStatus = async () => {
+        if (!selectedAnnee || !selectedTrimestre || !selectedNiveau || !selectedSection) {
+            alert('Veuillez sélectionner tous les paramètres');
+            return;
+        }
+
+        if (selectedStudents.length === 0) {
+            alert('Veuillez sélectionner au moins un élève');
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.put(
+                'http://localhost:5000/moyenne/update-status',
+                {
+                    eleveIds: selectedStudents,
+                    annescolaireId: selectedAnnee.id,
+                    trimestId: selectedTrimestre,
+                    niveauId: selectedNiveau,
+                    sectionId: selectedSection,
+                    status: true // Vous pouvez aussi le rendre dynamique si besoin
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            alert(response.data.message);
+            // Recharger les données si nécessaire
+        } catch (error) {
+            console.error('Erreur:', error);
+            alert(`Erreur lors de la mise à jour: ${error.response?.data?.message || error.message}`);
+        }
+    };
 
     const handleSaveMoyennesGenerales = async () => {
         if (!selectedAnnee || !selectedTrimestre || !selectedNiveau || !selectedSection) {
@@ -785,14 +848,14 @@ const HorizontalStepper = () => {
             const existingPdfBytes = await fetch('/template.pdf').then(res => res.arrayBuffer());
             const pdfDoc = await PDFDocument.load(existingPdfBytes);
             const page = pdfDoc.getPages()[0];
-    
+
             // Récupérer les dimensions de la page
             const { width, height } = page.getSize();
-    
+
             // Configuration des polices
             const fontSize = 10;
             const textColor = rgb(0, 0, 0);
-    
+
             // 1. Informations de l'élève
             page.drawText(`${eleve.User?.prenom || ''} `, {
                 x: 410,
@@ -800,14 +863,14 @@ const HorizontalStepper = () => {
                 size: 12,
                 color: textColor,
             });
-    
+
             page.drawText(`${eleve.User?.nom || ''} `, {
                 x: 240,
                 y: 748,
                 size: 12,
                 color: textColor,
             });
-    
+
             const dateNaissance = eleve.User?.datenaiss || eleve.user?.lieuxnaiss
                 ? new Date(eleve.User.datenaiss).toLocaleDateString('fr-FR')
                 : '';
@@ -817,7 +880,7 @@ const HorizontalStepper = () => {
                 size: 10,
                 color: textColor,
             });
-    
+
             if (selectedAnnee) {
                 const debut = new Date(selectedAnnee.datedebut).getFullYear();
                 const fin = new Date(selectedAnnee.datefin).getFullYear();
@@ -828,7 +891,7 @@ const HorizontalStepper = () => {
                     color: textColor,
                 });
             }
-    
+
             if (selectedTrimestre) {
                 const trimestre = trimests.find(t => t.id === selectedTrimestre);
                 if (trimestre) {
@@ -840,7 +903,7 @@ const HorizontalStepper = () => {
                     });
                 }
             }
-    
+
             // 2. Configuration des positions des matières
             const matieresConfig = {
                 'اللغة العربية': {
@@ -961,20 +1024,20 @@ const HorizontalStepper = () => {
                     }
                 },
             };
-    
+
             // 3. Remplissage des notes pour chaque matière
             matieresNiveau.forEach(matiereItem => {
                 const matiere = matiereItem.Matiere;
                 const config = matieresConfig[matiere.nomarabe.trim()];
                 const notes = notesData[eleve.id]?.[matiere.id] || {};
-    
+
                 if (config) {
                     Object.entries(config.fields).forEach(([field, position]) => {
                         const rawValue = notes[field];
                         const value = rawValue !== undefined && rawValue !== null
                             ? (typeof rawValue === 'number' ? rawValue.toFixed(2) : rawValue.toString())
                             : 'N/A';
-    
+
                         page.drawText(value, {
                             x: position.x,
                             y: config.baseY,
@@ -984,7 +1047,7 @@ const HorizontalStepper = () => {
                     });
                 }
             });
-    
+
             // 4. Affichage des remarques aux positions spécifiées
             const remarquesPositions = [
                 { x: 440, y: 285 },  // Position 1
@@ -993,7 +1056,7 @@ const HorizontalStepper = () => {
                 { x: 440, y: 215 },  // Position 4
                 { x: 415, y: 195 }   // Position 5
             ];
-    
+
             // Récupérer les matières principales pour les remarques
             const matieresPrincipales = [
                 'اللغة العربية',
@@ -1002,7 +1065,7 @@ const HorizontalStepper = () => {
                 'اللغة الإنجليزية',
                 'التربية البدنية والرياضية'
             ];
-    
+
             // Afficher les remarques des matières principales aux positions spécifiées
             matieresPrincipales.forEach((matiereNom, index) => {
                 if (index < remarquesPositions.length) {
@@ -1011,7 +1074,7 @@ const HorizontalStepper = () => {
                         const matiere = matiereItem.Matiere;
                         const notes = notesData[eleve.id]?.[matiere.id] || {};
                         const remarque = notes.remarque || '';
-    
+
                         const position = remarquesPositions[index];
                         page.drawText(remarque, {
                             x: position.x,
@@ -1022,7 +1085,7 @@ const HorizontalStepper = () => {
                     }
                 }
             });
-    
+
             // 5. Moyenne générale
             const moyenneGenerale = getMoyenneGenerale(eleve.id);
             page.drawText(moyenneGenerale, {
@@ -1031,7 +1094,7 @@ const HorizontalStepper = () => {
                 size: fontSize + 2,
                 color: textColor,
             });
-    
+
             // 6. Absences
             page.drawText(notesData[eleve.id]?.absences?.toString() || '0', {
                 x: 500,
@@ -1039,24 +1102,24 @@ const HorizontalStepper = () => {
                 size: fontSize,
                 color: textColor,
             });
-    
+
             // 7. Générer et télécharger le PDF
             const pdfBytes = await pdfDoc.save();
             const blob = new Blob([pdfBytes], { type: 'application/pdf' });
             const url = URL.createObjectURL(blob);
-    
+
             const link = document.createElement('a');
             link.href = url;
             link.download = `Bulletin_${eleve.User.prenom}_${eleve.User.nom}.pdf`;
             document.body.appendChild(link);
             link.click();
-    
+
             // Nettoyage
             setTimeout(() => {
                 document.body.removeChild(link);
                 URL.revokeObjectURL(url);
             }, 100);
-    
+
         } catch (error) {
             console.error('Erreur génération PDF:', error);
             alert('Erreur lors de la génération du bulletin');
@@ -1234,7 +1297,13 @@ const HorizontalStepper = () => {
                                     <img src={add} alt="" width="30px" /><br />
                                     Ajouter
                                 </Button>
-
+                                <Button
+                                    onClick={handleUpdateStatus}
+                                    disabled={selectedStudents.length === 0}
+                                    className="ml-2"
+                                >
+                                    <img src={show} alt="Valider" width="20" className="mr-2" />
+                                </Button>
 
                             </div>
                             <h4>Liste des élèves de la section sélectionnée :</h4>
@@ -1243,6 +1312,14 @@ const HorizontalStepper = () => {
                                 <table className="table table-bordered table-striped">
                                     <thead className="thead-light">
                                         <tr>
+                                            <th>
+                                                <Form.Check
+                                                    type="checkbox"
+                                                    checked={selectAll}
+                                                    onChange={toggleSelectAll}
+                                                    label="Tous"
+                                                />
+                                            </th>
                                             <th rowSpan="2">numero identification</th>
                                             <th rowSpan="2">Nom complet</th>
                                             {matieresNiveau.map((matiere) => (
@@ -1258,6 +1335,13 @@ const HorizontalStepper = () => {
                                     <tbody>
                                         {eleves.map((eleve) => (
                                             <tr key={eleve.id}>
+                                                <td>
+                                                    <Form.Check
+                                                        type="checkbox"
+                                                        checked={selectedStudents.includes(eleve.id)}
+                                                        onChange={() => handleSelectStudent(eleve.id)}
+                                                    />
+                                                </td>
                                                 <td>{eleve.numidentnational}</td>
                                                 <td>{eleve.User?.prenom} {eleve.User?.nom}</td>
                                                 {matieresNiveau.map((matiere) => {
@@ -1587,7 +1671,7 @@ const HorizontalStepper = () => {
 
                                             {/* Checkbox globale à la fin */}
                                             <th>
-                                                <div className="d-flex align-items-center" style={{marginLeft:'30px',marginTop:'-20px'}}>
+                                                <div className="d-flex align-items-center" style={{ marginLeft: '30px', marginTop: '-20px' }}>
                                                     <Form.Check
                                                         type="checkbox"
                                                         id="exemption-all"
@@ -1881,6 +1965,14 @@ const HorizontalStepper = () => {
                                     </thead>
                                     <tbody>
                                         {eleves.map((eleve) => (
+                                            // <DecisionFinaleRow
+                                            //     key={eleve.id}
+                                            //     eleve={eleve}
+                                            //     selectedAnnee={selectedAnnee}
+                                            //     selectedNiveau={selectedNiveau}
+                                            //     selectedSection={selectedSection}
+                                            //     cycle={cycle}
+                                            // />
                                             <DecisionFinaleRow
                                                 key={eleve.id}
                                                 eleve={eleve}
@@ -1888,6 +1980,8 @@ const HorizontalStepper = () => {
                                                 selectedNiveau={selectedNiveau}
                                                 selectedSection={selectedSection}
                                                 cycle={cycle}
+                                                niveaux={niveaux}  // Ajoutez ceci
+                                                sections={sections} // Ajoutez ceci
                                             />
                                         ))}
                                     </tbody>
@@ -1918,7 +2012,7 @@ const HorizontalStepper = () => {
                             onClick={() => setActiveStep(step.id)}
                             style={{ cursor: 'pointer' }}
                         >
-                            <div className={`step-icon ${activeStep === step.id ? 'bg-primary' : 'bg-secondary'}`}>
+                            <div className={`step-icon ${activeStep === step.id ? 'bg-primary' : 'bg-success'}`}>
                                 {step.icon}
                             </div>
                             <span className={`step-label ml-2 ${activeStep === step.id ? 'text-primary fw-bold' : 'text-muted'}`}>

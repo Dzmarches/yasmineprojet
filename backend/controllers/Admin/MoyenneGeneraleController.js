@@ -73,6 +73,37 @@ export const saveBulkMoyennesGenerales = async (req, res) => {
   }
 };
 
+export const updateStatus = async (req, res) => {
+  try {
+    const { eleveIds, annescolaireId, trimestId, niveauId, sectionId, status } = req.body;
+
+    if (!eleveIds || !Array.isArray(eleveIds)) {
+      return res.status(400).json({ message: "eleveIds doit être un tableau" });
+    }
+
+    const result = await MoyenneGenerale.update(
+      { status },
+      {
+        where: {
+          EleveId: eleveIds,
+          annescolaireId,
+          trimestId,
+          niveauId,
+          sectionId
+        }
+      }
+    );
+
+    res.json({
+      success: true,
+      message: `${result[0]} moyennes générales mises à jour`,
+      count: result[0]
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+};
 // export const saveMoyenneGenerale = async (req, res) => {
 //   // Validate eleveId exists in params
 //   const { eleveId } = req.params;

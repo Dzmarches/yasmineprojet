@@ -35,7 +35,35 @@ const EleveParent = db.define('EleveParent', {
 });
 
 // Définition des relations avec les modèles Sequelize
-Eleve.belongsToMany(Parent, { through: EleveParent, foreignKey: 'EleveId' });
-Parent.belongsToMany(Eleve, { through: EleveParent, foreignKey: 'ParentId' });
+// Eleve.belongsToMany(Parent, { through: EleveParent, foreignKey: 'EleveId' });
+// Parent.belongsToMany(Eleve, { through: EleveParent, foreignKey: 'ParentId' });
+
+// Définir les associations
+Eleve.belongsToMany(Parent, { 
+  through: EleveParent, 
+  foreignKey: 'EleveId',
+});
+
+Parent.belongsToMany(Eleve, { 
+  through: EleveParent, 
+  foreignKey: 'ParentId',
+});
+
+// Association directe entre EleveParent et Eleve
+EleveParent.belongsTo(Eleve, {
+  foreignKey: 'EleveId',
+});
+
+EleveParent.belongsTo(Parent, {
+  foreignKey: 'ParentId',
+});
+
+Eleve.hasMany(EleveParent, {
+  foreignKey: 'EleveId',
+});
+
+Parent.hasMany(EleveParent, {
+  foreignKey: 'ParentId',
+});
 
 export default EleveParent;

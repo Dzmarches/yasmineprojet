@@ -208,21 +208,21 @@ const HeureSup = () => {
 
     return (
         <>
-            <nav>
+            {/* <nav>
                 <Link to="/dashboard" className="text-primary">Dashboard</Link>
                 <span> / </span>
                 <Link to="/parameterepaie" className="text-primary">Paramètres de paie</Link>
                 <span> / </span>    
                 <span>Heures supplémentaire</span>
-            </nav>
+            </nav> */}
 
-            <div className="card card-primary card-outline">
-                <div className="card-header d-flex">
+            {/* <div className="card card-primary card-outline"> */}
+                {/* <div className="card-header d-flex">
                     <img src={paimentt} className='mt-2' width="60px" height="80px" />
                     <p className="card-title mt-5 ml-2 p-2 text-center" style={{ width: '350px', borderRadius: '50px', border: '1px solid rgb(215, 214, 216)' }}>
                         Heures supplémentaire
                     </p>
-                </div>
+                </div> */}
                 <div className="card-body">
                     <div className="tab-content" id="custom-content-below-tabContent">
                         <div className="tab-pane fade show active" id="listes" role="tabpanel" aria-labelledby="custom-content-below-home-tab">
@@ -394,7 +394,7 @@ const HeureSup = () => {
                     </Modal.Footer>
                 </Modal>
 
-            </div>
+            {/* </div> */}
         </>
     );
 };

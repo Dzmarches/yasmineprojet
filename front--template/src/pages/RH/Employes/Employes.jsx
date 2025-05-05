@@ -82,6 +82,65 @@ const Employes = () => {
     setSearchTerm(event.target.value);
   };
 
+  const [roles, setRoles] = useState([]);
+  useEffect(() => {
+    const fetchUser = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("❌ Aucun token trouvé. Veuillez vous connecter.");
+        return;
+      }
+      try {
+        const response = await axios.get("http://localhost:5000/getMe", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        // console.log("✅ Réponse roles :", response.data.roles);
+        setRoles(response.data.roles || []);
+      } catch (error) {
+        console.error("❌ Erreur lors de la récupération des informations de l'utilisateur :", error);
+      }
+    };
+    fetchUser();
+  }, []);
+  
+
+  const fetchEmployeConnecte = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Vous devez être connecté ");
+        return;
+      }
+    
+      const response = await axios.get('http://localhost:5000/employes/me', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+    
+      setEmployeConnecte(response.data);
+
+    } catch (error) {
+      console.error("Erreur lors de la récupération des informations de l'employé :", error);
+      // alert(error.response?.data?.message || "Une erreur est survenue. Veuillez réessayer.");
+    }
+  };
+
+  useEffect(() => {
+    if (Array.isArray(roles) && roles.includes("Employé")) {
+      fetchEmployeConnecte();
+    }
+  }, [roles]);
+  
+
+
+
+
+
+
   const filteredData = data.filter(item => {
     const search = searchTerm.toLowerCase().trim();
     // Filtre par recherche texte
@@ -97,6 +156,10 @@ const Employes = () => {
           (search === 'oui' && item.declaration === true) ||
           (search === 'non' && item.declaration === false)
         )
+      )||
+      (
+        item.User?.nom && item.User?.prenom &&
+        (`${item.User?.nom} ${item.User?.prenom}`).includes(searchTerm)
       )
     );
 
@@ -199,13 +262,22 @@ const Employes = () => {
         },
       });
 
-      const employeeOptions = response.data.map(emp => ({
+      const employeeOptions = response.data
+      .filter(emp => emp.declaration == 1)
+      .map(emp => ({
         value: emp.id,
-        label: `${emp.User.nom} ${emp.User.prenom}`
+        label: (
+          <div>
+           {emp.User.nom} {emp.User.prenom}{"    "}
+            <small className='muted'>
+              {emp.CE || ''}
+            </small>
+          </div>
+        )
       }));
 
       setEmployees(employeeOptions);
-      console.log('liste des employe', response.data)
+      // console.log('liste des employe', response.data)
       setdata(response.data)
       // setFilteredData(response.data);
     } catch (error) {
@@ -228,7 +300,6 @@ const Employes = () => {
       });
 
       await handleListeEmploye();
-      console.log(response.data)
       // setdata(response.data)
       // setFilteredData(response.data);
     } catch (error) {
@@ -312,7 +383,7 @@ const Employes = () => {
       .replace(/\[dateToday\]/g, dateToday)
       .replace(/\[N°AS\]/g, employe.NumAS || "");
     // Créer un iframe pour l'impression
-    console.log(modeleTextupdate)
+ 
     const iframe = document.createElement('iframe');
     iframe.style.display = 'none';
     document.body.appendChild(iframe);
@@ -359,33 +430,7 @@ const Employes = () => {
     }, 1000);
   };
 
-  const fetchEmployeConnecte = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        alert("Vous devez être connecté ");
-        return;
-      }
-      console.log('heare')
-      const response = await axios.get('http://localhost:5000/employes/me', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-      console.log('employes', response.data)
-      setEmployeConnecte(response.data);
-      console.log(response.data)
 
-    } catch (error) {
-      console.error("Erreur lors de la récupération des informations de l'employé :", error);
-      // alert(error.response?.data?.message || "Une erreur est survenue. Veuillez réessayer.");
-    }
-  };
-
-  useEffect(() => {
-    fetchEmployeConnecte();
-  }, []);
 
 
   //securisé les images 
@@ -418,29 +463,7 @@ const Employes = () => {
   //     return imageSrc ? <img src={imageSrc} alt="Photo de l'employé" width="60px"/> : <p>Chargement...</p>;
   // };
 
-  const [roles, setRoles] = useState([]);
-  useEffect(() => {
-    const fetchUser = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        console.error("❌ Aucun token trouvé. Veuillez vous connecter.");
-        return;
-      }
-      try {
-        console.log("🔍 Appel à getMe en cours...");
-        const response = await axios.get("http://localhost:5000/getMe", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        console.log("✅ Réponse roles :", response.data.roles);
-        setRoles(response.data.roles);
-      } catch (error) {
-        console.error("❌ Erreur lors de la récupération des informations de l'utilisateur :", error);
-      }
-    };
-    fetchUser();
-  }, []);
+
 
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -547,7 +570,7 @@ const Employes = () => {
       const token = localStorage.getItem("token");
       if (!token) {
         alert("Vous devez être connecté ");
-        return;
+        return [];
       }
       const response = await axios.post('http://localhost:5000/BultteinPaie/journalPaie/ats', {
         employeId,
@@ -559,17 +582,21 @@ const Employes = () => {
           "Content-Type": "application/json",
         },
       });
+  
       if (response.status === 200 && Array.isArray(response.data)) {
-        setListeBTP(response.data)
+        setListeBTP(response.data); // Si tu veux aussi mettre à jour l’état
         console.log('data', response.data);
+        return response.data;
       } else {
         console.error("Les données ne sont pas un tableau !");
+        return [];
       }
     } catch (error) {
       console.log(error);
+      return [];
     }
   };
-
+  
   const genererATS = async (formDataATS) => {
     if (!selectedEmployee) {
       alert('Aucun employé sélectionné');
@@ -581,7 +608,9 @@ const Employes = () => {
     }
 
     // Attendre les données de la liste si nécessaire
-    ListeJP(selectedEmployee.id, formDataATS.dateDebut, formDataATS.dateFin);
+   
+  const btpData = await ListeJP(selectedEmployee.id, formDataATS.dateDebut, formDataATS.dateFin);
+
 
     const existingPdfBytes = await fetch('/ATSS.pdf').then(res => res.arrayBuffer());
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
@@ -649,9 +678,10 @@ const Employes = () => {
       });
     };
 
-    if (ListeBTP) {
+  
+    if (btpData && Array.isArray(btpData)) {
       let y = 560;
-      for (let item of ListeBTP) {
+      for (let item of btpData) {
         if (y < 50) {
           page2 = pdfDoc.addPage([595, 842]);
           y = 560;
@@ -664,7 +694,6 @@ const Employes = () => {
       }
     }
 
-
     const pdfBytes = await pdfDoc.save();
     // Créer un Blob à partir des octets du PDF
     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
@@ -673,102 +702,6 @@ const Employes = () => {
     // Optionnel : libérer l'URL après un certain temps
     setTimeout(() => URL.revokeObjectURL(url), 100); // Libérer l'URL après 100 ms
   };
-
-  // const genererATS = async (formDataATS) => {
-  //   if (!selectedEmployee) {
-  //     console.error('Aucun employé sélectionné');
-  //     return;
-  //   }
-
-  //   // Attendre les données de la liste si nécessaire
-  //   const listeBTPData = await ListeJP(selectedEmployee.id, formDataATS.dateDebut, formDataATS.dateFin);
-  //   if (!listeBTPData || listeBTPData.length === 0) {
-  //     console.warn('Aucune donnée BTP disponible');
-  //   }
-
-  //   const existingPdfBytes = await fetch('/ATSS.pdf').then(res => res.arrayBuffer());
-  //   const pdfDoc = await PDFDocument.load(existingPdfBytes);
-  //   const pages = pdfDoc.getPages();
-  //   const page1 = pages[0];
-  //   let page2 = pages[1]; // on autorise la modification plus tard
-
-  //   const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  //   const helveticaBoldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-  //   const drawText = (text, x, y, bold = false, targetPage = page1) => {
-  //     targetPage.drawText(text, {
-  //       x,
-  //       y,
-  //       size: 13,
-  //       font: bold ? helveticaBoldFont : helveticaFont,
-  //       color: rgb(12 / 255, 6 / 255, 6 / 255),
-  //     });
-  //   };
-
-  //   // Données page 1 (identité de l’employé, périodes, etc.)
-  //   drawText(` ${formDataATS.nomPE}`, 100, 630, true);
-  //   drawText(` ${formDataATS.AdE}`, 230, 603, true);
-  //   drawText(` ${formDataATS.RSEmp}`, 100, 587, true);
-  //   drawText(` ${formDataATS.adressEmp}`, 100, 570, true);
-  //   drawText(`${selectedEmployee.User?.nom} ${selectedEmployee.User?.prenom}`, 120, 500, true);
-  //   drawText(`${selectedEmployee.NumAS || ''}`, 250, 470, true);
-  //   drawText(`${moment(selectedEmployee.User?.datenaiss).format('DD-MM-YYYY') || ''}`, 100, 450, true);
-  //   drawText(`${selectedEmployee.User?.lieuxnaiss || ''}`, 100, 430, true);
-  //   drawText(` ${selectedEmployee.Poste?.poste}`, 100, 410, true);
-  //   drawText(`${moment(selectedEmployee.daterecru).format('DD-MM-YYYY') || ''}`, 250, 347, true);
-  //   drawText(`${moment(formDataATS.dernierJourTravail).format('DD-MM-YYYY') || ''}`, 250, 330, true);
-  //   drawText(`${moment(formDataATS.dateRepriseTravail).format('DD-MM-YYYY') || ''}`, 250, 310, true);
-  //   drawText(`${moment(formDataATS.dateNonReprise).format('DD-MM-YYYY') || ''}`, 250, 290, true);
-
-  //   if (formDataATS.raisonArret === 'courte') {
-  //     drawText(`${formDataATS.joursTravail}`, 210, 230, true);
-  //     drawText(` ${formDataATS.heuresTravail}`, 260, 230, true);
-  //     drawText(`${moment(formDataATS.periodeDebut).format('DD-MM-YYYY') || ''}`, 60, 210, true);
-  //     drawText(`${moment(formDataATS.periodeFin).format('DD-MM-YYYY') || ''}`, 190, 210, true);
-  //   } else {
-  //     drawText(`${formDataATS.joursTravail}`, 200, 78, true);
-  //     drawText(` ${formDataATS.heuresTravail}`, 260, 79, true);
-  //     drawText(`${moment(formDataATS.periodeDebut).format('DD-MM-YYYY') || ''}`, 60, 60, true);
-  //     drawText(`${moment(formDataATS.periodeFin).format('DD-MM-YYYY') || ''}`, 190, 60, true);
-  //   }
-
-  //   // 💡 Gestion de la deuxième page (tableau BTP)
-  //   let y = 750;
-  //   const drawTextPage2 = (text, x, y) => {
-  //     page2.drawText(text.toString(), {
-  //       x,
-  //       y,
-  //       size: 12,
-  //       font: helveticaFont,
-  //       color: rgb(0, 0, 0),
-  //     });
-  //   };
-
-  //   if (ListeBTP) {
-  //     let y = 560; 
-
-  //     for (let item of ListeBTP) {
-  //       if (y < 50) {
-  //         page2 = pdfDoc.addPage([595, 842]); 
-  //         y = 560; 
-  //       }
-  //       drawTextPage2(`${new Date(item.PeriodePaie?.dateDebut).toLocaleDateString('fr-FR', { month: 'long' }).toUpperCase()}-${new Date(item.PeriodePaie?.dateFin).toLocaleDateString('fr-FR', { month: 'long' }).toUpperCase()} `, 20, y);
-  //       drawTextPage2(`${item.nbrJrTrvMois}`, 150, y);
-  //       drawTextPage2(`${item.cotisations}`, 380, y);
-  //       drawTextPage2(`${item.RetenueSS}`, 480, y);
-  //       y -= 16;
-  //     }
-  //   }
-
-
-
-
-  //   const pdfBytes = await pdfDoc.save();
-  //   const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-  //   const url = URL.createObjectURL(blob);
-  //   window.open(url);
-  //   setTimeout(() => URL.revokeObjectURL(url), 100);
-  // };
 
 
   const [showDRT, setShowDRT] = useState(false);
@@ -827,7 +760,7 @@ const Employes = () => {
       ? moment(selectedEmployee.User.datenaiss).format('YYYY')
       : "";
 
-    console.log('dernierJourTravail', formDataATS.dernierJourTravail)
+    // console.log('dernierJourTravail', formDataATS.dernierJourTravail)
 
     // Utiliser les données de l'employé sélectionné
     drawText(` ${selectedEmployee.User ? selectedEmployee.User.nom : ""} `, 150, 590, true);

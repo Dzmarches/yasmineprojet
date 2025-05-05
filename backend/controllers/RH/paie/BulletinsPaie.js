@@ -67,8 +67,6 @@ export const FindPeriodePaie = async (req, res) => {
     res.status(500).json({ message: "Erreur serveur" });
   }
 }
-
-
 // export const listeConge = async (req, res) => {
 //   try {
 //     const { employeId, idPeriodepai } = req.params;
@@ -81,8 +79,6 @@ export const FindPeriodePaie = async (req, res) => {
 //     }
 
 //     // Filtrer les congés 
- 
-
 // const CA = await CongeAbsence.findAll({
 //   where: {
 //     employe_id: employeId,
@@ -247,7 +243,6 @@ export const FindPointage = async (req, res) => {
 export const journalpaie = async (req, res) => {
   try {
 
-    console.log('requete.body', req.body)
     const { periodePaieId, idEmploye } = req.body;
 
     const [journalPaie, created] = await JournalPaie.findOrCreate({
@@ -282,7 +277,6 @@ export const journalpaie = async (req, res) => {
 
 export const liste = async (req, res) => {
   try {
-
     const ecoleId = req.user.ecoleId;
     const journalPaie = await JournalPaie.findAll(
       {

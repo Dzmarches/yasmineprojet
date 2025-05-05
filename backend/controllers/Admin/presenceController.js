@@ -19,79 +19,77 @@ if (!fs.existsSync(justificationsDir)) {
 }
 
 export const savePresences = async (req, res) => {
-  try {
-      const { presences, date, heure, enseignantId } = req.body;
-      
-      if (!presences || !date) {
-          return res.status(400).json({ success: false, message: "Champs requis manquants." });
-      }
+    try {
+        const { presences, date, heure, enseignantId } = req.body;
+        
+        if (!presences || !date) {
+            return res.status(400).json({ success: false, message: "Champs requis manquants." });
+        }
+  
+        const parsedPresences = Array.isArray(presences) ? presences : JSON.parse(presences);
+  
+        const results = await Promise.all(parsedPresences.map(async (presenceStr) => {
+            const presence = typeof presenceStr === 'string' ? JSON.parse(presenceStr) : presenceStr;
+            
+            const existingPresence = await Presence.findOne({
+                where: { eleveId: presence.eleveId, date }
+            });
+  
+            let justificationMatinPath = null;
+            let justificationApresMidiPath = null;
+  
+            // Traitement des fichiers
+            const matinFileKey = `justificationMatin-${presence.eleveId}`;
+            const apresMidiFileKey = `justificationApresMidi-${presence.eleveId}`;
+  
+            if (req.files) {
+                // Fichier pour le matin
+                const matinFile = req.files.find(f => f.fieldname === matinFileKey);
+                if (matinFile) {
+                    const fileName = `justif_${presence.eleveId}_matin_${Date.now()}${path.extname(matinFile.originalname)}`;
+                    fs.writeFileSync(path.join(justificationsDir, fileName), matinFile.buffer);
+                    justificationMatinPath = `/images/justificationabsenceEleve/${fileName}`;
+                }
+  
+                // Fichier pour l'après-midi
+                const apresMidiFile = req.files.find(f => f.fieldname === apresMidiFileKey);
+                if (apresMidiFile) {
+                    const fileName = `justif_${presence.eleveId}_apresmidi_${Date.now()}${path.extname(apresMidiFile.originalname)}`;
+                    fs.writeFileSync(path.join(justificationsDir, fileName), apresMidiFile.buffer);
+                    justificationApresMidiPath = `/images/justificationabsenceEleve/${fileName}`;
+                }
+            }
+  
+            const presenceData = {
+                matin: presence.matin,
+                apres_midi: presence.apres_midi,
+                heure,
+                enseignantId,
+                justificationTextMatin: presence.justificationTextMatin || null,
+                justificationTextApresMidi: presence.justificationTextApresMidi || null,
+                justificationMatin: justificationMatinPath || existingPresence?.justificationMatin || null,
+                justificationApresMidi: justificationApresMidiPath || existingPresence?.justificationApresMidi || null
+            };
+  
+            if (existingPresence) {
+                return await existingPresence.update(presenceData);
+            } else {
+                return await Presence.create({
+                    eleveId: presence.eleveId,
+                    ...presenceData,
+                    date
+                });
+            }
+        }));
+  
+        res.status(200).json({ success: true, data: results });
+    } catch (error) {
+        console.error('Erreur lors de la sauvegarde:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+  };
 
-      // Convertir les présences en tableau si ce n'est pas déjà le cas
-      const parsedPresences = Array.isArray(presences) ? presences : JSON.parse(presences);
-
-      const results = await Promise.all(parsedPresences.map(async (presenceStr) => {
-          const presence = typeof presenceStr === 'string' ? JSON.parse(presenceStr) : presenceStr;
-          
-          const existingPresence = await Presence.findOne({
-              where: { eleveId: presence.eleveId, date }
-          });
-
-          let justificationMatinPath = null;
-          let justificationApresMidiPath = null;
-
-          // Traitement des fichiers
-          const matinFileKey = `justificationMatin-${presence.eleveId}`;
-          const apresMidiFileKey = `justificationApresMidi-${presence.eleveId}`;
-
-          if (req.files) {
-              // Fichier pour le matin
-              const matinFile = req.files.find(f => f.fieldname === matinFileKey);
-              if (matinFile) {
-                  const fileName = `justif_${presence.eleveId}_matin_${Date.now()}${path.extname(matinFile.originalname)}`;
-                  fs.writeFileSync(path.join(justificationsDir, fileName), matinFile.buffer);
-                  justificationMatinPath = `/images/justificationabsenceEleve/${fileName}`;
-              }
-
-              // Fichier pour l'après-midi
-              const apresMidiFile = req.files.find(f => f.fieldname === apresMidiFileKey);
-              if (apresMidiFile) {
-                  const fileName = `justif_${presence.eleveId}_apresmidi_${Date.now()}${path.extname(apresMidiFile.originalname)}`;
-                  fs.writeFileSync(path.join(justificationsDir, fileName), apresMidiFile.buffer);
-                  justificationApresMidiPath = `/images/justificationabsenceEleve/${fileName}`;
-              }
-          }
-
-          if (existingPresence) {
-              return await existingPresence.update({
-                  matin: presence.matin,
-                  apres_midi: presence.apres_midi,
-                  heure,
-                  enseignantId,
-                  justificationMatin: justificationMatinPath || existingPresence.justificationMatin,
-                  justificationApresMidi: justificationApresMidiPath || existingPresence.justificationApresMidi
-              });
-          } else {
-              return await Presence.create({
-                  eleveId: presence.eleveId,
-                  enseignantId,
-                  date,
-                  matin: presence.matin,
-                  apres_midi: presence.apres_midi,
-                  heure,
-                  justificationMatin: justificationMatinPath,
-                  justificationApresMidi: justificationApresMidiPath
-              });
-          }
-      }));
-
-      res.status(200).json({ success: true, data: results });
-  } catch (error) {
-      console.error('Erreur lors de la sauvegarde:', error);
-      res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-export const getPresencesByDate = async (req, res) => {
+  export const getPresencesByDate = async (req, res) => {
     try {
         const { date } = req.params;
 
@@ -100,7 +98,13 @@ export const getPresencesByDate = async (req, res) => {
             include: [
                 {
                     model: Eleve,
-                    as: 'eleve'
+                    as: 'eleve',
+                    include: [
+                        {
+                            model: User,
+                            attributes: ['id', 'nom', 'prenom']
+                        }
+                    ]
                 },
                 {
                     model: Enseignant,
@@ -117,6 +121,21 @@ export const getPresencesByDate = async (req, res) => {
                         }
                     ]
                 }
+            ],
+            attributes: [
+                'id',
+                'eleveId',
+                'enseignantId',
+                'date',
+                'heure',
+                'matin',
+                'apres_midi',
+                'justificationMatin',
+                'justificationApresMidi',
+                'justificationTextMatin',
+                'justificationTextApresMidi',
+                'createdAt',
+                'updatedAt'
             ]
         });
 

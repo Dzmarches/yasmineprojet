@@ -1,11 +1,14 @@
 // routes/EleveRoutes.js
 import express from 'express';
+import multer from 'multer';
+import path from 'path';
 import Eleve from '../../models/Admin/Eleve.js';
 import User from '../../models/User.js';
 import Parent from '../../models/Admin/Parent.js';
 import Section from '../../models/Admin/Section.js';
 import { ListeEleveParent, createEleve, deleteEleve, getEleveById, updateEleve, uploadMiddleware,
-    getElevesByNiveau, updateEleveClasse, getElevesBySection, getElevesByEcole } from '../../controllers/Admin/EleveController.js';
+    getElevesByNiveau, updateEleveClasse, getElevesBySection, getElevesByEcole, getDevoirsByEleve
+    , soumettreTravail, getDevoirsBySection} from '../../controllers/Admin/EleveController.js';
 import { verifyToken } from '../../middelware/VerifyToken.js';
 import checkPermission from '../../middelware/PermissionMiddleware.js';
 import bcrypt from 'bcrypt';
@@ -21,6 +24,35 @@ router.put('/:id/classe', verifyToken, updateEleveClasse);
 router.get("/section/:sectionId", verifyToken, getElevesBySection);
 // routes/eleveRoutes.js
 router.get('/ecole/:ecoleeId', getElevesByEcole);
+router.get('/eleve/:eleveId', getDevoirsByEleve);
+// Configuration de multer pour le stockage des fichiers
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'images/travaux/');
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, uniqueSuffix + path.extname(file.originalname));
+    }
+});
+const upload = multer({ storage });
+router.post('/traveaux', upload.single('fichier'), soumettreTravail);
+router.get('/eleves/:eleveId', getDevoirsBySection);
+
+router.put('/:id/update-niveau', async (req, res) => {
+    try {
+        const { niveauId, classeId, annescolaireId } = req.body;
+        const updatedEleve = await Eleve.updateNiveau(req.params.id, {
+            niveauId,
+            classeId,
+            annescolaireId
+        });
+        res.json(updatedEleve);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: error.message });
+    }
+});
 
 // routes/EleveRoutes.js
 // Dans votre route /passwords

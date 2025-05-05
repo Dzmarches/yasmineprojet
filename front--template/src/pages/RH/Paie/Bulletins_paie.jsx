@@ -500,7 +500,7 @@ const Bulletins_paie = () => {
         
         {selectedEmployeId ? (
           <Bulletins_paieEmploye
-            key={selectedEmployeId}  // ⭐ Ajoutez cette ligne pour forcer le rechargement
+            key={selectedEmployeId}  // Ajoutez cette ligne pour forcer le rechargement
             employeId={selectedEmployeId}
             idPeriodepai={idPeriodepai.id}
           />

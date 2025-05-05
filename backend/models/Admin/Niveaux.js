@@ -25,12 +25,18 @@ const Niveaux = db.define('Niveaux', {
     type: DataTypes.STRING,
     allowNull: true,
   },
-  archiver: { 
+  // Dans le modèle Eleve, ajoutez:
+  ordre: {
     type: DataTypes.INTEGER,
-    defaultValue: 0, 
+    allowNull: true,
+    defaultValue: 0
+  },
+  archiver: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
     validate: {
       isIn: {
-        args: [[0, 1, 2]], 
+        args: [[0, 1, 2]],
         msg: "La valeur de 'archiver' doit être 0, 1 ou 2."
       }
     }

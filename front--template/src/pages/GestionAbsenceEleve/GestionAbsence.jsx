@@ -29,6 +29,18 @@ const GestionAbsence = () => {
     const [justificationFiles, setJustificationFiles] = useState({});
     const [showJustificationModal, setShowJustificationModal] = useState(false);
     const [currentEleve, setCurrentEleve] = useState(null);
+    const [justificationTexts, setJustificationTexts] = useState({});
+
+    const handleJustificationTextChange = (e, eleveId, period) => {
+        const text = e.target.value;
+        setJustificationTexts(prev => ({
+            ...prev,
+            [eleveId]: {
+                ...prev[eleveId],
+                [period]: text
+            }
+        }));
+    };
 
     // Récupérer l'ID de l'utilisateur connecté depuis le localStorage
     useEffect(() => {
@@ -191,6 +203,7 @@ const GestionAbsence = () => {
 
                     const existingPresences = response.data;
                     const newPresences = {};
+                    const newJustificationTexts = {};
 
                     eleves.forEach(eleve => {
                         const existing = existingPresences.find(p => p.eleveId === eleve.id);
@@ -200,9 +213,17 @@ const GestionAbsence = () => {
                             justificationMatin: existing?.justificationMatin || null,
                             justificationApresMidi: existing?.justificationApresMidi || null
                         };
+
+                        if (existing) {
+                            newJustificationTexts[eleve.id] = {
+                                matin: existing.justificationTextMatin || '',
+                                apres_midi: existing.justificationTextApresMidi || ''
+                            };
+                        }
                     });
 
                     setPresences(newPresences);
+                    setJustificationTexts(newJustificationTexts);
                 } catch (error) {
                     console.error("Erreur lors de la récupération des présences:", error);
                     const defaultPresences = {};
@@ -215,6 +236,7 @@ const GestionAbsence = () => {
                         };
                     });
                     setPresences(defaultPresences);
+                    setJustificationTexts({});
                 }
             };
 
@@ -334,7 +356,9 @@ const GestionAbsence = () => {
                 formData.append('presences[]', JSON.stringify({
                     eleveId: eleve.id,
                     matin: presences[eleve.id]?.matin || 'present',
-                    apres_midi: presences[eleve.id]?.apres_midi || 'present'
+                    apres_midi: presences[eleve.id]?.apres_midi || 'present',
+                    justificationTextMatin: justificationTexts[eleve.id]?.matin || '',
+                    justificationTextApresMidi: justificationTexts[eleve.id]?.apres_midi || ''
                 }));
             });
 
@@ -357,9 +381,7 @@ const GestionAbsence = () => {
                 }
             });
 
-            console.log('Fichiers à envoyer:', justificationFiles); // Ajoutez ce log avant l'envoi
             alert('Sauvegarde réussie !');
-            console.log('Réponse du serveur:', response.data);
         } catch (error) {
             console.error('Erreur lors de la sauvegarde:', error);
             alert('Erreur lors de la sauvegarde: ' + (error.response?.data?.message || error.message));
@@ -530,7 +552,7 @@ const GestionAbsence = () => {
                                     <div className="col-md-12">
                                         <div className="card">
                                             <div className="card-header bg-info d-flex justify-content-between align-items-center">
-                                                <h3 className="card-title mb-0">
+                                                <h3 className="card-title mb-0" style={{ color: 'black' }}>
                                                     Liste des élèves - {sections.find(s => s.id === selectedSection)?.classe || 'N/A'}
                                                 </h3>
                                                 <div>
@@ -624,16 +646,29 @@ const GestionAbsence = () => {
                                                                             <td>
                                                                                 {(matinStatus === 'absent' || matinStatus === 'retard') && (
                                                                                     <>
-                                                                                        <input
-                                                                                            type="file"
-                                                                                            accept="image/*,.pdf"
-                                                                                            onChange={(e) => handleFileChange(e, eleve.id, 'matin')}
-                                                                                        />
-                                                                                        {hasMatinJustification ? (
-                                                                                            <span style={{ color: 'green' }}>Justifié</span>
-                                                                                        ) : justificationFiles[eleve.id]?.matin ? (
-                                                                                            <span>{justificationFiles[eleve.id].matin.name}</span>
-                                                                                        ) : null}
+                                                                                        {presences[eleve.id]?.justificationTextMatin ? (
+                                                                                            <span style={{ color: 'green' }} title={presences[eleve.id].justificationTextMatin}>
+                                                                                                Justifié (texte)
+                                                                                            </span>
+                                                                                        ) : presences[eleve.id]?.justificationMatin ? (
+                                                                                            <span style={{ color: 'green' }}>Justifié (fichier)</span>
+                                                                                        ) : (
+                                                                                            <>
+                                                                                                <input
+                                                                                                    type="file"
+                                                                                                    accept="image/*,.pdf,.doc,.docx"
+                                                                                                    onChange={(e) => handleFileChange(e, eleve.id, 'matin')}
+                                                                                                    className="form-control-file"
+                                                                                                />
+                                                                                                <input
+                                                                                                    type="text"
+                                                                                                    placeholder="Raison de l'absence/retard"
+                                                                                                    value={justificationTexts[eleve.id]?.matin || ''}
+                                                                                                    onChange={(e) => handleJustificationTextChange(e, eleve.id, 'matin')}
+                                                                                                    className="form-control mt-2"
+                                                                                                />
+                                                                                            </>
+                                                                                        )}
                                                                                     </>
                                                                                 )}
                                                                             </td>
@@ -666,16 +701,29 @@ const GestionAbsence = () => {
                                                                             <td>
                                                                                 {(apresMidiStatus === 'absent' || apresMidiStatus === 'retard') && (
                                                                                     <>
-                                                                                        <input
-                                                                                            type="file"
-                                                                                            accept="image/*,.pdf"
-                                                                                            onChange={(e) => handleFileChange(e, eleve.id, 'apres_midi')}
-                                                                                        />
-                                                                                        {hasApresMidiJustification ? (
-                                                                                            <span style={{ color: 'green' }}>Justifié</span>
-                                                                                        ) : justificationFiles[eleve.id]?.apres_midi ? (
-                                                                                            <span>{justificationFiles[eleve.id].apres_midi.name}</span>
-                                                                                        ) : null}
+                                                                                        {presences[eleve.id]?.justificationTextApresMidi ? (
+                                                                                            <span style={{ color: 'green' }} title={presences[eleve.id].justificationTextApresMidi}>
+                                                                                                Justifié (texte)
+                                                                                            </span>
+                                                                                        ) : presences[eleve.id]?.justificationApresMidi ? (
+                                                                                            <span style={{ color: 'green' }}>Justifié (fichier)</span>
+                                                                                        ) : (
+                                                                                            <>
+                                                                                                <input
+                                                                                                    type="file"
+                                                                                                    accept="image/*,.pdf,.doc,.docx"
+                                                                                                    onChange={(e) => handleFileChange(e, eleve.id, 'apres_midi')}
+                                                                                                    className="form-control-file"
+                                                                                                />
+                                                                                                <input
+                                                                                                    type="text"
+                                                                                                    placeholder="Raison de l'absence/retard"
+                                                                                                    value={justificationTexts[eleve.id]?.apres_midi || ''}  // Ajout de cette ligne
+                                                                                                    onChange={(e) => handleJustificationTextChange(e, eleve.id, 'apres_midi')}
+                                                                                                    className="form-control mt-2"
+                                                                                                />
+                                                                                            </>
+                                                                                        )}
                                                                                     </>
                                                                                 )}
                                                                             </td>

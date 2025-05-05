@@ -26,6 +26,10 @@ import noteRoute from './Admin/NoteRoute.js';
 import anneeScolaireRoutes from './Admin/AnnéeScolaireRoutes.js';
 
 import moyenneGeneraleRoutes from './Admin/moyenneGeneraleRoutes.js';
+import RemarqueRoute from './Admin/RemarqueRoute.js';
+import communicationRoutes from './CommunicationRoute/communicationRoutes.js';
+import ParentEleveRoutes from './Admin/ParentEleveRoutes.js';
+import DevoireRoute from './Admin/DevoireRoute.js';
 
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -86,5 +90,9 @@ app.use('/periodenotes', periodenotesRoute);
 app.use('/notes',noteRoute);
 app.use('/anneescolaire', anneeScolaireRoutes);
 app.use('/moyenne', moyenneGeneraleRoutes);
+app.use('/remarques', RemarqueRoute);
+app.use('/communication', communicationRoutes);
+app.use('/parent', ParentEleveRoutes);
+app.use('/devoir', DevoireRoute);
 
 export default app;

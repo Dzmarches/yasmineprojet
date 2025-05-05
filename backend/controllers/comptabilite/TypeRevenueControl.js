@@ -123,8 +123,7 @@ export const FindTR=async (req, res) => {
   export const ModifierTR = async (req, res) => {
     const { id } = req.params;
     const updatedData = req.body; 
-    console.log("updatedData", updatedData);
-  
+   
     const { type,remarque } = updatedData;
     if (!type ) {
       return res.status(400).json({ message: " le type est  obligatoire" });
@@ -134,8 +133,6 @@ export const FindTR=async (req, res) => {
         where: { id: id }
       });
 
-      console.log('update result:', updated);
-  
       if (updated) {
         const updatedtype = await TypeRevenue.findByPk(id);
         return res.status(200).json({ message: ' mise à jour avec succès', updatedtype: updatedtype });

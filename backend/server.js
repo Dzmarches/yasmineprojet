@@ -43,8 +43,8 @@ import Typedepenses from './routes/comptabilite/TypeDepenseRoute.js'
 import depensesRoute from './routes/comptabilite/DepensesRoute.js'
 import revenusRoute from './routes/comptabilite/RevenusRoute.js'
 import ContratRoute from './routes/comptabilite/paimentEleve/ContratRoute.js'
-import PlanningPaiementR from './routes/comptabilite/paimentEleve/PlanningPaiementR.js'
-// import './cron/absenceFinJournee.js'
+import './cron/absenceFinJournee.js';
+
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -102,7 +102,6 @@ app.use('/Typedepenses',Typedepenses);
 app.use('/revenus',revenusRoute);
 app.use('/depenses',depensesRoute);
 app.use('/contrat',ContratRoute);
-app.use('/PlanningPaiement',PlanningPaiementR);
 
 export const syncDatabase = async () => {
   try {

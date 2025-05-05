@@ -30,6 +30,15 @@ import EditUser from './pages/parametres/EditUser.jsx';
 import GestionEleves from './pages/Administration/GestionEleves.jsx';
 import DisponibiliteEnseignants from "./pages/Administration/DisponibiliteEnseignants.jsx";
 import GestionDesNotes from "./pages/Academiques/GestionDesNotes.jsx";
+import Communication from "./pages/Communication/Communication.jsx";
+import ListeDeSesEnfants from "./pages/interface parent et Eleve/ListeDeSesEnfants.jsx";
+import GestionDevoire from './pages/Academiques/GestionDevoire.jsx';
+import EmploiDuTemps from "./pages/Academiques/EmploiDuTemps.jsx"
+
+import GestionNotesEnseignant from "./pages/Academiques/GestionNotesEnseignant.jsx";
+import GestionAbsence from "./pages/GestionAbsenceEleve/GestionAbsence.jsx";
+import JustificationAbsence from "./pages/GestionAbsenceEleve/JustificationAbsence.jsx";
+
 
 import Employes from './pages/RH/Employes/Employes'
 import AjouterEmploye from './pages/RH//Employes/AjouterEmploye';
@@ -39,7 +48,6 @@ import AjouterModifierConge from './pages/RH/Conge/AddEditConge';
 import GTEmployesAddEdit from './pages/GestionTemps/gestionTempEmployes/GTEmployesAddEdit';
 import PointageManuel from './pages/GestionTemps/gestionTempEmployes/PointageManuel';
 import EmployeCA from './pages/RH/Conge/Employe/EmployeCA';
-
 
 import GestionAbsenceEleve from './pages/GestionAbsenceEleve/gestionabsenceeleve.jsx';
 import PointageLocalisation from './pages/GestionTemps/pointageLocalisation/PointageLocalisation';
@@ -68,11 +76,7 @@ import { PERMISSIONS } from "./permission.jsx";
 import Forbidden from './Forbidden.jsx';
 import ParentForm from "./pages/Administration/ParentForm.jsx";
 import ProfileE from "./pages/ProfileE.jsx";
-import EmploiDuTemps from "./pages/Academiques/EmploiDuTemps.jsx"
 
-import GestionNotesEnseignant from "./pages/Academiques/GestionNotesEnseignant.jsx";
-import GestionAbsence from "./pages/GestionAbsenceEleve/GestionAbsence.jsx";
-import JustificationAbsence from "./pages/GestionAbsenceEleve/JustificationAbsence.jsx";
 
 import RapportConges from "./pages/RH/Conge/RapportConges.jsx";
 import SoldeCompte from "./pages/RH/Paie/soldeTTcompte/SoldeCompte.jsx";
@@ -85,6 +89,12 @@ import DepensesC from "./pages/comptabilite/DepensesC.jsx";
 import Parameterpaie from "./pages/RH/Paie/Parameterpaie.jsx"
 import Comptabilite from "./pages/comptabilite/Comptabilite.jsx";
 import PaiementEtudiants from "./pages/comptabilite/paiementEtudiants/PaiementEtudiants.jsx";
+import RapportComptabilite from "./pages/comptabilite/RapportComptabilite.jsx";
+
+import InterfaceEleve from "./pages/interface parent et Eleve/interfaceEleve.jsx";
+import ListeAbsences from "./pages/GestionAbsenceEleve/ListeAbsences.jsx";
+import GestionDevoir from "./pages/Academiques/PlaningDevoirs.jsx";
+
 
 
 
@@ -147,6 +157,12 @@ function App() {
           <Route path="/absenceeleve" element={<PrivateRoute><Layoute><GestionAbsenceEleve /></Layoute></PrivateRoute>} />
           <Route path="/gestionabsence" element={<PrivateRoute><Layoute><GestionAbsence /></Layoute></PrivateRoute>} />
           <Route path="/justificationeleve" element={<PrivateRoute><Layoute><JustificationAbsence /></Layoute></PrivateRoute>} />
+          <Route path="/communication" element={<PrivateRoute><Layoute><Communication /></Layoute></PrivateRoute>} />
+          <Route path="/listeenfants" element={<PrivateRoute><Layoute><ListeDeSesEnfants /></Layoute></PrivateRoute>} />
+          <Route path="/GestionDevoire" element={<PrivateRoute><Layoute><GestionDevoire /></Layoute></PrivateRoute>} />
+          <Route path="/elevess" element={<PrivateRoute><Layoute><InterfaceEleve /></Layoute></PrivateRoute>} />
+          <Route path="/listeabsence" element={<PrivateRoute><Layoute><ListeAbsences /></Layoute></PrivateRoute>} />
+          <Route path="/planingdevoir" element={<PrivateRoute><Layoute><GestionDevoir /></Layoute></PrivateRoute>} />
 
           <Route path="/RessourcesHumaines" element={<PrivateRoute><Layoute><RessourcesHumaines /></Layoute></PrivateRoute>} />
           <Route path="/Gpaiement" element={<PrivateRoute><Layoute><GestionPaiement /></Layoute></PrivateRoute>} />
@@ -190,6 +206,9 @@ function App() {
           <Route path="/depensesC" element={<PrivateRoute><Layoute><DepensesC/></Layoute></PrivateRoute>} /> */}
           <Route path="/comptabilite" element={<PrivateRoute><Layoute><Comptabilite/></Layoute></PrivateRoute>} />
           <Route path="/paiementEleves" element={<PrivateRoute><Layoute><PaiementEtudiants/></Layoute></PrivateRoute>} />
+          <Route path="/rapportComptabilite" element={<PrivateRoute><Layoute><RapportComptabilite/></Layoute></PrivateRoute>} />
+          <Route path="/joursferies" element={<PrivateRoute><Layoute><JoursFeries/></Layoute></PrivateRoute>} />
+          
         </Routes>
       </BrowserRouter>
     </AuthProvider>

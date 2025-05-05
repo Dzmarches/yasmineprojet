@@ -116,7 +116,7 @@ const Conges = () => {
         listeDCA();
     }, []);
 
-    const listeDCA = async () => {
+     const listeDCA = async () => {
         try {
 
             const token = localStorage.getItem("token");
@@ -587,7 +587,7 @@ const Conges = () => {
                 </div>
                 <AddEditConge />
                 <AddMonConge />
-                <ModifierCA IDemande={DemandeId} IDEmploye={EmployeId} />
+                <ModifierCA IDemande={DemandeId} IDEmploye={EmployeId}  listeDCA={listeDCA}/>
                 <CongeAnnuel />
             </div>
             <Modal show={showDeleteModal} onHide={handleClose}>

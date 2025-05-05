@@ -1,9 +1,16 @@
 import PeriodeNote from '../../models/Admin/periodenote.js';
 import { Op } from 'sequelize';
 
+// Vérifier les périodes expirées avant chaque opération
+const checkExpiredPeriods = async () => {
+    await PeriodeNote.checkAndUpdateExpiredPeriods();
+};
+
 // Créer ou mettre à jour une période de note
 export const createOrUpdatePeriodeNote = async (req, res) => {
     try {
+        await checkExpiredPeriods();
+        
         const { status, dateDebutPeriode, dateFinPeriode, ecoleId, ecoleeId } = req.body;
 
         const whereCondition = ecoleId 
@@ -48,9 +55,10 @@ export const createOrUpdatePeriodeNote = async (req, res) => {
 // Récupérer la période de note
 export const getPeriodeNote = async (req, res) => {
     try {
+        await checkExpiredPeriods();
+        
         const { ecoleId, ecoleeId } = req.params;
 
-        // Déterminer quel ID utiliser pour la recherche
         const whereCondition = ecoleId && ecoleId !== '0' 
             ? { ecoleId } 
             : ecoleeId && ecoleeId !== '0' 
@@ -70,12 +78,12 @@ export const getPeriodeNote = async (req, res) => {
     }
 };
 
-
 export const getPeriodeNoteStatus = async (req, res) => {
     try {
+        await checkExpiredPeriods();
+        
         const { ecoleId, ecoleeId } = req.params;
 
-        // We need to check for either ecoleId OR ecoleeId
         const whereCondition = {};
         
         if (ecoleId && ecoleId !== '0') {
@@ -113,3 +121,12 @@ export const getPeriodeNoteStatus = async (req, res) => {
         });
     }
 };
+
+// Optionnel: Ajouter un cron job pour vérifier périodiquement les périodes expirées
+import cron from 'node-cron';
+
+// Vérifier toutes les heures
+cron.schedule('0 * * * *', () => {
+    PeriodeNote.checkAndUpdateExpiredPeriods();
+    console.log('Vérification des périodes expirées effectuée');
+});

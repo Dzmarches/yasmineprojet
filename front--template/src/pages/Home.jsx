@@ -499,7 +499,14 @@ const Home = () => {
                         <Can permission="Parametre-Voir">
                           <span className="info-box-icon elevation-1">
                             <Link to="/gestionabsence">
-                              <img src={absence} alt="" title="Gestion utilisateurs & permission" />
+                              <img src={absence} alt="" title="Gestion des Absences" />
+                            </Link>
+                          </span>
+                        </Can>
+                        <Can permission="Parametre-Voir">
+                          <span className="info-box-icon elevation-1">
+                            <Link to="/listeabsence">
+                              <img src={absence} alt="" title="Liste des Absences" />
                             </Link>
                           </span>
                         </Can>
@@ -521,6 +528,13 @@ const Home = () => {
                         {poste === "Enseignant" && (
                           <span className="info-box-icon elevation-1">
                             <Link to="/GestionDesNotesEnseignant">
+                              <img src={note} alt="" title="Gestion absence" />
+                            </Link>
+                          </span>
+                        )}
+                        {poste === "Enseignant" && (
+                          <span className="info-box-icon elevation-1">
+                            <Link to="/GestionDevoire">
                               <img src={note} alt="" title="Gestion absence" />
                             </Link>
                           </span>

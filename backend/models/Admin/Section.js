@@ -48,7 +48,7 @@ const Section = db.define('Section', {
 });
 
 // Définir la relation entre Section et Niveaux
-Section.belongsTo(Niveaux, { foreignKey: 'niveauxId', as: 'niveau' });
+Section.belongsTo(Niveaux, { foreignKey: 'niveauxId'});
 
 
 

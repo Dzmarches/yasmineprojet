@@ -59,6 +59,10 @@ const MoyenneGenerale = db.define('MoyenneGenerale', {
   moyenne: {
     type: DataTypes.DECIMAL(5, 2),
     allowNull: false
+  },
+  status: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   }
 }, {
   timestamps: true,

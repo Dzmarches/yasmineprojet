@@ -71,9 +71,9 @@ const Formulaire = ({ eleveId: propEleveId, onSuccess }) => {
         username: '',
         password: '',
         groupeSanguin: '',
-
         niveauId: '', // Référence à Niveaux
         parentId: '', // Référence à Parent
+        annescolaireId: '',
 
         orphelin: 'vivant', // Pour stocker le choix de l'utilisateur (sansmere, orphelin, sanspere, vivant)
         pere: {
@@ -143,12 +143,33 @@ const Formulaire = ({ eleveId: propEleveId, onSuccess }) => {
         ecoleId: '',
         ecoleeId: ''
     });
+
     const [errors, setErrors] = useState({});
     const [selectedOption, setSelectedOption] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [profileInfo, setProfileInfo] = useState(null);
     const handleCloseProfileModal = () => setShowProfileModal(false);
+    const [annees, setAnnees] = useState([]);
+    const [selectedAnnee, setSelectedAnnee] = useState(null);
+    const [filteredAnnees, setFilteredAnnees] = useState([]);
+
+    useEffect(() => {
+        const fetchAnnees = async () => {
+            try {
+                const token = localStorage.getItem("token");
+                const response = await axios.get(
+                    `http://localhost:5000/anneescolaire`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                setAnnees(response.data);
+                setFilteredAnnees(response.data);
+            } catch (error) {
+                console.error('Error fetching annees scolaires', error);
+            }
+        };
+        fetchAnnees();
+    }, []);
 
     // Mettre à jour isEditing lorsque eleveId change
     useEffect(() => {
@@ -705,7 +726,7 @@ const Formulaire = ({ eleveId: propEleveId, onSuccess }) => {
         fetchUser();
     }, []);
 
-   
+
     useEffect(() => {
         const fetchCycle = async () => {
             const token = localStorage.getItem("token");
@@ -2721,6 +2742,30 @@ const Formulaire = ({ eleveId: propEleveId, onSuccess }) => {
                                                     ))}
                                                 </select>
                                             </div>
+                                        </div> <br />
+                                        <div className='row'>
+                                            <div className="col-md-6 form-group ml-0" style={{ minWidth: '150px' }}>
+                                                <select
+                                                    className="form-control input"
+                                                    style={{ height: '40px' }}
+                                                    value={values.annescolaireId}
+                                                    onChange={handleChange}
+                                                    name="annescolaireId"
+                                                    required // Ajoutez cet attribut
+                                                >
+                                                    <option value="">Année scolaire</option>
+                                                    {annees.map((annee) => {
+                                                        // Si l'API renvoie 'id_annee' au lieu de 'id'
+                                                        const debut = new Date(annee.datedebut).getFullYear();
+                                                        const fin = new Date(annee.datefin).getFullYear();
+                                                        return (
+                                                            <option key={annee.id} value={annee.id}>
+                                                                {debut} - {fin}
+                                                            </option>
+                                                        );
+                                                    })}
+                                                </select>
+                                            </div>
                                         </div>
                                     </div>
                                     <button
@@ -2911,8 +2956,8 @@ const Formulaire = ({ eleveId: propEleveId, onSuccess }) => {
                             )}
                         </div>
                     </div>
-                </form>
-            </div>
+                </form >
+            </div >
             <Modal show={showProfileModal} onHide={handleCloseProfileModal} size="lg">
                 <Modal.Header closeButton>
                     <Button variant="transparent" onClick={() => window.print()}>

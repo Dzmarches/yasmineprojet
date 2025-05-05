@@ -48,7 +48,7 @@ export const getSections = async (req, res) => {
             sections = await Section.findAll({
                 include: [
                     {
-                        model: Niveaux, as: 'niveau',
+                        model: Niveaux,
                     },
                     {
                         model: EcoleSections,
@@ -62,7 +62,7 @@ export const getSections = async (req, res) => {
             sections = await Section.findAll({
                 include: [
                     {
-                        model: Niveaux, as: 'niveau',
+                        model: Niveaux,
                     },
                     {
                         model: EcoleSections,

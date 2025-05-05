@@ -224,7 +224,7 @@ const DocumentsEmployes = () => {
                                           <img src={deletee} alt="" width="27px" title="Supprimer" />
                                         </a>
                                       </td>
-                                    ) : roles.some(role => ["Admin", "Employé"].includes(role)) && item.Ecole?.nomecole ? (
+                                    ) : roles.some(role => ["Admin","AdminPrincipal", "Employé"].includes(role)) && item.Ecole?.nomecole ? (
                                       <td>
                                         <Link
                                           className="btn btn-outline-success"

@@ -44,7 +44,7 @@ const Comptabilite = () => {
                                         aria-selected="true"
                                         onClick={() => localStorage.setItem('activeTab', '#TypeRevenus')}
                                         >
-                                        Gestion des types de revenus
+                                        Gestion Types Revenus
                                     </a>
                                 </li>
 
@@ -59,7 +59,7 @@ const Comptabilite = () => {
                                         aria-controls="custom-tabs-five-overlay"
                                         aria-selected="false"
                                         onClick={() => localStorage.setItem('activeTab', '#TypeDepense')}
-                                    > Gestion des types de dépenses</a>
+                                    > Gestion Types Dépenses</a>
                                 </li>
 
                                 {/* Revenus */}
@@ -73,7 +73,7 @@ const Comptabilite = () => {
                                         aria-controls="custom-tabs-five-overlay"
                                         aria-selected="false"
                                         onClick={() => localStorage.setItem('activeTab', '#revenus')}
-                                    > Gestion des Revenus</a>
+                                    > Gestion Revenus</a>
                                 </li>
                                 {/* Depenses */}
                                 <li className="nav-item">
@@ -86,7 +86,7 @@ const Comptabilite = () => {
                                         aria-controls="custom-tabs-five-overlay"
                                         aria-selected="false"
                                         onClick={() => localStorage.setItem('activeTab', '#depenses')}
-                                    >Gestion des Dépenses</a>
+                                    >Gestion Dépenses</a>
                             </li>
                         </ul>
                     </div>

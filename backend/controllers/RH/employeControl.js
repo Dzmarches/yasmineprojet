@@ -270,47 +270,6 @@ export const ProfileEmploye = async (req, res) => {
   }
 };
 
-//archiver employe
-
-// export const ArchiverE = async (req, res) => {
-//   const { id } = req.params;
-
-//   try {
-
-//     const findEmploye = await Employe.findByPk(id);
-//     if (!findEmploye) {
-//       return res.status(404).json({ message: 'Employé non trouvé.' });
-//     }
-//     const [updatedEmploye] = await Employe.update(
-//       { archiver: 1 }, 
-//       { where: { id } } 
-//     );
-
-//     const [updatedUser] = await User.update(
-//       { archiver: 1 },
-//       { where: { id: findEmploye.userId } }
-//     );
-
-//     // Vérifier si les mises à jour ont réussi
-//     if (updatedEmploye > 0 && updatedUser > 0) {
-//       // Récupérer l'employé mis à jour pour le renvoyer dans la réponse
-//       const archivedEmploye = await Employe.findByPk(id, {
-//         include: [{ model: User }],
-//       });
-
-//       return res.status(200).json({
-//         message: 'Employé et utilisateur archivés avec succès.',
-//         data: archivedEmploye,
-//       });
-//     } else {
-//       return res.status(404).json({ message: 'Aucun enregistrement mis à jour.' });
-//     }
-//   } catch (error) {
-//     console.error('Erreur lors de l\'archivage :', error);
-//     return res.status(500).json({ message: 'Erreur serveur lors de l\'archivage.', error: error.message });
-//   }
-// };
-
 export const ArchiverE = async (req, res) => {
   try {
     const { id } = req.params;
@@ -349,14 +308,7 @@ export const ModifierEmploye = async (req, res) => {
     if (!existingUserEmploye) {
       return res.status(404).json({ message: "User non trouvé" });
     }
-    // Extraction des données
-    // const {
-    //   nom, prenom, nom_arabe, prenom_arabe, datenaiss, tel, mail, user,
-    //   nationalite, sexe, Lieunais, lieunaisArabe, sitfamiliale, nbrenfant, adresse,
-    //   TypePI, NumPI, NumPC, NumAS, poste, service, daterecru, NVTetudes, Experience,
-    //   Typepai, SalairNeg, TypeContrat, DateFinContrat, Remarque, HeureEM, HeureSM,
-    //   HeureEAM, HeureSAM, CE, npe, pfe, ddn, ninn, adresse_ar, pwd,nbrHeureLegale, nbrJourTravail, Numpai
-    // } = req.body;
+   
     const {
       nom, prenom, nom_arabe, prenom_arabe, datenaiss, tel, mail, user,
       nationalite, sexe, Lieunais, lieunaisArabe, sitfamiliale, nbrenfant, adresse,

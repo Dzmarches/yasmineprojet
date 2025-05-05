@@ -54,9 +54,13 @@ const Contrat= sequelize.define('Contrat', {
     type: DataTypes.DATE,
     allowNull: false,
   },
+  date_sortie: {
+    type: DataTypes.DATE,
+    allowNull: false,
+  },
   nombre_echeances: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
   },
   typePaiment: {
     type: DataTypes.STRING,

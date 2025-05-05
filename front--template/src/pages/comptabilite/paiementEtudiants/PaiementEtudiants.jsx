@@ -6,7 +6,6 @@ import PlanningPaiment from './PlanningPaiment';
 
 
 const PaiementEtudiants = () => {
-
     useEffect(() => {
         const savedTab = localStorage.getItem('activeTabPE')|| '#GCE';
         if (savedTab) {
@@ -22,7 +21,7 @@ const PaiementEtudiants = () => {
             <nav className="mt-5">
                 <Link to="/dashboard">Dashboard</Link>
                 <span> / </span>
-                <span>Gestion Paiements Étudiants</span>
+                <span>Gestion Paiements Eleves</span>
             </nav>
 
             <div className="row mt-2">
@@ -42,7 +41,7 @@ const PaiementEtudiants = () => {
                                         aria-selected="true"
                                         onClick={() => localStorage.setItem('activeTabPE', '#GCE')}
                                     >
-                                        Gestion des Contrats d'Élèves
+                                        Gestion Contrats Élèves
                                     </a>
                                 </li>
 

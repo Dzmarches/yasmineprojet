@@ -22,32 +22,77 @@ const DocumentsEmployesAjouter = () => {
   ];
 
   const [ModeleDoc, setModeleDoc] = useState("");
-    // Liste des champs disponibles
-    const availableFields = [
-      { field: "[nom]", description: "Nom de l'employé" },
-      { field: "[prenom]", description: "Prénom de l'employé" },
-      { field: "[datenaiss]", description: "Date de naissance de l'employé" },
-      { field: "[Lieunais]", description: "Lieu de naissance de l'employé" },
-      { field: "[poste]", description: "Poste de l'employé" },
-      { field: "[daterecru]", description: "Date de recrutement de l'employé" },
-      { field: "[dateCesT]", description: "Date de cessation de travail" },
-      { field: "[dateToday]", description: "Date du jour" },
-      { field: "[N°AS]", description: "Numéro de sécurité sociale de l'employé" },
-      { field: "[nomecole]", description: "Nom de l'école" },
-      { field: "[nomecoleP]", description: "Nom de l'école principale" },
-    ];
-  
-    // Fonction pour insérer un champ dans l'éditeur
-    const insertField = (field) => {
-      if (editor.current) {
-        editor.current.selection.insertHTML(field);
-      }
-    };
+  // Liste des champs disponibles
+  const availableFields = [
+    { field: "[nom]", description: "Nom de l'employé" },
+    { field: "[prenom]", description: "Prénom de l'employé" },
+    { field: "[datenaiss]", description: "Date de naissance de l'employé" },
+    { field: "[Lieunais]", description: "Lieu de naissance de l'employé" },
+    { field: "[poste]", description: "Poste de l'employé" },
+    { field: "[daterecru]", description: "Date de recrutement de l'employé" },
+    { field: "[dateCesT]", description: "Date de cessation de travail" },
+    { field: "[dateToday]", description: "Date du jour" },
+    { field: "[N°AS]", description: "Numéro de sécurité sociale de l'employé" },
+    { field: "[nomecole]", description: "Nom de l'école" },
+    { field: "[nomecoleP]", description: "Nom de l'école principale" },
+  ];
+  const availableFieldsEleve = [
+    { field: "[nomE]", description: "Nom de l'élève en FR" },
+    { field: "[nomAbE]", description: "Nom de l'élève en AB" },
+    { field: "[prenomE]", description: "Prénom de l'élève en FR" },
+    { field: "[prenomAbE]", description: "Prénom de l'élève en AB" },
+    { field: "[datenaissE]", description: "Date de naissance de l'élève" },
+    { field: "[LieunaisE]", description: "Lieu de naissance de l'élève en FR" },
+    { field: "[LieunaisAbE]", description: "Lieu de naissance de l'élève en AB" },
+    { field: "[AdresseE]", description: "Adresse de l'élève en FR" },
+    { field: "[AdresseAbE]", description: "Adresse de l'élève en AB" },
+    { field: "[dateTodayE]", description: "Date du jour" },
+    { field: "[nomecoleE]", description: "Nom de l'école" },
+    { field: "[nomecolePE]", description: "Nom de l'école principale" },
+    { field: "[adresseE]", description: "adresse de l'école " },
+    { field: "[adressePE]", description: "adresse de l'école principale" },
+    { field: "[NV]", description: "Niveau de l'élève  " },
+    { field: "[nomP]", description: "Nom du responsable de  l'élève" },
+    { field: "[prenomP]", description: "Prenom du responsable de  l'élève" },
+    { field: "[EmailP]", description: "Email du responsable de  l'élève" },
+    { field: "[TelP]", description: "Num Telephone du responsable de  l'élève" },
+    { field: "[AdresseP]", description: "Adresse du responsable de  l'élève" },
+  ];
+  const availableFieldsElevePaiment = [
+    { field: "[codeC]", description: "Code du Contrat Eleve" },
+    { field: "[AS]", description: "Année Scolaire" },
+    { field: "[ddP]", description: "Date Début Paiment Eleve" },
+    { field: "[dfP]", description: "Date Fin Paiment Eleve" },
+    { field: "[dcC]", description: "Date Création Contrat Eleve" },
+    { field: "[totalC]", description: "Total Paiment  Contrat Eleve" },
+    { field: "[FraisInsc]", description: "Frais Inscription de l'élève Eleve" },
+    { field: "[TypeP]", description: "Type de Paiment Eleve" },
+    { field: "[ModeP]", description: "Mode de Paiment Eleve" },
+    { field: "[planning]", description: "Planning de Paiment Eleve" },
+    { field: "[detail]", description: "Details paiment Eleve" },
+    { field: "[dateToday]", description: "Date du jour" },
 
+  ];
 
-     // Fonction pour ouvrir une modale avec les champs disponibles
-  const openFieldModal = () => {
+  // Fonction pour insérer un champ dans l'éditeur
+  const insertField = (field) => {
+    if (editor.current) {
+      editor.current.selection.insertHTML(field);
+    }
+  };
+
+  // Fonction pour ouvrir une modale avec les champs disponibles
+
+  const openFieldModal = (fields) => {
+
+    // Fermer toute ancienne modale si elle existe
+    const existingModal = document.getElementById('custom-field-modal');
+    if (existingModal) {
+      document.body.removeChild(existingModal);
+    }
+
     const modal = document.createElement('div');
+    modal.id = 'custom-field-modal'; // ID pour gestion unique
     modal.style.position = 'fixed';
     modal.style.top = '50%';
     modal.style.left = '50%';
@@ -57,33 +102,40 @@ const DocumentsEmployesAjouter = () => {
     modal.style.border = '1px solid #ccc';
     modal.style.zIndex = '1000';
     modal.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+    modal.style.maxHeight = '70vh'; 
+    modal.style.overflowY = 'auto'; 
 
     const closeModal = () => {
-      document.body.removeChild(modal);
+      const modalToRemove = document.getElementById('custom-field-modal');
+      if (modalToRemove) {
+        document.body.removeChild(modalToRemove);
+      }
     };
 
     modal.innerHTML = `
-      <div>
-        <h3>Champs disponibles</h3>
-        <ul style="list-style: none; padding: 0;">
-          ${availableFields.map((field, index) => `
-            <li key=${index} style="cursor: pointer; padding: 5px;" onclick="window.insertFieldIntoEditor('${field.field}')">
-              <strong>${field.field}</strong> - ${field.description}
-            </li>
-          `).join('')}
-        </ul>
-        <button onclick="window.closeModal()" style="margin-top: 10px;">Fermer</button>
-      </div>
-    `;
+        <div>
+          <h3>Champs disponibles</h3>
+          <ul style="list-style: none; padding: 0;">
+            ${fields.map((field, index) => `
+              <li style="cursor: pointer; padding: 5px;" onclick="window.insertFieldIntoEditor('${field.field}')">
+                <strong>${field.field}</strong> - ${field.description}
+              </li>
+            `).join('')}
+          </ul>
+          <button onclick="window.closeModal()" style="margin-top: 10px;">Fermer</button>
+        </div>
+      `;
 
     document.body.appendChild(modal);
+
     window.insertFieldIntoEditor = (field) => {
       insertField(field);
       closeModal();
     };
-
     window.closeModal = closeModal;
   };
+
+
   // Fonction pour extraire les URLs des images
   const extractImageUrls = (htmlContent) => {
     const parser = new DOMParser();
@@ -99,15 +151,15 @@ const DocumentsEmployesAjouter = () => {
       //     alert("Vous devez être connecté");
       //     return;
       // }
-      
+
       await axios.post('http://localhost:5000/attestation/deleteImages', { imageUrls },
-      //   {
-      //   headers: {
-      //     Authorization: `Bearer ${token}`,
-         
-      // },
-      // }
-    );
+        //   {
+        //   headers: {
+        //     Authorization: `Bearer ${token}`,
+
+        // },
+        // }
+      );
       console.log('Images supprimées avec succès');
     } catch (error) {
       console.error('Erreur lors de la suppression des images :', error);
@@ -141,8 +193,8 @@ const DocumentsEmployesAjouter = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-          alert("Vous devez être connecté");
-          return;
+        alert("Vous devez être connecté");
+        return;
       }
       const response = await axios.post("http://localhost:5000/attestation/ajouter", {
         nom,
@@ -150,34 +202,40 @@ const DocumentsEmployesAjouter = () => {
         modeleTexte: content,
         module: selectedModule.value,
       },
-      {  headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-    },}
-  );
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
       alert(response.data.message);
     } catch (error) {
       console.error("Erreur lors de la sauvegarde", error);
-      alert("Échec de la sauvegarde.");
+      if (error.response && error.response.status === 409) {
+        alert(error.response.data.message); 
+      } else {
+        alert("❌ Échec de la sauvegarde.");
+      }
     }
   };
 
-     const handlePrint = () => {
-          // console.log('employe',employeDetails)
-          console.log('NomDoc',nom)
-          const originalTitle = document.title; 
-          document.title = "Documents"; 
-          const contentToPrint = editor.current.value; 
-          // Créer un iframe pour l'impression
-          const iframe = document.createElement('iframe');
-          iframe.style.display = 'none';
-          document.body.appendChild(iframe);
-          const iframeDocument = iframe.contentWindow.document;
-      
-          // Ajouter les styles pour l'impression
-          const style = iframeDocument.createElement('style');
-          // @page { margin: 0 !important; padding: 40px !important; }
-          style.innerHTML = `
+  const handlePrint = () => {
+    // console.log('employe',employeDetails)
+    console.log('NomDoc', nom)
+    const originalTitle = document.title;
+    document.title = "Documents";
+    const contentToPrint = editor.current.value;
+    // Créer un iframe pour l'impression
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    const iframeDocument = iframe.contentWindow.document;
+
+    // Ajouter les styles pour l'impression
+    const style = iframeDocument.createElement('style');
+    // @page { margin: 0 !important; padding: 40px !important; }
+    style.innerHTML = `
        
            @media print {
           
@@ -192,139 +250,100 @@ const DocumentsEmployesAjouter = () => {
           }
         }
       `;
-          iframeDocument.head.appendChild(style);
-          // Ajouter le contenu de l'éditeur Jodit
-          iframeDocument.body.innerHTML = contentToPrint;
-        
-          // Imprimer le document
-          iframe.contentWindow.focus();
-          // iframe.contentWindow.print();
-          setTimeout(() => {
-            iframe.contentWindow.print();
-            document.title = originalTitle; 
-          }, 500);
-        
-          // Nettoyer l'iframe après l'impression
-          // document.body.removeChild(iframe);
-          setTimeout(() => document.body.removeChild(iframe), 1000);
-        };
-  
-        // const config = useMemo(
-        //   () => ({
-        //     readonly: false,
-        //     placeholder: "",
-        //     uploader: {
-        //       url: 'http://localhost:5000/attestation/uploadImagemodele',
-        //       format: 'json',
-        //       method: 'POST',
-        //       headers: {
-        //         "X-Requested-With": "XMLHttpRequest",
-        //       },
-        //       filesVariableName: () => "image",
-        //       isSuccess: (resp) => resp.success,
-        //       getMessage: (resp) => resp.message || "Image uploadée avec succès",
-        //       process: (resp) => {
-        //         console.log('Server response:', resp);
-        //         return {
-        //           files: resp.files,
-        //           error: resp.error,
-        //           message: resp.message,
-        //         };
-        //       },
-        //       defaultHandlerSuccess: function (data) {
-        //         if (data.files && data.files.length) {
-        //           this.selection.insertImage(data.files[0]);
-        //         }
-        //       },
-        //       error: function (e) {
-        //         console.error('Upload error:', e);
-        //       },
-        //     },
-        //     removeButtons: ['speechRecognize', 'video','print','upload'],
-        //     disablePlugins: ["speechRecognize", "video", "print"], // Désactive complètement ces modules
-      
-        //     extraButtons: [
-        //       {
-        //         name: "imprimer",
-        //         tooltip: "Imprimer",
-        //         title: "Documents à imprimer",
-        //         iconURL: "https://img.icons8.com/ios-filled/50/000000/print.png",
-        //         exec: () => {
-        //           handlePrint(); 
-        //         },
-        //       },
-        //       {
-        //         name: 'insertField',
-        //         iconURL: 'https://icon-library.com/images/insert-icon/insert-icon-15.jpg', // URL de l'icône du bouton
-        //         tooltip: 'Insérer un champ', // Infobulle du bouton
-        //         exec: function (editor) {
-        //           openFieldModal(); // Action exécutée lors du clic
-        //         }
-        //       }
-        //     ],
-        //     language: "fr",
-        //   }),
-        //   []
-        // );
+    iframeDocument.head.appendChild(style);
+    // Ajouter le contenu de l'éditeur Jodit
+    iframeDocument.body.innerHTML = contentToPrint;
 
-        const config = useMemo(
-          () => ({
-            readonly: false,
-            placeholder: "",
-            uploader: {
-              url: 'http://localhost:5000/attestation/uploadImagemodele',
-              format: 'json',
-              method: 'POST',
-              headers: {
-                "X-Requested-With": "XMLHttpRequest",
-                "Authorization": `Bearer ${localStorage.getItem('token')}` // Ajout du token
-              },
-              filesVariableName: () => "image",
-              isSuccess: (resp) => resp.success,
-              getMessage: (resp) => resp.message || "Image uploadée avec succès",
-              process: (resp) => {
-                console.log('Server response:', resp);
-                return {
-                  files: resp.files,
-                  error: resp.error,
-                  message: resp.message,
-                };
-              },
-              defaultHandlerSuccess: function (data) {
-                if (data.files && data.files.length) {
-                  this.selection.insertImage(data.files[0]);
-                }
-              },
-              error: function (e) {
-                console.error('Upload error:', e);
-              },
-            },
-            removeButtons: ['speechRecognize', 'video','print','upload'],
-            disablePlugins: ["speechRecognize", "video", "print"],
-        
-            extraButtons: [
-              {
-                name: "imprimer",
-                tooltip: "Imprimer",
-                title: "Documents à imprimer",
-                iconURL: "https://img.icons8.com/ios-filled/50/000000/print.png",
-                exec: () => {
-                  handlePrint(); 
-                },
-              },
-              {
-                name: 'insertField',
-                iconURL: 'https://icon-library.com/images/insert-icon/insert-icon-15.jpg',
-                tooltip: 'Insérer un champ',
-                exec: function (editor) {
-                  openFieldModal();
-                }
-              }
-            ],
-            language: "fr",
-          }),
-          [] // N'oubliez pas que si le token peut changer, vous devriez peut-être l'ajouter comme dépendance
-        );
+    // Imprimer le document
+    iframe.contentWindow.focus();
+    // iframe.contentWindow.print();
+    setTimeout(() => {
+      iframe.contentWindow.print();
+      document.title = originalTitle;
+    }, 500);
+
+    // Nettoyer l'iframe après l'impression
+    // document.body.removeChild(iframe);
+    setTimeout(() => document.body.removeChild(iframe), 1000);
+  };
+
+  const config = useMemo(
+    () => ({
+      readonly: false,
+      placeholder: "",
+      uploader: {
+        url: 'http://localhost:5000/attestation/uploadImagemodele',
+        format: 'json',
+        method: 'POST',
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+          "Authorization": `Bearer ${localStorage.getItem('token')}`
+        },
+        filesVariableName: () => "image",
+        isSuccess: (resp) => resp.success,
+        getMessage: (resp) => resp.message || "Image uploadée avec succès",
+        process: (resp) => {
+          console.log('Server response:', resp);
+          return {
+            files: resp.files,
+            error: resp.error,
+            message: resp.message,
+          };
+        },
+        defaultHandlerSuccess: function (data) {
+          if (data.files && data.files.length) {
+            this.selection.insertImage(data.files[0]);
+          }
+        },
+        error: function (e) {
+          console.error('Upload error:', e);
+        },
+      },
+      removeButtons: ['speechRecognize', 'video', 'print', 'upload'],
+      disablePlugins: ["speechRecognize", "video", "print"],
+
+      extraButtons: [
+        {
+          name: "imprimer",
+          tooltip: "Imprimer",
+          title: "Documents à imprimer",
+          iconURL: "https://img.icons8.com/ios-filled/50/000000/print.png",
+          exec: () => {
+            handlePrint();
+          },
+        },
+
+        {
+          name: 'insertField',
+          iconURL: 'https://icon-library.com/images/insert-icon/insert-icon-15.jpg',
+          tooltip: 'Insérer les  champs pour employé',
+          exec: function (editor) {
+            openFieldModal(availableFields);
+          }
+        }
+        , {
+          name: 'insertField',
+          iconURL: 'https://icon-library.com/images/insert-icon/insert-icon-15.jpg',
+          tooltip: 'Insérer les  champs pour Elève ',
+          exec: function (editor) {
+            openFieldModal(availableFieldsEleve);
+          }
+        }
+
+        , {
+          name: 'insertField',
+          iconURL: 'https://icon-library.com/images/insert-icon/insert-icon-15.jpg',
+          tooltip: 'les champs de paiment pour Elève ',
+          exec: function (editor) {
+            openFieldModal(availableFieldsElevePaiment);
+          }
+        }
+      ],
+
+      language: "fr",
+    }),
+    []
+  );
   return (
     <>
       <nav>
@@ -407,7 +426,7 @@ const DocumentsEmployesAjouter = () => {
                     onBlur={(newContent) => handleEditorChange(newContent)}
                     onChange={(newContent) => handleEditorChange(newContent)}
                   />
-                
+
                 </div>
               </section>
             </div>

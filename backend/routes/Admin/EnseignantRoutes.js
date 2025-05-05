@@ -109,12 +109,10 @@ router.get('/sections/:sectionId/eleves', async (req, res) => {
           },
           {
             model: Section,
-            as: 'sections',
             attributes: ['id', 'classe']
           },
           {
             model: Niveaux,
-            as: 'niveau',
             attributes: ['id', 'nomniveau']
           }
         ],

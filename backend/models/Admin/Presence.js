@@ -49,6 +49,18 @@ const Presence = db.define('Presence', {
     justificationApresMidi: {
         type: DataTypes.STRING,
         allowNull: true
+    },
+    justificationTextMatin: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    justificationTextApresMidi: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    fichierJustification: {
+        type: DataTypes.STRING,
+        allowNull: true
     }
 }, {
     timestamps: true,

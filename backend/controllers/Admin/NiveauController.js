@@ -78,6 +78,7 @@ export const createNiveau = async (req, res) => {
             nomniveuarab,
             cycle,
             statutInscription,
+            matieresConfessions,
             archiver: 0
         });
 
@@ -104,7 +105,7 @@ export const createNiveau = async (req, res) => {
             const associations = niveauMatiere.map(matiereId => ({
                 matiereId,
                 niveauId: niveau.id,
-                preference: matieresConfessions[matiereId] || null
+                matieresConfessions: matieresConfessions[matiereId] || null
             }));
 
             await NiveauxMatieres.bulkCreate(associations);
@@ -190,7 +191,7 @@ export const updateNiveau = async (req, res) => {
             const associations = niveauMatiere.map(matiereId => ({
                 matiereId,
                 niveauId: id,
-                preference: matieresConfessions[matiereId] || null
+                matieresConfessions: matieresConfessions[matiereId] || null
             }));
 
             await NiveauxMatieres.bulkCreate(associations);

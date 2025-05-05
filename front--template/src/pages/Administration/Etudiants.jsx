@@ -416,7 +416,7 @@ const Etudiants = () => {
   }, []);
   const filterElevesByEcole = async (ecoleId) => {
     if (!ecoleId) {
-      setFilteredEleves(eleves); // Réinitialiser à la liste complète
+      setFilteredEleves(eleves);
       return;
     }
 
@@ -426,8 +426,36 @@ const Etudiants = () => {
         `http://localhost:5000/eleves/ecole/${ecoleId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      console.log("liste eleves avec ecole", response.data.listeEleves);
-      setFilteredEleves(response.data.listeEleves || []);
+
+      // Formater les données comme dans la route principale
+      const elevesFormatted = response.data.listeEleves.map(eleve => {
+        let ecoleInfo = null;
+
+        if (eleve.EcolePrincipale) {
+          ecoleInfo = {
+            id: eleve.EcolePrincipale.id,
+            nomecole: eleve.EcolePrincipale.nomecole,
+            logo: eleve.EcolePrincipale.logo
+          };
+        } else if (eleve.UserEcoles && eleve.UserEcoles.length > 0) {
+          const userEcole = eleve.UserEcoles[0];
+          if (userEcole.EcoleAssociee) {
+            ecoleInfo = {
+              id: userEcole.EcoleAssociee.id,
+              nomecole: userEcole.EcoleAssociee.nomecole,
+              logo: userEcole.EcoleAssociee.logo
+            };
+          }
+        }
+
+        return {
+          ...eleve,
+          ecoleInfo,
+          ecoleName: ecoleInfo ? ecoleInfo.nomecole : 'N/A'
+        };
+      });
+
+      setFilteredEleves(elevesFormatted || []);
     } catch (error) {
       console.error("Erreur lors du filtrage par école", error);
       setFilteredEleves([]);
@@ -689,17 +717,8 @@ const Etudiants = () => {
                                     </td>
 
                                   ))}
-
                                   <td>
-                                    {eleve.ecoleName}
-                                    {eleve.ecoleInfo?.logo && (
-                                      <img
-                                        src={`http://localhost:5000${eleve.ecoleInfo.logo}`}
-                                        alt="logo école"
-                                        width="20"
-                                        style={{ marginLeft: '10px' }}
-                                      />
-                                    )}
+                                    {eleve.ecoleName || 'N/A'}
                                   </td>
 
                                   <td style={{ width: '250px' }}>

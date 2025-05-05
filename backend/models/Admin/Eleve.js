@@ -3,6 +3,7 @@ import db from "../../config/Database.js";
 import User from "../User.js";
 import Niveaux from "./Niveaux.js";
 import Section from "./Section.js";
+import Anneescolaire from "./Anneescolaires.js";
 
 class Eleve extends User {}
 
@@ -58,6 +59,14 @@ Eleve.init(
       onDelete: 'CASCADE',
       onUpdate: 'CASCADE',
     },    
+    annescolaireId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: Anneescolaire,
+        key: 'id',
+      }
+    },
     archiver: {
       type: DataTypes.INTEGER,
       defaultValue: 0,
@@ -93,5 +102,8 @@ Niveaux.hasMany(Eleve, { foreignKey: 'niveauId', });
 
 Eleve.belongsTo(Section, { foreignKey: 'classeId' });
 Section.hasMany(Eleve, { foreignKey: 'classeId' });
+
+Eleve.belongsTo(Anneescolaire, { foreignKey: 'annescolaireId' });
+Anneescolaire.hasMany(Eleve, { foreignKey: 'annescolaireId' });
 
 export default Eleve;

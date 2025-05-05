@@ -143,6 +143,44 @@ const DocumentsEmployesModifier = () => {
         { field: "[nomecole]", description: "Nom de l'école" },
         { field: "[nomecoleP]", description: "Nom de l'école principale" },
       ];
+      const availableFieldsEleve = [
+        { field: "[nomE]", description: "Nom de l'élève en FR" },
+        { field: "[nomAbE]", description: "Nom de l'élève en AB" },
+        { field: "[prenomE]", description: "Prénom de l'élève en FR" },
+        { field: "[prenomAbE]", description: "Prénom de l'élève en AB" },
+        { field: "[datenaissE]", description: "Date de naissance de l'élève" },
+        { field: "[LieunaisE]", description: "Lieu de naissance de l'élève en FR" },
+        { field: "[LieunaisAbE]", description: "Lieu de naissance de l'élève en AB" },
+        { field: "[AdresseE]", description: "Adresse de l'élève en FR" },
+        { field: "[AdresseAbE]", description: "Adresse de l'élève en AB" },
+        { field: "[LieunaisAbE]", description: "Lieu de naissance de l'élève en AB" },
+        { field: "[dateTodayE]", description: "Date du jour" },
+        { field: "[nomecoleE]", description: "Nom de l'école" },
+        { field: "[nomecolePE]", description: "Nom de l'école principale" },
+        { field: "[adresseE]", description: "adresse de l'école " },
+        { field: "[adressePE]", description: "adresse de l'école principale" },
+        { field: "[NV]", description: "Niveau de l'élève  " },
+        { field: "[nomP]", description: "Nom du responsable de  l'élève" },
+        { field: "[prenomP]", description: "Prenom du responsable de  l'élève" },
+        { field: "[EmailP]", description: "Email du responsable de  l'élève" },
+        { field: "[TelP]", description: "Num Telephone du responsable de  l'élève" },
+        { field: "[AdresseP]", description: "Adresse du responsable de  l'élève" },
+      ];
+      const availableFieldsElevePaiment = [
+        { field: "[codeC]", description: "Code du Contrat Eleve" },
+        { field: "[AS]", description: "Année Scolaire" },
+        { field: "[ddP]", description: "Date Début Paiment Eleve" },
+        { field: "[dfP]", description: "Date Fin Paiment Eleve" },
+        { field: "[dcC]", description: "Date Création Contrat Eleve" },
+        { field: "[totalC]", description: "Total Paiment  Contrat Eleve" },
+        { field: "[FraisInsc]", description: "Frais Inscription de l'élève Eleve" },
+        { field: "[TypeP]", description: "Type de Paiment Eleve" },
+        { field: "[ModeP]", description: "Mode de Paiment Eleve" },
+        { field: "[planning]", description: "Planning de Paiment Eleve" },
+        { field: "[detail]", description: "Details paiment Eleve" },
+        { field: "[dateToday]", description: "Date du jour" },
+       
+      ];
     
       // Fonction pour insérer un champ dans l'éditeur
       const insertField = (field) => {
@@ -152,8 +190,16 @@ const DocumentsEmployesModifier = () => {
       };
 
      // Fonction pour ouvrir une modale avec les champs disponibles
-     const openFieldModal = () => {
+     const openFieldModal = (fields) => {
+
+      // Fermer toute ancienne modale si elle existe
+      const existingModal = document.getElementById('custom-field-modal');
+      if (existingModal) {
+        document.body.removeChild(existingModal);
+      }
+    
       const modal = document.createElement('div');
+      modal.id = 'custom-field-modal'; // ID pour gestion unique
       modal.style.position = 'fixed';
       modal.style.top = '50%';
       modal.style.left = '50%';
@@ -163,17 +209,22 @@ const DocumentsEmployesModifier = () => {
       modal.style.border = '1px solid #ccc';
       modal.style.zIndex = '1000';
       modal.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
-  
+      modal.style.maxHeight = '70vh'; 
+      modal.style.overflowY = 'auto'; 
+    
       const closeModal = () => {
-        document.body.removeChild(modal);
+        const modalToRemove = document.getElementById('custom-field-modal');
+        if (modalToRemove) {
+          document.body.removeChild(modalToRemove);
+        }
       };
-  
+    
       modal.innerHTML = `
         <div>
           <h3>Champs disponibles</h3>
           <ul style="list-style: none; padding: 0;">
-            ${availableFields.map((field, index) => `
-              <li key=${index} style="cursor: pointer; padding: 5px;" onclick="window.insertFieldIntoEditor('${field.field}')">
+            ${fields.map((field, index) => `
+              <li style="cursor: pointer; padding: 5px;" onclick="window.insertFieldIntoEditor('${field.field}')">
                 <strong>${field.field}</strong> - ${field.description}
               </li>
             `).join('')}
@@ -181,13 +232,13 @@ const DocumentsEmployesModifier = () => {
           <button onclick="window.closeModal()" style="margin-top: 10px;">Fermer</button>
         </div>
       `;
-  
+    
       document.body.appendChild(modal);
+    
       window.insertFieldIntoEditor = (field) => {
         insertField(field);
         closeModal();
       };
-  
       window.closeModal = closeModal;
     };
 
@@ -310,6 +361,22 @@ const DocumentsEmployesModifier = () => {
                 openFieldModal(); 
               }
             },
+            ,  {
+              name: 'insertField',
+              iconURL: 'https://icon-library.com/images/insert-icon/insert-icon-15.jpg',
+              tooltip: 'Insérer les  champs pour Elève ',
+              exec: function (editor) {
+                openFieldModal(availableFieldsEleve);
+              }
+            }
+            ,  {
+              name: 'insertField',
+              iconURL: 'https://icon-library.com/images/insert-icon/insert-icon-15.jpg',
+              tooltip: 'les chmaps de paiment pour Elève ',
+              exec: function (editor) {
+                openFieldModal(availableFieldsElevePaiment);
+              }
+            }
           ],
           language: "fr",
         }),

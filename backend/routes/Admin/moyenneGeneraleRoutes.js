@@ -2,12 +2,13 @@
 import express from 'express';
 import MoyenneGenerale from '../../models/Admin/MoyenneGenerale.js';
 import Trimest from '../../models/Admin/Trimest.js';
-import { saveBulkMoyennesGenerales } from '../../controllers/Admin/MoyenneGeneraleController.js';
+import { saveBulkMoyennesGenerales, updateStatus } from '../../controllers/Admin/MoyenneGeneraleController.js';
 
 const router = express.Router();
 
 router.post('/save-bulk-generales', saveBulkMoyennesGenerales);
 
+router.put('/update-status', updateStatus);
 router.get('/eleve/:eleveId/:anneeId/:sectionId', async (req, res) => {
     try {
         const moyennes = await MoyenneGenerale.findAll({

@@ -56,7 +56,7 @@ const Bulteins_paieEmploye = ({ employeId, idPeriodepai }) => {
     SalaireImpos: false,
     heureRetard: false,
     nbrPresent: false,
-    CA: false, 
+    CA: false,
   });
 
   const handelChange = (e) => {
@@ -69,29 +69,29 @@ const Bulteins_paieEmploye = ({ employeId, idPeriodepai }) => {
 
   const ListeJoursFeries = async () => {
     try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            alert("Vous devez être connecté");
-            return;
-        }
-        const response = await axios.get(`http://localhost:5000/joursferies/liste/`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-            },
-        });
-        if (response.status === 200 && Array.isArray(response.data)) {
-          setJoursFeries(response.data);
-        } else {
-            console.error("Les données ne sont pas un tableau !");
-        }
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Vous devez être connecté");
+        return;
+      }
+      const response = await axios.get(`http://localhost:5000/joursferies/liste/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (response.status === 200 && Array.isArray(response.data)) {
+        setJoursFeries(response.data);
+      } else {
+        console.error("Les données ne sont pas un tableau !");
+      }
     } catch (error) {
-        console.log(error);
+      console.log(error);
     }
-};
-useEffect(() => {
+  };
+  useEffect(() => {
     ListeJoursFeries();
-}, []);
+  }, []);
 
   function calculerDureeHeures(debut, fin) {
     if (!debut || !fin) return 0;
@@ -127,60 +127,60 @@ useEffect(() => {
     const [h, m, s] = heure.split(":").map(Number);
     return h * 3600 + m * 60 + s;
   }
-  
+
   function comparerHeuresSortie(heurePointage, heureNormale) {
-    return heureToSecondes(heurePointage) > heureToSecondes(heureNormale) 
-      ? heureNormale 
+    return heureToSecondes(heurePointage) > heureToSecondes(heureNormale)
+      ? heureNormale
       : heurePointage;
   }
   function comparerHeuresEntree(heurePointage, heureNormale) {
-    return heureToSecondes(heurePointage) < heureToSecondes(heureNormale) 
-      ? heureNormale 
+    return heureToSecondes(heurePointage) < heureToSecondes(heureNormale)
+      ? heureNormale
       : heurePointage;
   }
 
 
   //les jours feries 
-  
+
   function joursFeriesNonPointes(listePointages, listeJoursFeries, dateDebut, dateFin, employeId) {
     const dateDeb = new Date(dateDebut);
     const dateFin_ = new Date(dateFin);
-  
-    console.log('la liste qui vien ddeautre',listePointages)
+
+    console.log('la liste qui vien ddeautre', listePointages)
     // Extraire les dates formatées des jours fériés
     const joursFeries = listeJoursFeries.map(jf =>
       new Date(jf.date).toISOString().split('T')[0]
     );
-  
+
     // Extraire les dates où l'employé a pointé
     const datesPointées = new Set(
       listePointages
-        .filter(p => p.employe_id  === employeId)
+        .filter(p => p.employe_id === employeId)
         .map(p => new Date(p.date).toISOString().split('T')[0])
     );
-  
+
     console.log("Dates pointées (formatées) :", [...datesPointées]);
 
     let joursFeriesNonPointes = 0;
-  
+
     for (let d = new Date(dateDeb); d <= dateFin_; d.setDate(d.getDate() + 1)) {
       const dateStr = d.toISOString().split('T')[0];
       const jour = d.getDay(); // 0 = dimanche, ..., 6 = samedi
-  
+
       const estJourFerie = joursFeries.includes(dateStr);
       const aPointe = datesPointées.has(dateStr);
-      console.log('aPointe',aPointe)
+      console.log('aPointe', aPointe)
       const estJourTravail = jour !== 5 && jour !== 6; // Exclure vendredi (5) et samedi (6)
-  
+
       if (estJourFerie && !aPointe && estJourTravail) {
         joursFeriesNonPointes++;
       }
     }
     return joursFeriesNonPointes;
   }
-  
-  
-  
+
+
+
 
   const calculer = () => {
     if (!employe || !employe.Primes) return;
@@ -193,48 +193,53 @@ useEffect(() => {
     let totalHeuresNormales = dureeMatinNormale + dureeApresMidiNormale;
 
 
-// Filtrer pour garder uniquement les jours de la semaine (dimanche à jeudi) et exclure vendredi et samedi
-const pointagesFiltrésW = listepointages.filter(pointage => {
-  const datePointage = new Date(pointage.date);  // Crée un objet Date à partir de la date du pointage
-  const jourSemaine = datePointage.getDay();    // Utilise la méthode getDay() pour obtenir le jour de la semaine
-  // getDay() retourne un nombre entre 0 (dimanche) et 6 (samedi)
-  return jourSemaine !== 5 && jourSemaine !== 6; // Exclure vendredi (5) et samedi (6)
-});
+    // Filtrer pour garder uniquement les jours de la semaine (dimanche à jeudi) et exclure vendredi et samedi
+    const pointagesFiltrésW = listepointages.filter(pointage => {
+      const datePointage = new Date(pointage.date);  // Crée un objet Date à partir de la date du pointage
+      const jourSemaine = datePointage.getDay();    // Utilise la méthode getDay() pour obtenir le jour de la semaine
+      // getDay() retourne un nombre entre 0 (dimanche) et 6 (samedi)
+      return jourSemaine !== 5 && jourSemaine !== 6; // Exclure vendredi (5) et samedi (6)
+    });
 
     //trouver le jours present selon pointage
     const joursTravailles = pointagesFiltrésW.filter(pointage => {
-      const { HeureEMP, HeureSMP, HeureEAMP, HeureSAMP, statut ,date} = pointage;
+      const { HeureEMP, HeureSMP, HeureEAMP, HeureSAMP, statut, date } = pointage;
       // if (statut !== 'present' && statut !== 'retard') return false;
 
-     
+
       const heureSAMP = comparerHeuresSortie(HeureSAMP, employe.HeureSAM);
       const heureSMP = comparerHeuresSortie(HeureSMP, employe.HeureSM);
+
+    
       const heureEMP = comparerHeuresEntree(HeureEMP, employe.HeureEM);
       const heureEAMP = comparerHeuresEntree(HeureEAMP, employe.HeureEAM);
 
       if (statut !== 'present') return false;
-
-      const dureeMatin = calculerDureeHeures(heureEMP, heureSMP);
-      const dureeApresMidi = calculerDureeHeures(heureEAMP, heureSAMP);
-
+      if (HeureEMP === '00:00:00'  || HeureEAMP === '00:00:00') {
+        return false;
+      }
+    
+        const  dureeMatin = calculerDureeHeures(heureEMP, heureSMP);
+        const dureeApresMidi = calculerDureeHeures(heureEAMP, heureSAMP);
+      
+     
       const totalJour = dureeMatin + dureeApresMidi;
 
-      console.log('totalJour',totalJour);
-
+      console.log('totalJour', totalJour);
+      
       totalHeuresTravailleesMois += totalJour;
-      console.log('totalHeuresTravailleesMois',totalHeuresTravailleesMois)
+      console.log('totalHeuresTravailleesMois', totalHeuresTravailleesMois)
       // On considère que la journée est comptée si l'employé a fait assez d'heures
       return totalJour >= totalHeuresNormales;
-
     }).length;
 
     const nombrepresentfixe = (totalHeuresTravailleesMois / totalHeuresNormales).toFixed(1);
-
-    //jours feriés
-    const nbJoursFeriesAjoutes = joursFeriesNonPointes(listepointages,JoursFeries,
-      periodePaie.dateDebut,periodePaie.dateFin,employe.id
-    );
     
+    //jours feriés
+    const nbJoursFeriesAjoutes = joursFeriesNonPointes(listepointages, JoursFeries,
+      periodePaie.dateDebut, periodePaie.dateFin, employe.id
+    );
+
     console.log("Jours fériés à ajouter :", nbJoursFeriesAjoutes);
     // console.log("periodePaie:", periodePaie.dateDebut,periodePaie.dateFin);
 
@@ -243,11 +248,11 @@ const pointagesFiltrésW = listepointages.filter(pointage => {
     console.log('totalHeuresNormales ', totalHeuresNormales);
     console.log('totalHeuresTravailleesMois', totalHeuresTravailleesMois);
 
-  
+
     // Fonction pour trouver la déduction en fonction du retard
     function getDeductionFromBareme(retardEnHeures, bareme, heuresJourEmploye) {
       const retardEnMinutes = retardEnHeures * 60;
-  
+
       for (let item of bareme) {
         const min = convertToMinutes(item.Rmin);
         const max = convertToMinutes(item.Rmax);
@@ -293,9 +298,9 @@ const pointagesFiltrésW = listepointages.filter(pointage => {
 
     const JrRards = listepointages.filter(pointage => pointage.statut === 'retard').length;
     const heuresRetards = userModified.heureRetard ? parseFloat(formdata.heureRetard || 0) : totalADeduire;
-   
 
-    let nombrepresent = customRound(nombrepresentfixe) +parseFloat(formdata.CA)+parseFloat(nbJoursFeriesAjoutes) ;
+
+    let nombrepresent = customRound(nombrepresentfixe) + parseFloat(formdata.CA) + parseFloat(nbJoursFeriesAjoutes);
 
     if (heuresRetards) {
       nombrepresent = parseFloat(nombrepresent) + (parseFloat(JrRards) - parseFloat(heuresRetards))
@@ -328,11 +333,11 @@ const pointagesFiltrésW = listepointages.filter(pointage => {
         const taux = parseFloat(item.HeuresSup?.taux) || 0;
         return sum + (heuresSup * base * (1 + taux));
       }, 0);
-   
+
     //nombre des jours en abences 
     const nombreAbsences = listepointages.filter(pointage => pointage.statut === 'absent').length;
     const NbrJTM = parseFloat(formdata.nbrPresent);
-   
+
     //les primes uniquement cotisables 
     const totalPrimesCotisablesUni = employe.Primes
       .filter((prime) => Number(prime.prime_cotisable) === 1 && Number(prime.prime_imposable) === 0)
@@ -410,29 +415,29 @@ const pointagesFiltrésW = listepointages.filter(pointage => {
     //   console.log('CotisationS pas deminuer', CotisationS)
 
     // }
-   
+
     const CotisationS = (parseFloat(SalaireBase || 0) + parseFloat(totalPrimesCotisables) + parseFloat(formdata.heureSup));
     const totalPrimes = totalPrimess - totalPrimesNonImpoNonCoti;
     const SalaireBrut = totalPrimes + parseFloat(SalaireBase || 0) + parseFloat(formdata.heureSup || 0);
     // Vérifier si l'utilisateur a déjà modifié Rss, sinon recalculer
-   let Rss;
-    if( employe.declaration==1){
-       Rss = userModified.Rss ? parseFloat(formdata.Rss || 0) : CotisationS * PourcentageRS;
-    }else{
-      Rss=0;
+    let Rss;
+    if (employe.declaration == 1) {
+      Rss = userModified.Rss ? parseFloat(formdata.Rss || 0) : CotisationS * PourcentageRS;
+    } else {
+      Rss = 0;
     }
     //caluler salaire imposable
     const SalaireImpo = userModified.SalaireImpos ? parseFloat(formdata.SalaireImpos || 0) : SalaireBrut - Rss - totalPrimesCotisablesUni;
 
-  
+
     let Rirg;
-    if( employe.declaration==1){
+    if (employe.declaration == 1) {
       Rirg = calculerIRG(SalaireImpo, listeIRG, nombreAbsences)
-    }else{
-      Rirg=0;
+    } else {
+      Rirg = 0;
     }
     // const Rirg = calculerIRG(SalaireImpo, listeIRG, nombreAbsences)
-   
+
     let SalairNet;
     if (formdata.AutreRetenues) {
       SalairNet = (SalaireBrut - Rss - Rirg + totalPrimesNonImpoNonCoti) - parseFloat(formdata.AutreRetenues);
@@ -504,7 +509,7 @@ const pointagesFiltrésW = listepointages.filter(pointage => {
   useEffect(() => {
     // console.log('employeId', employeId, "idPeriodepai", idPeriodepai)
     if (employeId && idPeriodepai) {
-      
+
       const fetchData = async () => {
         try {
           const token = localStorage.getItem("token");
@@ -549,7 +554,7 @@ const pointagesFiltrésW = listepointages.filter(pointage => {
           setListeIRG(listeIRG.data);
           setPRetard(listePRetard.data);
           setlisteConge(listeConge.data?.details);
-         
+
           let caTotal = 0;
           const details = listeConge.data?.details
           if (details) {
@@ -751,35 +756,7 @@ const pointagesFiltrésW = listepointages.filter(pointage => {
                 <td>${formdata.SalaireBase}</td>
                 <td></td>
               </tr>
-              ${formdata.jourAbsent == -6 ?
-        `
-                  <tr>
-                    <td>R1000</td>
-                    <td>Absences</td>
-                    <td>${formdata.jourAbsent}</td>
-                    <td>${formdata.base}</td>
-                    <td></td>
-                    <td>${formdata.retenueAbs}</td>
-                    <td></td>
-                  </tr>
-                `
-        : ''
-      }
-                  ${formdata.jourAbsent == -6 ?
-        `
-                                <tr>
-                                  <td>R1000</td>
-                                  <td>Salaire de base</td>
-                                  <td></td>
-                                  <td></td>
-                                  <td>${formdata.SalaireBase}</td>
-                                  <td></td>
-                                </tr>
-                                    </tr>
-                                  `
-        : ''
-      }
-      
+                   
         ${formdata.heureSupOuvrable !== 0 ?
         `
                                 <tr>
@@ -798,7 +775,6 @@ const pointagesFiltrésW = listepointages.filter(pointage => {
                 <tr>
                   <td>${prime.code}</td>
                   <td>${prime.type_prime}</td>
-
                  <td>
                  ${(parseFloat(prime.montant) <= 1 && prime.montantType === "pourcentage") ?
           (prime.montant) :
@@ -814,22 +790,28 @@ const pointagesFiltrésW = listepointages.filter(pointage => {
           ? (parseFloat(prime.montant) * parseFloat(formdata.nbrJTM)).toFixed(2)
           : prime.montantType === "jour" && prime.deduire == 0
             ? (parseFloat(prime.montant) * parseFloat(employe.nbrJourTravail)).toFixed(2)
-            : (parseFloat(prime.montant) <= 1 && prime.montantType === "pourcentage")
+            : prime.montantType === "pourcentage" && prime.deduire == 1
               ? (parseFloat(prime.montant) * parseFloat(formdata.SalaireBase)).toFixed(2)
-              : parseFloat(prime.montant).toFixed(2)
+              : prime.montantType === "pourcentage" && prime.deduire == 0
+                ? (parseFloat(prime.montant) * parseFloat(employe.SalairNeg)).toFixed(2)
+                : parseFloat(prime.montant).toFixed(2)
         }
+        
 </td>
 
-              <td>
-                ${prime.montantType === "jour" && prime.deduire == 1
+             <td>
+  ${prime.montantType === "jour" && prime.deduire == 1
           ? (parseFloat(prime.montant) * parseFloat(formdata.nbrJTM)).toFixed(2)
           : prime.montantType === "jour" && prime.deduire == 0
             ? (parseFloat(prime.montant) * parseFloat(employe.nbrJourTravail)).toFixed(2)
-            : (parseFloat(prime.montant) <= 1 && prime.montantType === "pourcentage")
+            : prime.montantType === "pourcentage" && prime.deduire == 1
               ? (parseFloat(prime.montant) * parseFloat(formdata.SalaireBase)).toFixed(2)
-              : parseFloat(prime.montant).toFixed(2)
+              : prime.montantType === "pourcentage" && prime.deduire == 0
+                ? (parseFloat(prime.montant) * parseFloat(employe.SalairNeg)).toFixed(2)
+                : parseFloat(prime.montant).toFixed(2)
         }
-                </td>
+        
+</td>
                   <td></td>
                 </tr>
               `).join('')}
@@ -856,26 +838,34 @@ const pointagesFiltrésW = listepointages.filter(pointage => {
                  </td>
 
                  <td>
-                    ${prime.montantType === "jour" && prime.deduire == 1
+                    
+  ${prime.montantType === "jour" && prime.deduire == 1
             ? (parseFloat(prime.montant) * parseFloat(formdata.nbrJTM)).toFixed(2)
             : prime.montantType === "jour" && prime.deduire == 0
               ? (parseFloat(prime.montant) * parseFloat(employe.nbrJourTravail)).toFixed(2)
-              : (parseFloat(prime.montant) <= 1 && prime.montantType === "pourcentage")
+              : prime.montantType === "pourcentage" && prime.deduire == 1
                 ? (parseFloat(prime.montant) * parseFloat(formdata.SalaireBase)).toFixed(2)
-                : parseFloat(prime.montant).toFixed(2)
+                : prime.montantType === "pourcentage" && prime.deduire == 0
+                  ? (parseFloat(prime.montant) * parseFloat(employe.SalairNeg)).toFixed(2)
+                  : parseFloat(prime.montant).toFixed(2)
           }
+        
+
                  </td>
 
-                  <td>
-                      ${prime.montantType === "jour" && prime.deduire == 1
+                    <td>
+  ${prime.montantType === "jour" && prime.deduire == 1
             ? (parseFloat(prime.montant) * parseFloat(formdata.nbrJTM)).toFixed(2)
             : prime.montantType === "jour" && prime.deduire == 0
               ? (parseFloat(prime.montant) * parseFloat(employe.nbrJourTravail)).toFixed(2)
-              : (parseFloat(prime.montant) <= 1 && prime.montantType === "pourcentage")
+              : prime.montantType === "pourcentage" && prime.deduire == 1
                 ? (parseFloat(prime.montant) * parseFloat(formdata.SalaireBase)).toFixed(2)
-                : parseFloat(prime.montant).toFixed(2)
+                : prime.montantType === "pourcentage" && prime.deduire == 0
+                  ? (parseFloat(prime.montant) * parseFloat(employe.SalairNeg)).toFixed(2)
+                  : parseFloat(prime.montant).toFixed(2)
           }
-                    </td>
+        
+</td>
 
                   <td></td>
                 </tr>
@@ -1095,11 +1085,11 @@ const pointagesFiltrésW = listepointages.filter(pointage => {
                 </div>
                 <div className="col-md-2">
                   <h6 className="font-weight-bold"> Déclaré à la CNAS</h6>
-                  <p>{employe.declaration=="1"? "oui":"Non"}</p>
+                  <p>{employe.declaration == "1" ? "oui" : "Non"}</p>
                 </div>
                 <div className="col-md-2">
                   <h6 className="font-weight-bold">Actuellement employé</h6>
-                  <p>{employe.User?.statuscompte==="activer"? "oui":"Non"}</p>
+                  <p>{employe.User?.statuscompte === "activer" ? "oui" : "Non"}</p>
                 </div>
               </div>
               <hr />
@@ -1126,12 +1116,12 @@ const pointagesFiltrésW = listepointages.filter(pointage => {
                           <td>{prime.type_prime}</td>
                           <td>
                             {prime.montant}
-                            {prime.montantType === "pourcentage" && parseFloat(prime.montant) <= 1 &&  (prime.deduire == 1) &&(
+                            {prime.montantType === "pourcentage" && parseFloat(prime.montant) <= 1 && (prime.deduire == 1) && (
                               <div style={{ fontSize: "12px", color: "gray" }}>
                                 ({(parseFloat(prime.montant) * parseFloat(formdata.SalaireBase)).toFixed(2)} )
                               </div>
                             )}
-                            {prime.montantType === "pourcentage" && parseFloat(prime.montant) <= 1 &&(prime.deduire == 0)&&(
+                            {prime.montantType === "pourcentage" && parseFloat(prime.montant) <= 1 && (prime.deduire == 0) && (
                               <div style={{ fontSize: "12px", color: "gray" }}>
                                 ({(parseFloat(prime.montant) * parseFloat(employe.SalairNeg)).toFixed(2)} )
                               </div>
@@ -1146,7 +1136,6 @@ const pointagesFiltrésW = listepointages.filter(pointage => {
                                 ({(parseFloat(prime.montant) * parseFloat(employe.nbrJourTravail)).toFixed(2)} )
                               </div>
                             )}
-
                           </td>
                           <td>{prime.montantType}</td>
                           <td>{prime.prime_imposable ? "Oui" : "Non"}</td>
@@ -1172,7 +1161,7 @@ const pointagesFiltrésW = listepointages.filter(pointage => {
                   <p>Congé Annuel </p>
                   <input type="number" className="form-control" name="CA" read value={formdata.CA} onChange={handelChange} />
                 </div>
-                </div>
+              </div>
               <hr />
               <div className="row">
                 <h5 className="w-100 mb-3"> Autres :</h5>

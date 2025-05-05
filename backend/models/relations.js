@@ -51,6 +51,8 @@ import Anneescolaire from './Admin/Anneescolaires.js';
 import trimest from './Admin/Trimest.js';
 import Trimest from './Admin/Trimest.js';
 import MoyenneGenerale from './Admin/MoyenneGenerale.js';
+import Devoire from './Admin/Devoire.js';
+import TravailRendu from './Admin/TravailRendu.js';
 
 
 // User and Role Many-to-Many Relationship
@@ -224,6 +226,7 @@ MoyenneGenerale.belongsTo(Trimest, { foreignKey: 'trimestId' });
 
 
 
+
 Ecole.belongsToMany(Remarque, { through: EcoleRemarque, foreignKey: "ecoleeId" });
 Remarque.belongsToMany(Ecole, { through: EcoleRemarque, foreignKey: "remarqueId" });
 EcolePrincipal.belongsToMany(Remarque, { through: EcoleRemarque, foreignKey: "ecoleId" });
@@ -235,6 +238,21 @@ Ecole.hasMany(EcoleRemarque, { foreignKey: "ecoleeId" });
 EcoleRemarque.belongsTo(Ecole, { foreignKey: "ecoleeId" });
 EcolePrincipal.hasMany(EcoleRemarque, { foreignKey: "ecoleId" });
 EcoleRemarque.belongsTo(EcolePrincipal, { foreignKey: "ecoleId" });
+
+
+Devoire.belongsTo(User, { as: 'Enseignant', foreignKey: 'enseignantId' });
+Devoire.belongsTo(Matiere, { foreignKey: 'matiereId' });
+Devoire.belongsTo(Niveaux, { foreignKey: 'niveauId' });
+Devoire.belongsTo(Section, { foreignKey: 'sectionId' });
+Devoire.belongsTo(PeriodeNote, { foreignKey: 'periodeId' });
+Devoire.belongsTo(Anneescolaire, { foreignKey: 'annescolaireId' });
+Devoire.belongsTo(Trimest, { foreignKey: 'trimestId' });
+
+Devoire.hasMany(TravailRendu, { foreignKey: 'devoirId' });
+TravailRendu.belongsTo(Devoire, { foreignKey: 'devoirId' });
+
+TravailRendu.belongsTo(Eleve, { foreignKey: 'eleveId' });
+
 
 
 

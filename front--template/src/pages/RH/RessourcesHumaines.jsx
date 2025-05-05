@@ -73,33 +73,7 @@ const RessourcesHumaines = () => {
   useEffect(() => {
     fetchPointages();
   }, []);
-  const handleMarkAbsences = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        alert("Vous devez être connecté pour accéder à ces informations.");
-        return;
-      }
-      const response = await axios.post(
-        `http://localhost:5000/pointage/marquerabsences`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      alert(response.data.message || "Absences marquées avec succès !");
-      await fetchPointages();
-    
-
-    } catch (error) {
-      console.error("Erreur lors de l'insertion des pointages :", error);
-      if (error.response?.data?.message) {
-        alert("Erreur : " + error.response.data.message);
-      } else {
-        alert("Une erreur est survenue lors du marquage des absences.");
-      }
-    }
-  };
+ 
 
   const styles = {
 
@@ -244,15 +218,7 @@ const RessourcesHumaines = () => {
             ))}
           </div>
 
-          {/* Bouton pour marquer les absences */}
-          <div className="row g-3 mt-3">
-            <div className="col-12">
-              <button className="btn btn-danger" onClick={handleMarkAbsences}>
-                Marquer les absences
-              </button>
-
-            </div>
-          </div>
+        
 
         </div>
       </section>

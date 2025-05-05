@@ -8,6 +8,8 @@ import User from '../../models/User.js';
 import UserEcole from '../../models/Admin/UserEcole.js';
 import Ecole from '../../models/Admin/Ecole.js';
 import Ecole_SEcole_Role from '../../models/Ecole_SEcole_Role.js';
+import EcolePrincipal from '../../models/EcolePrincipal.js';
+import Anneescolaire from '../../models/Admin/Anneescolaires.js';
 import bcrypt from 'bcrypt';
 import multer from 'multer';
 import path from 'path';
@@ -15,53 +17,45 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { Op } from "sequelize";
+import Matiere from '../../models/Admin/Matiere.js';
+import Devoire from '../../models/Admin/Devoire.js';
+import Trimest from '../../models/Admin/Trimest.js';
+import Note from '../../models/Admin/Note.js';
+import TravailRendu from '../../models/Admin/TravailRendu.js';
 
 
 //récupere la liste des éléve selon niveau 
 // controllers/eleveController.js
 export const getElevesByNiveau = async (req, res) => {
     try {
-      const { niveauId } = req.params;
-      const eleves = await Eleve.findAll({
-        where: { niveauId },
-        include: [{
-          model: User,
-          attributes: ['nom', 'prenom'] // On ne récupère que le nom et prénom
-        }]
-      });
-      res.json(eleves);
+        const { niveauId } = req.params;
+        const eleves = await Eleve.findAll({
+            where: { niveauId },
+            include: [{
+                model: User,
+                attributes: ['nom', 'prenom'] // On ne récupère que le nom et prénom
+            }]
+        });
+        res.json(eleves);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Erreur lors de la récupération des élèves' });
+        console.error(error);
+        res.status(500).json({ error: 'Erreur lors de la récupération des élèves' });
     }
-  };
+};
 export const updateEleveClasse = async (req, res) => {
 
     const { id } = req.params;
-
     const { classeId } = req.body;
-
-
     try {
 
-        // Vérifiez si l'élève existe
-
+        // Vérifiez si l'élève exist
         const eleve = await Eleve.findByPk(id);
-
         if (!eleve) {
-
             return res.status(404).json({ message: "Élève non trouvé." });
-
         }
-
-
         // Mettez à jour le champ classeId
-
         eleve.classeId = classeId;
-
         await eleve.save();
-
-
         return res.status(200).json({ message: "Classe mise à jour avec succès." });
 
     } catch (error) {
@@ -76,7 +70,7 @@ export const updateEleveClasse = async (req, res) => {
 export const getElevesBySection = async (req, res) => {
     try {
         const { sectionId } = req.params;
-        
+
         const eleves = await Eleve.findAll({
             where: { classeId: sectionId },
             include: [{
@@ -94,109 +88,107 @@ export const getElevesBySection = async (req, res) => {
 // Récupérer tous les élèves non archivés
 export const ListeEleveParent = async (req, res) => {
     try {
-        const ecoleId = req.user.ecoleId; // ecoleId de l'AdminPrincipal
+        const ecoleId = req.user.ecoleId;
         const roles = req.user.roles;
-        const userId = req.user.id; // ID de l'utilisateur connecté
-
-        console.log('🟢 ecoleId:', ecoleId);
-        console.log('🟢 roles:', roles);
-        console.log('🟢 userId:', userId);
+        const userId = req.user.id;
 
         const isAdminPrincipal = roles.includes('AdminPrincipal');
         const isAdmin = roles.includes('Admin');
 
-        console.log('🟢 isAdminPrincipal:', isAdminPrincipal);
-        console.log('🟢 isAdmin:', isAdmin);
-
         let listeEleves = [];
         let ecoleIds = [];
 
-        // 🔹 Récupération des écoles associées à l'utilisateur
         if (isAdminPrincipal) {
-            console.log("🔹 Rôle: AdminPrincipal - Filtrage par User.ecoleId");
-            ecoleIds = [ecoleId]; // AdminPrincipal est lié directement à 1 école
+            ecoleIds = [ecoleId];
         } else if (isAdmin) {
-            console.log("🔹 Rôle: Admin - Récupération des écoles via UserEcole");
-
-            // 🔍 Récupérer toutes les écoles associées à cet Admin
             const userEcoles = await UserEcole.findAll({
                 where: { userId: userId },
                 attributes: ['ecoleeId']
             });
-
             ecoleIds = userEcoles.map((ue) => ue.ecoleeId);
-            console.log("🏫 Écoles associées à cet Admin:", ecoleIds);
         }
 
-        // 🔍 Récupération des élèves selon le rôle
         if (isAdminPrincipal) {
-            // 🔹 Récupération des élèves ayant ecoleId dans User
             listeEleves = await User.findAll({
                 where: {
-                    type: 'Eleve', // Filtre sur le type "Élève"
-                    ecoleId: { [Op.in]: ecoleIds } // Filtre sur ecoleId
+                    type: 'Eleve',
+                    ecoleId: { [Op.in]: ecoleIds }
                 },
                 include: [
                     {
-                        model: Eleve, // Inclure les informations de la table Eleve
-                        attributes: { exclude: [] }, // Récupérer tous les champs de Eleve
+                        model: Eleve,
                         include: [
                             {
-                                model: Parent, // Inclure les parents associés
-                                through: { attributes: [] }, // Ne pas inclure les attributs de la table de liaison
-                                include: [
-                                    {
-                                        model: User, // Inclure les informations de User pour les parents
-                                        attributes: ['nom', 'prenom', 'email', 'telephone'] // Récupérer les champs nécessaires
-                                    }
-                                ]
+                                model: Parent,
+                                through: { attributes: [] },
+                                include: [{ model: User }]
                             }
                         ]
+                    },
+                    // Simplifié pour ne récupérer que le nom
+                    {
+                        model: EcolePrincipal,
+                        attributes: ['nomecole'] // Seul le nom est récupéré
                     }
-                ],
-                attributes: { exclude: [] }, // Récupérer tous les champs de User
-                logging: console.log // Active le logging des requêtes SQL
+                ]
             });
         } else if (isAdmin) {
-            // 🔹 Récupération des élèves ayant ecoleeId via UserEcole
             listeEleves = await User.findAll({
                 include: [
                     {
                         model: UserEcole,
-                        where: { ecoleeId: { [Op.in]: ecoleIds } }, // Filtre sur les écoles associées
-                        attributes: [] // On n'a pas besoin des attributs de UserEcole
-                    },
-                    {
-                        model: Eleve, // Inclure les informations de la table Eleve
-                        attributes: { exclude: [] }, // Récupérer tous les champs de Eleve
+                        where: { ecoleeId: { [Op.in]: ecoleIds } },
+                        attributes: [],
                         include: [
                             {
-                                model: Parent, // Inclure les parents associés
-                                through: { attributes: [] }, // Ne pas inclure les attributs de la table de liaison
-                                include: [
-                                    {
-                                        model: User, // Inclure les informations de User pour les parents
-                                        attributes: ['nom', 'prenom', 'email', 'telephone'] // Récupérer les champs nécessaires
-                                    }
-                                ]
+                                model: Ecole,
+                                attributes: ['nomecole'] // Seul le nom est récupéré
+                            }
+                        ]
+                    },
+                    {
+                        model: Eleve,
+                        include: [
+                            {
+                                model: Parent,
+                                through: { attributes: [] },
+                                include: [{ model: User }]
                             }
                         ]
                     }
                 ],
-                where: {
-                    type: 'Eleve' // Filtre sur le type "Élève"
-                },
-                attributes: { exclude: [] }, // Récupérer tous les champs de User
-                logging: console.log // Active le logging des requêtes SQL
+                where: { type: 'Eleve' }
             });
         }
 
-        console.log("✅ Élèves trouvés :", JSON.stringify(listeEleves, null, 2));
+        // Formater les données de manière simplifiée
+        const elevesFormatted = listeEleves.map(eleve => {
+            // Cas école principale
+            if (eleve.EcolePrincipal) {
+                return {
+                    ...eleve.toJSON(),
+                    ecoleName: eleve.EcolePrincipal.nomecole || 'N/A'
+                };
+            }
+            // Cas sous-école
+            else if (eleve.UserEcoles && eleve.UserEcoles.length > 0) {
+                const userEcole = eleve.UserEcoles[0];
+                return {
+                    ...eleve.toJSON(),
+                    ecoleName: userEcole.Ecole?.nomecole || 'N/A'
+                };
+            }
 
-        res.status(200).json({ listeEleves });
+            return {
+                ...eleve.toJSON(),
+                ecoleName: 'N/A'
+            };
+        });
+        console.log("Élèves formatés:", elevesFormatted);
+        res.status(200).json({ listeEleves: elevesFormatted });
 
     } catch (error) {
-        console.error("❌ Erreur lors de la récupération des élèves et parents :", error);
+        console.error("Erreur lors de la récupération des élèves et parents :", error);
         res.status(500).json({ message: "Erreur interne du serveur", error });
     }
 };
@@ -209,8 +201,8 @@ const __dirname = dirname(__filename);
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         // Chemin vers le dossier public/images/Eleve
-        const uploadPath = path.join(__dirname, '..','..', 'public', 'images', 'Eleve');
-        
+        const uploadPath = path.join(__dirname, '..', '..', 'public', 'images', 'Eleve');
+
         // Créer le dossier s'il n'existe pas
         if (!fs.existsSync(uploadPath)) {
             fs.mkdirSync(uploadPath, { recursive: true });
@@ -304,7 +296,7 @@ export const createEleve = async (req, res) => {
                     type: 'Parent',
                     ecoleId: parent.ecoleId || null,
                 });
-                
+
                 console.log("✅ Utilisateur parent créé :", newUser);
 
                 const newParent = await Parent.create({
@@ -366,7 +358,7 @@ export const createEleve = async (req, res) => {
             ecoleId: parsedEleveData.ecoleId || null,
             statuscompte: parsedEleveData.statuscompte || 'activer',
         });
-        
+
         console.log("✅ Utilisateur élève créé :", newUser);
 
         let photoPath = null;
@@ -375,6 +367,11 @@ export const createEleve = async (req, res) => {
             console.log("✅ Chemin de la photo :", photoPath);
         }
 
+        // In your controller before creating the eleve
+        const anneeExists = await Anneescolaire.findByPk(parsedEleveData.annescolaireId);
+        if (!anneeExists && parsedEleveData.annescolaireId !== null) {
+            return res.status(400).json({ message: "L'année scolaire spécifiée n'existe pas" });
+        }
         const newEleve = await Eleve.create({
             id: newUser.id,
             nactnaiss: parsedEleveData.nactnaiss,
@@ -408,6 +405,7 @@ export const createEleve = async (req, res) => {
             photo: photoPath,
             userId: newUser.id,
             niveauId: parsedEleveData.niveauId,
+            annescolaireId: parsedEleveData.annescolaireId !== '' ? parseInt(parsedEleveData.annescolaireId) : null,
         });
         console.log("✅ Élève créé :", newEleve);
 
@@ -773,7 +771,6 @@ export const getEleveById = async (req, res) => {
                 },
                 {
                     model: Niveaux,
-                    as: "niveau",
                     attributes: ['id', 'nomniveau']
                 },
                 {
@@ -859,8 +856,8 @@ export const getEleveById = async (req, res) => {
         res.status(200).json(responseData);
     } catch (err) {
         console.error("❌ Erreur lors de la récupération de l'élève :", err);
-        res.status(500).json({ 
-            error: "Erreur serveur", 
+        res.status(500).json({
+            error: "Erreur serveur",
             details: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
     }
@@ -872,7 +869,6 @@ function formatDate(dateString) {
     const date = new Date(dateString);
     return date.toISOString().split('T')[0];
 }
-
 //modifier eleve
 export const updateEleve = async (req, res) => {
     const { id } = req.params;
@@ -895,7 +891,7 @@ export const updateEleve = async (req, res) => {
         const eleve = await Eleve.findByPk(id, {
             include: [
                 { model: User },
-                { 
+                {
                     model: Parent,
                     include: [User]
                 }
@@ -917,8 +913,8 @@ export const updateEleve = async (req, res) => {
             telephone: parsedEleveData.telephone,
             email: parsedEleveData.email,
             username: parsedEleveData.username,
-            password: parsedEleveData.password 
-                ? await bcrypt.hash(parsedEleveData.password, 10) 
+            password: parsedEleveData.password
+                ? await bcrypt.hash(parsedEleveData.password, 10)
                 : eleve.User.password,
         });
 
@@ -933,7 +929,7 @@ export const updateEleve = async (req, res) => {
         for (const parentUpdate of parsedParentData) {
             // Trouver le parent existant par son type
             const existingParent = eleve.Parents.find(p => p.typerole === parentUpdate.typerole);
-            
+
             if (existingParent) {
                 // Mettre à jour le parent existant
                 await existingParent.update({
@@ -952,8 +948,8 @@ export const updateEleve = async (req, res) => {
                     telephone: parentUpdate.telephoneparent,
                     email: parentUpdate.emailparent,
                     username: parentUpdate.usernameparent,
-                    password: parentUpdate.paswwordparent 
-                        ? await bcrypt.hash(parentUpdate.paswwordparent, 10) 
+                    password: parentUpdate.paswwordparent
+                        ? await bcrypt.hash(parentUpdate.paswwordparent, 10)
                         : existingParent.User.password,
                 });
             } else {
@@ -1006,7 +1002,6 @@ export const updateEleve = async (req, res) => {
     }
 };
 
-
 // Supprimer un élève (archiver)
 export const deleteEleve = async (req, res) => {
     const { id } = req.params;
@@ -1025,32 +1020,150 @@ export const deleteEleve = async (req, res) => {
 // controllers/eleveController.js
 export const getElevesByEcole = async (req, res) => {
     try {
-      const { ecoleeId } = req.params;
-  
-      console.log("ecoleeId reçu dans les params:", ecoleeId);
-  
-      const eleves = await User.findAll({
-        where: {
-          type: 'Eleve',
-        },
-        include: [
-          {
-            model: UserEcole,
-            where: { ecoleeId }, // ← lien via la table de jointure
-            attributes: [], // Pas besoin de renvoyer les données de jointure
-          },
-          {
-            model: Eleve,
-            include: [Parent]
-          }
-        ]
-      });
-  
-      res.status(200).json({ listeEleves: eleves });
+        const { ecoleeId } = req.params;
+
+        console.log("ecoleeId reçu dans les params:", ecoleeId);
+
+        const eleves = await User.findAll({
+            where: {
+                type: 'Eleve',
+            },
+            include: [
+                {
+                    model: UserEcole,
+                    where: { ecoleeId }, // ← lien via la table de jointure
+                    attributes: [], // Pas besoin de renvoyer les données de jointure
+                },
+                {
+                    model: Eleve,
+                    include: [Parent]
+                }
+            ]
+        });
+
+        res.status(200).json({ listeEleves: eleves });
     } catch (error) {
-      console.error("Erreur:", error);
-      res.status(500).json({ message: "Erreur serveur" });
+        console.error("Erreur:", error);
+        res.status(500).json({ message: "Erreur serveur" });
     }
 };
-  
-  
+
+
+export const getDevoirsByEleve = async (req, res) => {
+    try {
+        const { eleveId } = req.params;
+
+        // Récupérer les informations de l'élève (niveauId et classeId)
+        const eleve = await Eleve.findOne({
+            where: { userId: eleveId },
+            attributes: ['niveauId', 'classeId']
+        });
+
+        if (!eleve) {
+            return res.status(404).json({ message: "Élève non trouvé" });
+        }
+
+        // Récupérer les devoirs correspondants au niveau et à la section de l'élève
+        const devoirs = await Devoire.findAll({
+            where: {
+                niveauId: eleve.niveauId,
+                sectionId: eleve.classeId
+            },
+            include: [
+                {
+                    association: 'Matiere',
+                    attributes: ['nom']
+                },
+                {
+                    association: 'Enseignant',
+                    attributes: ['nom', 'prenom']
+                }
+            ],
+            order: [['dateLimite', 'ASC']]
+        });
+
+        res.status(200).json(devoirs);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+};
+
+export const soumettreTravail = async (req, res) => {
+    try {
+        const { devoirId, eleveId, commentaire } = req.body;
+        const fichier = req.file;
+
+        if (!fichier) {
+            return res.status(400).json({ message: "Aucun fichier téléchargé" });
+        }
+
+        // Vérifier si l'élève a déjà soumis ce devoir
+        const travailExist = await TravailRendu.findOne({
+            where: { devoirId, eleveId }
+        });
+
+        if (travailExist) {
+            // Supprimer l'ancien fichier
+            if (travailExist.fichier) {
+                const oldFilePath = path.join(__dirname, '../../public/images/travaux', travailExist.fichier);
+                if (fs.existsSync(oldFilePath)) {
+                    fs.unlinkSync(oldFilePath);
+                }
+            }
+
+            // Mettre à jour le travail existant
+            await TravailRendu.update(
+                { fichier: fichier.filename, commentaire },
+                { where: { devoirId, eleveId } }
+            );
+
+            return res.status(200).json({ message: "Travail mis à jour avec succès" });
+        }
+
+        // Créer un nouveau travail rendu
+        await TravailRendu.create({
+            devoirId,
+            eleveId,
+            fichier: fichier.filename,
+            commentaire
+        });
+
+        res.status(201).json({ message: "Travail soumis avec succès" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+};
+
+// Récupérer les travaux rendus par un élève
+// Dans votre contrôleur de devoirs
+export const getDevoirsBySection = async (req, res) => {
+    try {
+        const { sectionId } = req.params;
+
+        const devoirs = await Devoire.findAll({
+            where: { sectionId },
+            include: [
+                {
+                    model: Matiere,
+                    attributes: ['nom']
+                },
+                {
+                    model: TravailRendu,
+                    include: [
+                        {
+                            model: Eleve,
+                            include: [User] // Si vous avez une relation entre Eleve et User
+                        }
+                    ]
+                }
+            ]
+        });
+
+        res.status(200).json(devoirs);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+};

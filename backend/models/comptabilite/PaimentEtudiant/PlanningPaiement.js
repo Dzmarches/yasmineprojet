@@ -32,28 +32,24 @@ const PlanningPaiement= sequelize.define('PlanningPaiement', {
   },
   montant_restant: {
     type: DataTypes.DECIMAL(15,2),
-    allowNull: false,
+    allowNull: true,
   },
   //payé non payé
   etat_paiement: {
     type: DataTypes.STRING,
-    allowNull: false,
+    defaultValue: ('non payé')
   },
   date_paiement: {
     type: DataTypes.DATE,
-    allowNull: false,
-  },
- montant_restant: {
-    type: DataTypes.DECIMAL(15,2),
-    allowNull: false,
+    allowNull: true,
   },
 mode_paiement: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
   },
   notification: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
   },
   archiver: {
     type: DataTypes.INTEGER,
