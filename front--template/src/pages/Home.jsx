@@ -44,15 +44,13 @@ import Salle from '../assets/imgs/classe.png';
 import privilege from '../assets/imgs/permission (1).png';
 import paiement from '../assets/imgs/paiement.png';
 import emploi from '../assets/imgs/emploi.png';
+import exam from '../assets/imgs/exam.png'
 
 import note from '../assets/imgs/note.png';
 import disponibility from '../assets/imgs/availability.png';
 import absencee from '../assets/imgs/absence.png';
 import Can from '../can';
 import axios from 'axios';
-
-
-
 
 const Home = () => {
 
@@ -535,7 +533,14 @@ const Home = () => {
                         {poste === "Enseignant" && (
                           <span className="info-box-icon elevation-1">
                             <Link to="/GestionDevoire">
-                              <img src={note} alt="" title="Gestion absence" />
+                              <img src={exam} alt="" title="Gestion absence" />
+                            </Link>
+                          </span>
+                        )}
+                        {poste === "Enseignant" && (
+                          <span className="info-box-icon elevation-1">
+                            <Link to="/EmploiDuTempsEnseignant">
+                              <img src={emploi} alt="" title="Gestion absence" />
                             </Link>
                           </span>
                         )}

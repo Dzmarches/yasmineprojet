@@ -94,6 +94,8 @@ import RapportComptabilite from "./pages/comptabilite/RapportComptabilite.jsx";
 import InterfaceEleve from "./pages/interface parent et Eleve/interfaceEleve.jsx";
 import ListeAbsences from "./pages/GestionAbsenceEleve/ListeAbsences.jsx";
 import GestionDevoir from "./pages/Academiques/PlaningDevoirs.jsx";
+import EmploiDuTempsV2 from "./pages/Academiques/EmploiDuTempsV2.jsx";
+import EmploiDuTempEnseignant from "./pages/Academiques/EmploiDuTempEnseignant.jsx";
 
 
 
@@ -154,6 +156,7 @@ function App() {
           <Route path="/enseignant/modifier/:id" element={<PrivateRoute><Layoute><ModifierEnseignant /></Layoute></PrivateRoute>} />
           <Route path="/listClasse/enseignant/classes/:enseignantId" element={<PrivateRoute><Layoute><EnseignantClasses /></Layoute></PrivateRoute>} />
           <Route path="/EmploiDuTemps" element={<PrivateRoute><Layoute><EmploiDuTemps /></Layoute></PrivateRoute>} />
+          <Route path="/EmploiDuTempsv2" element={<PrivateRoute><Layoute><EmploiDuTempsV2 /></Layoute></PrivateRoute>} />
           <Route path="/absenceeleve" element={<PrivateRoute><Layoute><GestionAbsenceEleve /></Layoute></PrivateRoute>} />
           <Route path="/gestionabsence" element={<PrivateRoute><Layoute><GestionAbsence /></Layoute></PrivateRoute>} />
           <Route path="/justificationeleve" element={<PrivateRoute><Layoute><JustificationAbsence /></Layoute></PrivateRoute>} />
@@ -163,6 +166,7 @@ function App() {
           <Route path="/elevess" element={<PrivateRoute><Layoute><InterfaceEleve /></Layoute></PrivateRoute>} />
           <Route path="/listeabsence" element={<PrivateRoute><Layoute><ListeAbsences /></Layoute></PrivateRoute>} />
           <Route path="/planingdevoir" element={<PrivateRoute><Layoute><GestionDevoir /></Layoute></PrivateRoute>} />
+          <Route path="/EmploiDuTempsEnseignant" element={<PrivateRoute><Layoute><EmploiDuTempEnseignant /></Layoute></PrivateRoute>} />
 
           <Route path="/RessourcesHumaines" element={<PrivateRoute><Layoute><RessourcesHumaines /></Layoute></PrivateRoute>} />
           <Route path="/Gpaiement" element={<PrivateRoute><Layoute><GestionPaiement /></Layoute></PrivateRoute>} />

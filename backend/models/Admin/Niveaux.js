@@ -1,6 +1,7 @@
 import { DataTypes } from 'sequelize';
 import db from '../../config/Database.js';
 import Matiere from './Matiere.js';
+import Section from './Section.js';
 
 // Définir le modèle 'Niveaux'
 const Niveaux = db.define('Niveaux', {

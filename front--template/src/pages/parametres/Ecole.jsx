@@ -203,73 +203,23 @@ const Ecole = () => {
         }
     
         try {
-            // 1. Récupérer d'abord l'école avec l'utilisateur associé
-            const ecoleResponse = await axios.get(`http://localhost:5000/ecoles/getecolewithuser/${id}`, {
+            // 1. Récupérer l'école avec l'utilisateur associé
+            const response = await axios.get(`http://localhost:5000/ecoles/getecolewithuser/${id}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            const ecole = ecoleResponse.data;
-    
-            // 2. Préparer les données de base pour la modification
-            const editData = {
-                ...ecole,
-                permissions: {},
-                user: ecole.User || null // Ajouter les données utilisateur
-            };
-    
-            // 3. Si l'école a un utilisateur associé, récupérer ses permissions
-            if (ecole.userId) {
-                // Récupérer les informations de rôle de l'utilisateur
-                const userRolesResponse = await axios.get(`http://localhost:5000/users/${ecole.userId}/roles`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                const roles = userRolesResponse.data;
-                // Si l'utilisateur a un rôle
-                if (roles.length > 0) {
-                    const roleId = roles[0].id; // Prendre le premier rôle
-    
-                    // Récupérer les permissions
-                    const permissionsResponse = await axios.get(
-                        `http://localhost:5000/apii/users/permissions/${ecole.userId}/${roleId}`, 
-                        { headers: { Authorization: `Bearer ${token}` } }
-                    );
-    
-                    // Formater les permissions
-                    const formattedPermissions = {};
-                    permissionsResponse.data.permissionNames.forEach(permission => {
-                        const parts = permission.split('-');
-                        const gestion = parts[0];
-                        const sousGestion = parts.length > 2 ? parts[1] : null;
-                        const action = parts.length > 2 ? parts[2] : parts[1];
-    
-                        if (!formattedPermissions[gestion]) {
-                            formattedPermissions[gestion] = {};
-                        }
-    
-                        if (sousGestion) {
-                            if (!formattedPermissions[gestion][sousGestion]) {
-                                formattedPermissions[gestion][sousGestion] = {};
-                            }
-                            formattedPermissions[gestion][sousGestion][action] = true;
-                        } else {
-                            formattedPermissions[gestion][action] = true;
-                        }
-                    });
-    
-                    editData.permissions = formattedPermissions;
-                    editData.roleId = roleId;
-                }
-            }
-    
-            // Rediriger avec les données
-            navigate('/ecoles', { 
+            
+            const ecoleData = response.data;
+            
+            // 2. Rediriger vers la page de modification avec les données
+            navigate('/ecoles/modifierecole', { 
                 state: { 
-                    ecole: editData
+                    ecole: ecoleData
                 } 
             });
     
         } catch (error) {
-            console.error("Erreur lors de la récupération de l'école à modifier :", error);
-            alert(`Erreur: ${error.message}`);
+            console.error("Erreur lors de la récupération de l'école:", error);
+            alert(`Erreur: ${error.response?.data?.message || error.message}`);
         }
     };
 

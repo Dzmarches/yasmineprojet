@@ -3,26 +3,24 @@ import { Op } from 'sequelize';
 
 export const createOrUpdatePeriodes = async (req, res) => {
     try {
-        const { niveauId, sectionId, periodes } = req.body;
+        const { cycleId, periodes } = req.body;
 
-        // Valider les données
-        if (!niveauId || !sectionId || !periodes || !Array.isArray(periodes)) {
+        if (!cycleId || !Array.isArray(periodes)) {
             return res.status(400).json({ message: "Données invalides" });
         }
 
-        // Traitement des périodes
         const results = [];
         for (const periode of periodes) {
             const [instance, created] = await Periode.upsert({
-                niveauId,
-                sectionId,
+                cycleId,
                 type: periode.type,
                 heureDebut: periode.heureDebut,
                 heureFin: periode.heureFin,
-                sousPeriodes: periode.sousPeriodes
+                sousPeriodes: periode.sousPeriodes,
+                label: periode.label || null
             }, {
                 returning: true,
-                conflictFields: ['niveauId', 'sectionId', 'type']
+                conflictFields: ['cycleId', 'type']
             });
 
             results.push(instance);
@@ -34,62 +32,26 @@ export const createOrUpdatePeriodes = async (req, res) => {
         });
     } catch (error) {
         console.error("Erreur lors de l'enregistrement des périodes:", error);
-        res.status(500).json({ 
-            message: "Erreur serveur", 
-            error: error.message 
-        });
+        res.status(500).json({ message: "Erreur serveur", error: error.message });
     }
 };
-export const getPeriodesBySection = async (req, res) => {
+
+export const getPeriodesByCycle = async (req, res) => {
     try {
-        const { niveauId, sectionId } = req.params;
+        const { cycleId } = req.params;
 
         const periodes = await Periode.findAll({
-            where: {
-                niveauId,
-                sectionId
-            },
-            order: [
-                ['type', 'ASC'],
-                ['heureDebut', 'ASC']
-            ]
+            where: { cycleId },
+            order: [['heureDebut', 'ASC']]
         });
-
-        // Si aucune période n'existe, retourner les valeurs par défaut
-        if (periodes.length === 0) {
-            const defaultPeriodes = [
-                {
-                    type: 'matin',
-                    heureDebut: '08:00',
-                    heureFin: '12:00',
-                    sousPeriodes: []
-                },
-                {
-                    type: 'dejeuner',
-                    heureDebut: '12:00',
-                    heureFin: '13:00',
-                    label: 'Déjeuner',
-                    sousPeriodes: []
-                },
-                {
-                    type: 'apres_midi',
-                    heureDebut: '13:00',
-                    heureFin: '16:00',
-                    sousPeriodes: []
-                }
-            ];
-            return res.status(200).json(defaultPeriodes);
-        }
 
         res.status(200).json(periodes);
     } catch (error) {
-        console.error("Erreur lors de la récupération des périodes:", error);
-        res.status(500).json({ 
-            message: "Erreur serveur", 
-            error: error.message 
-        });
+        console.error("Erreur:", error);
+        res.status(500).json({ message: "Erreur lors de la récupération" });
     }
 };
+
 
 
 // export const getPeriodesBySection = async (req, res) => {

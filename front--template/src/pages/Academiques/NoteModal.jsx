@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { Modal, Form, Button, Badge } from 'react-bootstrap';
 
 const NoteModal = ({
@@ -19,7 +20,25 @@ const NoteModal = ({
         ...notes
     });
 
-    
+    const [remarquesList, setRemarquesList] = useState([]);
+    useEffect(() => {
+        const fetchRemarques = async () => {
+            try {
+                const res = await axios.get('http://localhost:5000/remarques/liste', {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    },
+                });
+                setRemarquesList(res.data);
+            } catch (error) {
+                toast.error("Erreur lors du chargement des remarques.");
+            }
+        };
+        if (show) {
+            fetchRemarques();
+        }
+    }, [show]);
+
     const capitalize = (str) =>
         str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : '';
 
@@ -28,7 +47,7 @@ const NoteModal = ({
 
     useEffect(() => {
         console.log('Notes prop:', notes);
-    
+
         setFormValues(prev => ({
             ...prev,
             ...notes,
@@ -83,17 +102,17 @@ const NoteModal = ({
             if (isMathSubject()) {
                 // Liste des champs mathématiques à surveiller
                 const mathFields = ['calcul', 'grandeurs_mesures', 'organisation_donnees', 'espace_geometrie'];
-                
+
                 if (mathFields.includes(field)) {
                     // Calcul automatique de la moyenne d'évaluation
                     const calcul = parseFloat(newValues.calcul) || 0;
                     const grandeurs = parseFloat(newValues.grandeurs_mesures) || 0;
                     const organisation = parseFloat(newValues.organisation_donnees) || 0;
                     const geometrie = parseFloat(newValues.espace_geometrie) || 0;
-                    
+
                     newValues.moyenne_eval_math = ((calcul + grandeurs + organisation + geometrie) / 4).toFixed(2);
                 }
-    
+
                 // Calcul de la moyenne finale si nécessaire
                 if (mathFields.includes(field) || field === 'examens_math') {
                     const evalMath = parseFloat(newValues.moyenne_eval_math) || 0;
@@ -133,7 +152,7 @@ const NoteModal = ({
 
     const renderFields = () => {
         const isMath = isMathSubject();
-    
+
         switch (validatedCycle) {
             case 'Primaire':
                 return isMath ? (
@@ -156,7 +175,7 @@ const NoteModal = ({
                         {renderField('معدل / Moyenne', 'moyenne', true)}
                     </>
                 );
-    
+
             case 'Cem':
                 return (
                     <>
@@ -170,7 +189,7 @@ const NoteModal = ({
                         {renderField('المعدل الإجمالي / Moyenne totale', 'moyenne_total', true)}
                     </>
                 );
-    
+
             case 'Lycée':
                 return (
                     <>
@@ -183,7 +202,7 @@ const NoteModal = ({
                         {renderField('المعدل الإجمالي / Moyenne totale', 'moyenne_total', true)}
                     </>
                 );
-    
+
             default:
                 return <div className="text-danger">Cycle non reconnu ou manquant.</div>;
         }
@@ -215,14 +234,19 @@ const NoteModal = ({
                     {renderFields()}
                     <Form.Group className="mb-3">
                         <Form.Label>Remarque</Form.Label>
-                        <Form.Control
-                            as="textarea"
-                            rows={3}
-                            value={formValues.remarque || ''}
+                        <Form.Select
+                             value={formValues.remarque || ''}
                             onChange={(e) => handleChange('remarque', e.target.value)}
-                            placeholder="Entrez une remarque si nécessaire..."
-                        />
+                        >
+                            <option value="">-- Sélectionnez une remarque --</option>
+                            {remarquesList.map((r) =>
+                                <option key={r.id} value={r.remarque}>
+                                    {r.remarque}
+                                </option>
+                            )}
+                        </Form.Select>
                     </Form.Group>
+
                 </Form>
             </Modal.Body>
             <Modal.Footer>

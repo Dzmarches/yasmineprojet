@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AiOutlineFile } from 'react-icons/ai';
 import scool from '../../assets/imgs/school.png';
 import map from '../../assets/imgs/map.png';
@@ -52,6 +52,7 @@ const AjoutEcole = () => {
     const [telephone, setTelephone] = useState('');
     const [showPermissionsModal, setShowPermissionsModal] = useState(false);
     const [userPermissions, setUserPermissions] = useState([]);
+    const navigate = useNavigate();
 
 
     const sousGestions = {
@@ -254,13 +255,13 @@ const AjoutEcole = () => {
     };
     const handleAddEcole = async (e) => {
         e.preventDefault();
-
+    
         const token = localStorage.getItem('token');
         if (!token) {
             console.error('Aucun token trouvé. Veuillez vous connecter.');
             return;
         }
-
+    
         // Formater les permissions
         const formattedPermissions = [];
         for (const gestion in permissions) {
@@ -279,7 +280,7 @@ const AjoutEcole = () => {
                 }
             }
         }
-
+    
         const formData = {
             nomecole,
             nom_arecole,
@@ -304,7 +305,7 @@ const AjoutEcole = () => {
             ecoleId,
             permissions: formattedPermissions,
         };
-
+    
         try {
             let response;
             if (id) {
@@ -322,14 +323,17 @@ const AjoutEcole = () => {
                     },
                 });
             }
-
+    
             console.log('Opération réussie:', response.data);
             resetForm();
-            navigate('/ecoles'); // Rediriger vers la liste après modification
+            navigate('/ecoles'); // Rediriger vers la liste des écoles
         } catch (error) {
             console.error('Erreur:', error);
             if (error.response) {
                 console.error('Réponse du serveur:', error.response.data);
+                alert(`Erreur: ${error.response.data.message || 'Une erreur est survenue'}`);
+            } else {
+                alert('Une erreur est survenue lors de la connexion au serveur');
             }
         }
     };

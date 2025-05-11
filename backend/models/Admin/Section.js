@@ -1,6 +1,5 @@
 import { DataTypes } from 'sequelize';
 import db from '../../config/Database.js';
-import Niveaux from './Niveaux.js'; // Assurez-vous que le modèle Niveaux existe
 
 // Définir le modèle 'Section' avec la clé étrangère
 const Section = db.define('Section', {
@@ -27,12 +26,16 @@ const Section = db.define('Section', {
   },
   niveauxId: {
     type: DataTypes.INTEGER,
-    references: {
-      model: Niveaux,
-      key: 'id',
-    },
     allowNull: true,
   },
+  // niveauxId: {
+  //   type: DataTypes.INTEGER,
+  //   references: {
+  //     model: Niveaux,
+  //     key: 'id',
+  //   },
+  //   allowNull: true,
+  // },
   archiver: {
     type: DataTypes.INTEGER,
     defaultValue: 0,
@@ -46,10 +49,6 @@ const Section = db.define('Section', {
 }, {
   timestamps: false,
 });
-
-// Définir la relation entre Section et Niveaux
-Section.belongsTo(Niveaux, { foreignKey: 'niveauxId'});
-
 
 
 export default Section;

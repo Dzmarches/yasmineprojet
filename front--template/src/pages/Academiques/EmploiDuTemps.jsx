@@ -1,431 +1,153 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
-import { Modal, Button, Form, Row, Col, Alert } from "react-bootstrap";
+import Select from 'react-select';
+import { Modal, Button, Form, Row, Col, Alert, Table } from "react-bootstrap";
+// Modifiez vos imports comme ceci :
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
 const EmploiDuTemps = () => {
     // États pour les données de base
     const [niveaux, setNiveaux] = useState([]);
-    const [selectedNiveau, setSelectedNiveau] = useState(null);
     const [sections, setSections] = useState([]);
-    const [selectedSection, setSelectedSection] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [periodes, setPeriodes] = useState([]);
     const [emploiDuTemps, setEmploiDuTemps] = useState([]);
     const [enseignants, setEnseignants] = useState([]);
     const [enseignantDisponibilites, setEnseignantDisponibilites] = useState({});
-
+    // États pour les modales
+    const [showPeriodModal, setShowPeriodModal] = useState(false);
     const [showMatieresModal, setShowMatieresModal] = useState(false);
     const [matieresNiveau, setMatieresNiveau] = useState([]);
     const [durees, setDurees] = useState({});
+    const [ecoleId, setEcoleId] = useState(null);
+    const [ecoleeId, setEcoleeId] = useState(null);
+    const [cycle, setCycle] = useState(""); // Stocker le cycle
+    const [cycles, setCycles] = useState([]);
+    const [values, setValues] = useState({ cycle: '' });
+    const filteredNiveaux = niveaux.filter(niveau => niveau.cycle === values.cycle);
+    // États pour la sélection dans les modales
+    const [selectedModalNiveau, setSelectedModalNiveau] = useState("");
+    const [selectedModalSection, setSelectedModalSection] = useState("");
 
-    // États pour la gestion des périodes
-    const [showPeriodModal, setShowPeriodModal] = useState(false);
-    const [periodes, setPeriodes] = useState([]);
-    const [formData, setFormData] = useState({
-        matin: { debut: '08:00', fin: '12:00', sousPeriodes: [] },
-        dejeuner: { debut: '12:00', fin: '13:00', label: 'Déjeuner' },
-        apres_midi: { debut: '13:00', fin: '16:00', sousPeriodes: [] }
-    });
+    const [selectedModalNiveaux, setSelectedModalNiveaux] = useState([]); // Notez le pluriel
+    const [selectedModalSections, setSelectedModalSections] = useState([]); // Notez le pluriel
 
-    const [jours] = useState(['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi']);
+    const [loadedPeriodes, setLoadedPeriodes] = useState(null);
 
-    const [generationStatus, setGenerationStatus] = useState({
-        loading: false,
-        success: null,
-        message: ''
-    });
-    // generer l'emploi du temps
-    const handleGenererAuto = async () => {
-        if (!selectedNiveau || !selectedSection) {
-            alert("Veuillez sélectionner un niveau et une section");
-            return;
-        }
+    const [emploiDuTempsData, setEmploiDuTempsData] = useState({});
+    const [selectedCycle, setSelectedCycle] = useState("");
+    const [selectedNiveau, setSelectedNiveau] = useState("");
+    const [selectedSection, setSelectedSection] = useState("");
+    const [sectionsForSelectedNiveau, setSectionsForSelectedNiveau] = useState([]);
 
-        setGenerationStatus({ loading: true, success: null, message: '' });
 
-        try {
-            const token = localStorage.getItem("token");
-            const response = await axios.post(
-                "http://localhost:5000/emploi-du-temps/generer-emploi",
-                {
-                    niveauId: selectedNiveau,
-                    sectionId: selectedSection
-                },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-
-            console.log('Réponse du serveur:', response.data);
-
-            if (response.data.success) {
-                // Recharger l'emploi du temps
-                const edtResponse = await axios.get(
-                    `http://localhost:5000/emploi-du-temps/section/${selectedSection}`,
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-                setEmploiDuTemps(edtResponse.data);
-
-                setGenerationStatus({
-                    loading: false,
-                    success: true,
-                    message: response.data.message || 'Emploi du temps généré avec succès!'
-                });
-
-                if (response.data.nonPlanifiees) {
-                    const message = response.data.nonPlanifiees
-                        .map(m => `${m.nom} (manque ${m.manque} minutes)`)
-                        .join('\n');
-
-                    alert(`Emploi généré avec succès, mais certaines matières n'ont pas pu être entièrement planifiées:\n${message}`);
-                }
-            } else {
-                setGenerationStatus({
-                    loading: false,
-                    success: false,
-                    message: response.data.message || 'Erreur lors de la génération'
-                });
-            }
-        } catch (error) {
-            console.error("Erreur de génération:", error);
-            setGenerationStatus({
-                loading: false,
-                success: false,
-                message: error.response?.data?.message || 'Erreur lors de la communication avec le serveur'
-            });
-        }
-    };
-
-    // Fonction pour générer les créneaux à partir des périodes
-    const generateCreneauxFromPeriodes = (periodes) => {
-        const creneaux = [];
-
-        // Formatage des heures (supprimer les secondes si présentes)
-        const formatTime = (timeStr) => {
-            if (!timeStr) return '';
-            return timeStr.split(':').slice(0, 2).join(':');
-        };
-
-        // Trier les périodes par type (matin, déjeuner, après-midi)
-        const periodesTriees = {
-            matin: periodes.find(p => p.type === 'matin'),
-            dejeuner: periodes.find(p => p.type === 'dejeuner'),
-            apres_midi: periodes.find(p => p.type === 'apres_midi')
-        };
-
-        // Ajouter les créneaux du matin
-        if (periodesTriees.matin) {
-            const sousPeriodes = JSON.parse(periodesTriees.matin.sousPeriodes || '[]');
-            if (sousPeriodes.length > 0) {
-                sousPeriodes.forEach(sp => {
-                    creneaux.push({
-                        plage: `${formatTime(sp.debut)}-${formatTime(sp.fin)}`,
-                        label: sp.label || '',
-                        type: 'matin',
-                        duree: calculateDuration(sp.debut, sp.fin)
-                    });
-                });
-            } else {
-                creneaux.push({
-                    plage: `${formatTime(periodesTriees.matin.heureDebut)}-${formatTime(periodesTriees.matin.heureFin)}`,
-                    label: '',
-                    type: 'matin',
-                    duree: calculateDuration(periodesTriees.matin.heureDebut, periodesTriees.matin.heureFin)
-                });
-            }
-        }
-
-        // Ajouter le créneau déjeuner
-        if (periodesTriees.dejeuner) {
-            creneaux.push({
-                plage: `${formatTime(periodesTriees.dejeuner.heureDebut)}-${formatTime(periodesTriees.dejeuner.heureFin)}`,
-                label: periodesTriees.dejeuner.label || 'Déjeuner',
-                type: 'dejeuner',
-                duree: 0 // Pas de cours pendant le déjeuner
-            });
-        }
-
-        // Ajouter les créneaux de l'après-midi
-        if (periodesTriees.apres_midi) {
-            const sousPeriodes = JSON.parse(periodesTriees.apres_midi.sousPeriodes || '[]');
-            if (sousPeriodes.length > 0) {
-                sousPeriodes.forEach(sp => {
-                    creneaux.push({
-                        plage: `${formatTime(sp.debut)}-${formatTime(sp.fin)}`,
-                        label: sp.label || '',
-                        type: 'apres_midi',
-                        duree: calculateDuration(sp.debut, sp.fin)
-                    });
-                });
-            } else {
-                creneaux.push({
-                    plage: `${formatTime(periodesTriees.apres_midi.heureDebut)}-${formatTime(periodesTriees.apres_midi.heureFin)}`,
-                    label: '',
-                    type: 'apres_midi',
-                    duree: calculateDuration(periodesTriees.apres_midi.heureDebut, periodesTriees.apres_midi.heureFin)
-                });
-            }
-        }
-
-        return creneaux;
-    };
-
-    // Fonction pour calculer la durée en minutes entre deux heures
-    const calculateDuration = (startTime, endTime) => {
-        const [startHours, startMinutes] = startTime.split(':').map(Number);
-        const [endHours, endMinutes] = endTime.split(':').map(Number);
-
-        return (endHours * 60 + endMinutes) - (startHours * 60 + startMinutes);
-    };
-
-    // Fonction principale pour générer l'emploi du temps
-    const genererEmploiDuTemps = (matieres, creneaux, jours) => {
-        const emploiDuTemps = [];
-        const enseignantsDisponibilites = {};
-        const matieresParJour = {};
-        const joursDisponibles = jours.filter(j => j !== 'Dimanche'); // Exclure dimanche si nécessaire
-
-        // Initialiser les disponibilités des enseignants
-        matieres.forEach(matiere => {
-            if (matiere.enseignantId) {
-                enseignantsDisponibilites[matiere.enseignantId] = JSON.parse(JSON.stringify(matiere.disponibilites));
-            }
-        });
-
-        // Initialiser le compteur de séances par jour pour chaque matière
-        joursDisponibles.forEach(jour => {
-            matieresParJour[jour] = {};
-            matieres.forEach(matiere => {
-                matieresParJour[jour][matiere.matiereId] = 0;
-            });
-        });
-
-        // Trier les matières par priorité (celles avec plus de contraintes en premier)
-        const matieresTriees = [...matieres].sort((a, b) => {
-            // Priorité aux matières avec préférence spécifique
-            if (a.preference && !b.preference) return -1;
-            if (!a.preference && b.preference) return 1;
-
-            // Priorité aux matières avec plus de séances par jour
-            if (a.seancesParJour > b.seancesParJour) return -1;
-            if (a.seancesParJour < b.seancesParJour) return 1;
-
-            // Priorité aux matières avec plus de durée totale
-            if (a.dureeTotale > b.dureeTotale) return -1;
-            if (a.dureeTotale < b.dureeTotale) return 1;
-
-            return 0;
-        });
-
-        // Fonction pour trouver un créneau disponible
-        const trouverCreneauDisponible = (matiere, jour) => {
-            // Filtrer les créneaux selon la préférence de la matière
-            let creneauxFiltres = creneaux.filter(c => c.duree >= matiere.dureeSeance);
-
-            if (matiere.preference === "Uniquement La matiné") {
-                creneauxFiltres = creneauxFiltres.filter(c => c.type === 'matin');
-            } else if (matiere.preference === "Uniquement L'après-midi") {
-                creneauxFiltres = creneauxFiltres.filter(c => c.type === 'apres_midi');
-            } else if (matiere.preference === "Plus Grand Moitié La Matin") {
-                // Priorité matin mais peut aller après-midi si nécessaire
-                const creneauxMatin = creneauxFiltres.filter(c => c.type === 'matin');
-                if (creneauxMatin.length > 0) {
-                    creneauxFiltres = creneauxMatin;
-                }
-            }
-            // Pour "Moitié Moitié", on garde tous les créneaux
-
-            // Vérifier la disponibilité de l'enseignant si existant
-            if (matiere.enseignantId) {
-                const dispoEnseignant = enseignantsDisponibilites[matiere.enseignantId]?.[jour.toLowerCase()];
-                if (dispoEnseignant && dispoEnseignant.disponible === false) {
-                    return null; // Enseignant indisponible ce jour
-                }
-            }
-
-            // Trouver un créneau non encore attribué
-            for (const creneau of creneauxFiltres) {
-                const creneauDejaUtilise = emploiDuTemps.some(
-                    edt => edt.jour === jour && edt.heure === creneau.plage
-                );
-
-                if (!creneauDejaUtilise) {
-                    // Vérifier que l'enseignant est disponible à cette heure si nécessaire
-                    if (matiere.enseignantId) {
-                        const dispoEnseignant = enseignantsDisponibilites[matiere.enseignantId]?.[jour.toLowerCase()];
-                        if (dispoEnseignant && dispoEnseignant.heures && dispoEnseignant.heures.length > 0) {
-                            const [debut, fin] = creneau.plage.split('-');
-                            const heureDebut = debut.replace(':', '');
-                            const heureFin = fin.replace(':', '');
-
-                            const estDisponible = dispoEnseignant.heures.some(h => {
-                                const [hDebut, hFin] = h.split('-');
-                                return heureDebut >= hDebut && heureFin <= hFin;
-                            });
-
-                            if (!estDisponible) continue;
-                        }
-                    }
-
-                    return creneau;
-                }
-            }
-
-            return null;
-        };
-
-        // Algorithme de génération
-        matieresTriees.forEach(matiere => {
-            let dureeRestante = matiere.dureeTotale;
-            let joursEssayes = 0;
-            const joursMelanges = [...joursDisponibles].sort(() => Math.random() - 0.5);
-
-            while (dureeRestante > 0 && joursEssayes < joursDisponibles.length * 2) {
-                const jourIndex = joursEssayes % joursDisponibles.length;
-                const jour = joursMelanges[jourIndex];
-
-                // Vérifier le nombre maximum de séances par jour pour cette matière
-                if (matieresParJour[jour][matiere.matiereId] >= matiere.seancesParJour) {
-                    joursEssayes++;
-                    continue;
-                }
-
-                const creneau = trouverCreneauDisponible(matiere, jour);
-                if (creneau) {
-                    emploiDuTemps.push({
-                        jour,
-                        heure: creneau.plage,
-                        duree: matiere.dureeSeance,
-                        niveauId: selectedNiveau,
-                        sectionId: selectedSection,
-                        matiereId: matiere.matiereId,
-                        enseignantId: matiere.enseignantId
-                    });
-
-                    dureeRestante -= matiere.dureeSeance;
-                    matieresParJour[jour][matiere.matiereId]++;
-
-                    // Marquer le créneau comme utilisé
-                    creneau.duree -= matiere.dureeSeance;
-                    if (creneau.duree <= 0) {
-                        creneaux.splice(creneaux.indexOf(creneau), 1);
-                    }
-                }
-
-                joursEssayes++;
-            }
-
-            if (dureeRestante > 0) {
-                console.warn(`Impossible d'attribuer toute la durée pour la matière ${matiere.Matiere?.nom}`);
-            }
-        });
-
-        return emploiDuTemps;
-    };
-
-    const handleOpenMatieresModal = async () => {
-        if (!selectedNiveau) {
-            alert("Veuillez sélectionner un niveau d'abord");
-            return;
-        }
-
-        try {
-            const token = localStorage.getItem("token");
-            const response = await axios.get(
-                `http://localhost:5000/niveaux/${selectedNiveau}/matieres`,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-
-            setMatieresNiveau(response.data);
-
-            // Initialiser tous les champs
-            const initialConfigurations = {};
-            response.data.forEach(item => {
-                initialConfigurations[item.id] = {
-                    duree: item.duree || '',
-                    dureeseance: item.dureeseance || '',
-                    nombreseanceparjour: item.nombreseanceparjour || '',
-                    preference: item.preference || ''
-                };
-            });
-            setDurees(initialConfigurations);
-
-            setShowMatieresModal(true);
-        } catch (error) {
-            console.error("Erreur lors du chargement des matières:", error);
-            alert("Erreur lors du chargement des matières");
-        }
-    };
-
-    const handleFieldChange = (id, field, value) => {
-        setDurees(prev => ({
-            ...prev,
-            [id]: {
-                ...prev[id],
-                [field]: value
-            }
-        }));
-    };
-
-    const handleSaveConfigurations = async () => {
-        try {
-            const token = localStorage.getItem("token");
-            const updates = Object.entries(durees).map(([id, config]) => ({
-                id,
-                duree: config.duree ? parseInt(config.duree) : null,
-                dureeseance: config.dureeseance ? parseInt(config.dureeseance) : null,
-                nombreseanceparjour: config.nombreseanceparjour ? parseInt(config.nombreseanceparjour) : null,
-                preference: config.preference || null
-            }));
-    
-            // Envoyer les mises à jour
-            for (const update of updates) {
-                await axios.put(
-                    `http://localhost:5000/niveaux/niveau-matiere/${update.id}`,
-                    {
-                        duree: update.duree,
-                        dureeseance: update.dureeseance,
-                        nombreseanceparjour: update.nombreseanceparjour, // Bien inclure ce champ
-                        preference: update.preference
-                    },
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-            }
-    
-            alert("Configurations enregistrées avec succès!");
-            setShowMatieresModal(false);
-        } catch (error) {
-            console.error("Erreur lors de l'enregistrement:", error);
-            alert(`Erreur: ${error.response?.data?.message || error.message}`);
-        }
-    };
-
-    const handleDureeChange = (niveauMatiereId, value) => {
-        setDurees(prev => ({
-            ...prev,
-            [niveauMatiereId]: value
-        }));
-    };
-    // Charger les niveaux au montage
+    // Remplacez cette partie dans votre code
     useEffect(() => {
-        const fetchNiveaux = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                const response = await axios.get("http://localhost:5000/niveaux", {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setNiveaux(response.data);
-            } catch (error) {
-                setError("Erreur lors du chargement des niveaux.");
-                console.error(error);
-            } finally {
-                setLoading(false);
+        const fetchPeriodesAndNiveaux = async () => {
+            if (selectedCycle) {  // Utilisez selectedCycle au lieu de values.cycle
+                try {
+                    const token = localStorage.getItem("token");
+
+                    // Trouvez le cycle correspondant dans votre liste de cycles
+                    const selectedCycleObj = cycles.find(c => c.nomCycle === selectedCycle);
+
+                    if (!selectedCycleObj) {
+                        console.warn("Aucun cycle correspondant trouvé.");
+                        return;
+                    }
+
+                    const response = await axios.get(
+                        `http://localhost:5000/emploi-du-temps/periodes/${selectedCycleObj.id}`,
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    );
+
+                    console.log("Réponse reçue :", response.data);
+
+                    if (response.data && response.data.length > 0) {
+                        console.log("Périodes reçues :", response.data);
+                        const newFormData = {
+                            matin: { debut: '08:00', fin: '12:00', sousPeriodes: [] },
+                            dejeuner: { debut: '12:00', fin: '13:00', label: 'Déjeuner' },
+                            apres_midi: { debut: '13:00', fin: '16:00', sousPeriodes: [] }
+                        };
+
+                        response.data.forEach(periode => {
+                            if (periode.type === 'matin') {
+                                newFormData.matin = {
+                                    debut: periode.heureDebut,
+                                    fin: periode.heureFin,
+                                    sousPeriodes: periode.sousPeriodes ? JSON.parse(periode.sousPeriodes) : []
+                                };
+                            } else if (periode.type === 'dejeuner') {
+                                newFormData.dejeuner = {
+                                    debut: periode.heureDebut,
+                                    fin: periode.heureFin,
+                                    label: periode.label || 'Déjeuner'
+                                };
+                            } else if (periode.type === 'apres_midi') {
+                                newFormData.apres_midi = {
+                                    debut: periode.heureDebut,
+                                    fin: periode.heureFin,
+                                    sousPeriodes: periode.sousPeriodes ? JSON.parse(periode.sousPeriodes) : []
+                                };
+                            }
+                        });
+
+                        console.log("FormData généré :", newFormData);
+                        setFormData(newFormData);
+                        setPeriodes(response.data);
+                    } else {
+                        console.warn("Aucune période reçue.");
+                        setFormData({
+                            matin: { debut: '08:00', fin: '12:00', sousPeriodes: [] },
+                            dejeuner: { debut: '12:00', fin: '13:00', label: 'Déjeuner' },
+                            apres_midi: { debut: '13:00', fin: '16:00', sousPeriodes: [] }
+                        });
+                    }
+                } catch (error) {
+                    console.error("Erreur lors du chargement des périodes:", error);
+                    setFormData({
+                        matin: { debut: '08:00', fin: '12:00', sousPeriodes: [] },
+                        dejeuner: { debut: '12:00', fin: '13:00', label: 'Déjeuner' },
+                        apres_midi: { debut: '13:00', fin: '16:00', sousPeriodes: [] }
+                    });
+                }
             }
         };
+        fetchPeriodesAndNiveaux();
+    }, [selectedCycle, cycles]);  // Déclenchez cet effet quand selectedCycle change
 
-        fetchNiveaux();
-    }, []);
+    useEffect(() => {
+        setValues(prev => ({ ...prev, cycle: selectedCycle }));
+    }, [selectedCycle]);
 
-    // Charger les sections quand un niveau est sélectionné
+    useEffect(() => {
+        const fetchNiveauxWithSections = async () => {
+            if (selectedCycle) {
+                try {
+                    const token = localStorage.getItem("token");
+                    const response = await axios.get(
+                        `http://localhost:5000/niveaux/by-cycle-with-sections/${selectedCycle}`,
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    );
+                    setNiveaux(response.data);
+                } catch (error) {
+                    setError("Erreur lors du chargement des niveaux et sections.");
+                    console.error(error);
+                } finally {
+                    setLoading(false);
+                }
+            }
+        };
+        fetchNiveauxWithSections();
+    }, [selectedCycle]);
+
     useEffect(() => {
         if (selectedNiveau) {
             const fetchSections = async () => {
@@ -446,88 +168,82 @@ const EmploiDuTemps = () => {
             fetchSections();
         }
     }, [selectedNiveau]);
+    // Charger les emplois du temps quand une section est sélectionnée
+    // Charger les emplois du temps pour une section
+    const fetchEmploiDuTemps = async (sectionId) => {
+        try {
+            const token = localStorage.getItem("token");
+            const response = await axios.get(
+                `http://localhost:5000/emploi-du-temps/section/${sectionId}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
 
-    // Charger l'emploi du temps et les périodes quand une section est sélectionnée
-    // Dans le useEffect qui charge les périodes
-    useEffect(() => {
-        if (selectedSection) {
-            const fetchData = async () => {
-                try {
-                    const token = localStorage.getItem("token");
-
-                    // Charger l'emploi du temps
-                    const edtResponse = await axios.get(
-                        `http://localhost:5000/emploi-du-temps/section/${selectedSection}`,
-                        { headers: { Authorization: `Bearer ${token}` } }
-                    );
-                    console.log("Structure des données:", edtResponse.data);
-                    setEmploiDuTemps(edtResponse.data);
-
-                    // Charger les périodes depuis la base de données
-                    const periodesResponse = await axios.get(
-                        `http://localhost:5000/periodes/${selectedNiveau}/${selectedSection}`,
-                        { headers: { Authorization: `Bearer ${token}` } }
-                    );
-
-                    // Fonction pour parser les sous-périodes
-                    const parseSousPeriodes = (sousPeriodesStr) => {
-                        try {
-                            if (!sousPeriodesStr || sousPeriodesStr === "[]") return [];
-                            return JSON.parse(sousPeriodesStr);
-                        } catch (error) {
-                            console.error("Erreur de parsing des sous-périodes:", error);
-                            return [];
-                        }
-                    };
-
-                    // Formater les données pour l'état local
-                    const formattedPeriodes = {
-                        matin: { debut: '08:00:00', fin: '12:00:00', sousPeriodes: [] },
-                        dejeuner: { debut: '12:00:00', fin: '13:00:00', label: 'Déjeuner' },
-                        apres_midi: { debut: '13:00:00', fin: '16:00:00', sousPeriodes: [] }
-                    };
-
-                    periodesResponse.data.forEach(p => {
-                        const sousPeriodes = parseSousPeriodes(p.sousPeriodes);
-
-                        if (p.type === 'dejeuner') {
-                            formattedPeriodes.dejeuner = {
-                                debut: p.heureDebut,
-                                fin: p.heureFin,
-                                label: p.label || 'Déjeuner'
-                            };
-                        } else {
-                            formattedPeriodes[p.type] = {
-                                debut: p.heureDebut,
-                                fin: p.heureFin,
-                                sousPeriodes: sousPeriodes
-                            };
-                        }
-                    });
-
-                    setFormData(formattedPeriodes);
-                    setPeriodes(periodesResponse.data);
-                } catch (error) {
-                    console.error("Erreur lors du chargement des données:", error);
-                    // En cas d'erreur, utiliser les valeurs par défaut
-                    setFormData({
-                        matin: { debut: '08:00:00', fin: '12:00:00', sousPeriodes: [] },
-                        dejeuner: { debut: '12:00:00', fin: '13:00:00', label: 'Déjeuner' },
-                        apres_midi: { debut: '13:00:00', fin: '16:00:00', sousPeriodes: [] }
-                    });
-                    setPeriodes([]);
+            // Organiser les données par jour et heure pour un accès facile
+            const emploiOrganise = {};
+            response.data.forEach(item => {
+                if (!emploiOrganise[item.jour]) {
+                    emploiOrganise[item.jour] = {};
                 }
-            };
+                emploiOrganise[item.jour][item.heure] = {
+                    matiere: item.Matiere,
+                    enseignant: item.Enseignant?.Employe?.User || null
+                };
+            });
 
-            fetchData();
+            setEmploiDuTempsData(prev => ({
+                ...prev,
+                [sectionId]: emploiOrganise
+            }));
+
+        } catch (error) {
+            console.error("Erreur lors du chargement de l'emploi du temps:", error);
         }
-    }, [selectedSection, selectedNiveau]);
+    };
+    useEffect(() => {
+        if (selectedModalSections.length > 0) {
+            selectedModalSections.forEach(sectionId => {
+                fetchEmploiDuTemps(sectionId);
+            });
+        } else {
+            setEmploiDuTempsData({});
+        }
+    }, [selectedModalSections]);
+    useEffect(() => {
+        if (selectedNiveau && niveaux.length > 0) {
+            const selectedNiveauData = niveaux.find(n => n.id === selectedNiveau);
+            if (selectedNiveauData && selectedNiveauData.Sections) {
+                setSectionsForSelectedNiveau(selectedNiveauData.Sections);
+            } else {
+                setSectionsForSelectedNiveau([]);
+            }
+        } else {
+            setSectionsForSelectedNiveau([]);
+        }
+        setSelectedSection(""); // Réinitialiser la sélection de section
+    }, [selectedNiveau, niveaux]);
 
-    // Gestion de la modal
-    const handleOpenPeriodModal = () => setShowPeriodModal(true);
-    const handleClosePeriodModal = () => setShowPeriodModal(false);
 
-    // Gestion des changements de temps
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setValues(prev => ({ ...prev, [name]: value }));
+    };
+
+    // États pour la configuration des périodes
+    const [formData, setFormData] = useState({
+        matin: { debut: '08:00', fin: '12:00', sousPeriodes: [] },
+        dejeuner: { debut: '12:00', fin: '13:00', label: 'Déjeuner', sousPeriodes: [] },
+        apres_midi: { debut: '13:00', fin: '16:00', sousPeriodes: [] }
+    });
+
+    const jours = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi'];
+
+    const [generationStatus, setGenerationStatus] = useState({
+        loading: false,
+        success: null,
+        message: ''
+    });
+
+    // Gestion des périodes
     const handleTimeChange = (periode, field, value) => {
         setFormData(prev => ({
             ...prev,
@@ -538,7 +254,6 @@ const EmploiDuTemps = () => {
         }));
     };
 
-    // Gestion du label du déjeuner
     const handleDejeunerLabelChange = (value) => {
         setFormData(prev => ({
             ...prev,
@@ -549,7 +264,6 @@ const EmploiDuTemps = () => {
         }));
     };
 
-    // Gestion des sous-périodes
     const handleAddSubPeriod = (periode) => {
         setFormData(prev => ({
             ...prev,
@@ -563,101 +277,23 @@ const EmploiDuTemps = () => {
         }));
     };
 
-    const handleSubPeriodChange = (periode, index, field, value) => {
-        setFormData(prev => {
-            const newSubPeriods = [...prev[periode].sousPeriodes];
-            newSubPeriods[index][field] = value;
 
-            return {
-                ...prev,
-                [periode]: {
-                    ...prev[periode],
-                    sousPeriodes: newSubPeriods
-                }
-            };
-        });
+    // Générer les heures basées sur les périodes configurées
+    // Modifiez la fonction generateHeures pour mieux gérer les sous-périodes
+    const formatTime = (timeString) => {
+        if (!timeString) return '';
+        // Si le temps est déjà au format HH:MM, retournez-le tel quel
+        if (timeString.length === 5) return timeString;
+        // Sinon, convertissez HH:MM:SS en HH:MM
+        return timeString.substring(0, 5);
     };
 
-    const handleRemoveSubPeriod = (periode, index) => {
-        setFormData(prev => {
-            const newSubPeriods = [...prev[periode].sousPeriodes];
-            newSubPeriods.splice(index, 1);
-
-            return {
-                ...prev,
-                [periode]: {
-                    ...prev[periode],
-                    sousPeriodes: newSubPeriods
-                }
-            };
-        });
-    };
-
-    // Sauvegarde des périodes
-    const handleSavePeriodes = async () => {
-        try {
-            const token = localStorage.getItem("token");
-            const periodesToSave = [
-                {
-                    type: 'matin',
-                    heureDebut: formData.matin.debut,
-                    heureFin: formData.matin.fin,
-                    sousPeriodes: formData.matin.sousPeriodes
-                },
-                {
-                    type: 'dejeuner',
-                    heureDebut: formData.dejeuner.debut,
-                    heureFin: formData.dejeuner.fin,
-                    label: formData.dejeuner.label,
-                    sousPeriodes: []
-                },
-                {
-                    type: 'apres_midi',
-                    heureDebut: formData.apres_midi.debut,
-                    heureFin: formData.apres_midi.fin,
-                    sousPeriodes: formData.apres_midi.sousPeriodes
-                }
-            ];
-
-            await axios.post(
-                'http://localhost:5000/periodes',
-                {
-                    niveauId: selectedNiveau,
-                    sectionId: selectedSection,
-                    periodes: periodesToSave
-                },
-                {
-                    headers: { Authorization: `Bearer ${token}` }
-                }
-            );
-
-            // Recharger les périodes après sauvegarde
-            const response = await axios.get(
-                `http://localhost:5000/periodes/${selectedNiveau}/${selectedSection}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            setPeriodes(response.data);
-
-            handleClosePeriodModal();
-            alert('Périodes enregistrées avec succès!');
-        } catch (error) {
-            console.error("Erreur lors de l'enregistrement:", error);
-            alert(`Erreur: ${error.response?.data?.message || error.message}`);
-        }
-    };
-
-    // Génération des heures basées sur les périodes configurées
+    // Utilisez cette fonction pour formater les heures dans generateHeures()
     const generateHeures = () => {
         let heures = [];
 
-        // Formatage des heures (supprimer les secondes si présentes)
-        const formatTime = (timeStr) => {
-            if (!timeStr) return '';
-            return timeStr.split(':').slice(0, 2).join(':');
-        };
-
         // Matin
-        if (formData.matin.sousPeriodes.length > 0) {
+        if (formData.matin.sousPeriodes?.length > 0) {
             formData.matin.sousPeriodes.forEach(sp => {
                 heures.push({
                     plage: `${formatTime(sp.debut)}-${formatTime(sp.fin)}`,
@@ -665,7 +301,7 @@ const EmploiDuTemps = () => {
                     type: 'matin'
                 });
             });
-        } else {
+        } else if (formData.matin.debut && formData.matin.fin) {
             heures.push({
                 plage: `${formatTime(formData.matin.debut)}-${formatTime(formData.matin.fin)}`,
                 label: '',
@@ -674,14 +310,16 @@ const EmploiDuTemps = () => {
         }
 
         // Déjeuner
-        heures.push({
-            plage: `${formatTime(formData.dejeuner.debut)}-${formatTime(formData.dejeuner.fin)}`,
-            label: formData.dejeuner.label,
-            type: 'dejeuner'
-        });
+        if (formData.dejeuner.debut && formData.dejeuner.fin) {
+            heures.push({
+                plage: `${formatTime(formData.dejeuner.debut)}-${formatTime(formData.dejeuner.fin)}`,
+                label: formData.dejeuner.label || 'Déjeuner',
+                type: 'dejeuner'
+            });
+        }
 
         // Après-midi
-        if (formData.apres_midi.sousPeriodes.length > 0) {
+        if (formData.apres_midi.sousPeriodes?.length > 0) {
             formData.apres_midi.sousPeriodes.forEach(sp => {
                 heures.push({
                     plage: `${formatTime(sp.debut)}-${formatTime(sp.fin)}`,
@@ -689,7 +327,7 @@ const EmploiDuTemps = () => {
                     type: 'apres_midi'
                 });
             });
-        } else {
+        } else if (formData.apres_midi.debut && formData.apres_midi.fin) {
             heures.push({
                 plage: `${formatTime(formData.apres_midi.debut)}-${formatTime(formData.apres_midi.fin)}`,
                 label: '',
@@ -700,24 +338,264 @@ const EmploiDuTemps = () => {
         return heures;
     };
 
-    // Gestion des sélections
-    const handleNiveauClick = (niveauId) => {
-        setSelectedNiveau(niveauId);
+    // Ajoutez un useEffect pour suivre les changements de formData
+    useEffect(() => {
+        console.log("FormData mis à jour:", formData);
+        // Cela vous aidera à déboguer et voir si les périodes sont bien mises à jour
+    }, [formData]);
+    // Gestion des changements dans le formulaire des matières
+    const handleFieldChange = (id, field, value) => {
+        setDurees(prev => ({
+            ...prev,
+            [id]: {
+                ...prev[id],
+                [field]: value
+            }
+        }));
     };
 
-    const handleSectionClick = (sectionId) => {
-        setSelectedSection(sectionId);
+    useEffect(() => {
+        if (values.cycle && filteredNiveaux.length > 0) {
+            filteredNiveaux.forEach(niveau => {
+                if (niveau.Sections && niveau.Sections.length > 0) {
+                    niveau.Sections.forEach(section => {
+                        fetchEmploiDuTemps(section.id);
+                    });
+                }
+            });
+        }
+    }, [values.cycle, filteredNiveaux]);
+
+    useEffect(() => {
+        const fetchCycle = async () => {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                console.error("❌ Aucun token trouvé !");
+                return;
+            }
+
+            try {
+                if (ecoleeId && ecoleeId !== "null" && ecoleeId !== "undefined") {
+                    // Récupérer le cycle spécifique à ecoleeId
+                    console.log(`🔍 Récupération du cycle pour l'ecoleeId: ${ecoleeId}`);
+                    const response = await axios.get(`http://localhost:5000/ecoles/${ecoleeId}`, {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    });
+
+                    console.log("✅ Cycle récupéré :", response.data.cycle);
+                    setCycle(response.data.cycle); // Mettre à jour le cycle spécifique
+                    setCycles([{ id: ecoleeId, nomCycle: response.data.cycle }]); // Ajouter le cycle spécifique à la liste des cycles
+                } else {
+                    // Récupérer tous les cycles disponibles
+                    console.log("🔍 Récupération de tous les cycles");
+                    const response = await axios.get('http://localhost:5000/cyclescolaires', {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    });
+
+                    console.log("✅ Tous les cycles récupérés :", response.data);
+                    setCycles(response.data); // Mettre à jour la liste des cycles
+                }
+            } catch (error) {
+                console.error("❌ Erreur lors de la récupération des cycles :", error);
+            }
+        };
+
+        fetchCycle();
+    }, [ecoleeId]); // Dépendance pour exécuter lorsque ecoleeId change
+    useEffect(() => {
+        if (cycle) {
+            setValues((prevValues) => ({
+                ...prevValues,
+                cycle: cycle,
+            }));
+        }
+    }, [cycle]);
+
+    const exportToPDF = () => {
+        if (!selectedSection) return;
+    
+        const doc = new jsPDF({
+            orientation: 'landscape'
+        });
+    
+        const section = sections.find(s => s.id === selectedSection);
+        const title = `Emploi du temps - ${section?.classe}`;
+        
+        // Titre du document
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text(title, 14, 15);
+        
+        // Préparation des données pour le tableau
+        const heures = generateHeures();
+        const headers = ['Heures/Jours', ...jours];
+        
+        const data = heures.map(heure => {
+            const row = [heure.plage + (heure.label ? `\n${heure.label}` : '')];
+            
+            jours.forEach(jour => {
+                if (heure.type === 'dejeuner') {
+                    row.push({
+                        content: heure.label,
+                        styles: { fillColor: [255, 242, 204], textColor: [0, 0, 0] } // Jaune clair
+                    });
+                } else {
+                    const sectionData = emploiDuTempsData[selectedSection] || {};
+                    const jourData = sectionData[jour] || {};
+                    const cours = jourData[heure.plage];
+                    
+                    if (cours) {
+                        const matiere = cours.matiere?.nom || cours.Matiere?.nom || 'Matière inconnue';
+                        const enseignant = cours.enseignant 
+                            ? `${cours.enseignant.nom} ${cours.enseignant.prenom}`
+                            : cours.Enseignant?.Employe?.User 
+                                ? `${cours.Enseignant.Employe.User.nom} ${cours.Enseignant.Employe.User.prenom}`
+                                : 'Enseignant non assigné';
+                        row.push({
+                            content: `${matiere}\n${enseignant}`,
+                            styles: { fillColor: [226, 239, 218], textColor: [0, 0, 0] } // Vert clair
+                        });
+                    } else {
+                        row.push({
+                            content: '-',
+                            styles: { fillColor: [255, 255, 255], textColor: [0, 0, 0] }
+                        });
+                    }
+                }
+            });
+            
+            return row;
+        });
+    
+        // Génération du tableau
+        autoTable(doc, {
+            head: [headers.map(header => ({
+                content: header,
+                styles: { 
+                    fillColor: [68, 114, 196], // Bleu
+                    textColor: [255, 255, 255], // Blanc
+                    fontStyle: 'bold'
+                }
+            }))],
+            body: data,
+            startY: 25,
+            styles: {
+                fontSize: 8,
+                cellPadding: 2,
+                valign: 'middle',
+                halign: 'center'
+            },
+            columnStyles: {
+                0: {
+                    cellWidth: 25,
+                    fillColor: [217, 225, 242], // Bleu très clair
+                    fontStyle: 'bold'
+                }
+            },
+            didDrawPage: (data) => {
+                // Footer
+                doc.setFontSize(10);
+                doc.setTextColor(150);
+                doc.text('Généré le ' + new Date().toLocaleDateString(), data.settings.margin.left, doc.internal.pageSize.height - 10);
+            }
+        });
+    
+        doc.save(`EmploiDuTemps_${section?.classe}.pdf`);
     };
 
-    if (loading) return <div className="d-flex justify-content-center mt-5"><div className="spinner-border" role="status"></div></div>;
-    if (error) return <Alert variant="danger" className="mt-3">{error}</Alert>;
+    // Fonction pour exporter en Excel
+    const exportToExcel = async () => {
+        if (!selectedSection) return;
+    
+        const section = sections.find(s => s.id === selectedSection);
+        const title = `Emploi du temps - ${section?.classe}`;
+        const heures = generateHeures();
+    
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Emploi du temps");
+    
+        const joursRow = ['Heures/Jours', ...jours];
+    
+        // Titre fusionné
+        worksheet.mergeCells(1, 1, 1, jours.length + 1);
+        const titleCell = worksheet.getCell('A1');
+        titleCell.value = title;
+        titleCell.font = { bold: true, size: 16 };
+        titleCell.alignment = { horizontal: 'center' };
+        titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'D9E1F2' } };
+    
+        // Ligne des entêtes
+        const headerRow = worksheet.addRow(joursRow);
+        headerRow.eachCell((cell) => {
+            cell.font = { bold: true, color: { argb: 'FFFFFF' } };
+            cell.alignment = { horizontal: 'center' };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '4472C4' } };
+        });
+    
+        // Ajout des lignes de données
+        heures.forEach((heure) => {
+            const row = [];
+            row.push(heure.plage + (heure.label ? ` (${heure.label})` : ''));
+    
+            jours.forEach((jour) => {
+                if (heure.type === 'dejeuner') {
+                    row.push(heure.label);
+                } else {
+                    const sectionData = emploiDuTempsData[selectedSection] || {};
+                    const jourData = sectionData[jour] || {};
+                    const cours = jourData[heure.plage];
+    
+                    if (cours) {
+                        const matiere = cours.matiere?.nom || cours.Matiere?.nom || 'Matière inconnue';
+                        const enseignant = cours.enseignant 
+                            ? `${cours.enseignant.nom} ${cours.enseignant.prenom}`
+                            : cours.Enseignant?.Employe?.User 
+                                ? `${cours.Enseignant.Employe.User.nom} ${cours.Enseignant.Employe.User.prenom}`
+                                : 'Enseignant non assigné';
+                        row.push(`${matiere}\n${enseignant}`);
+                    } else {
+                        row.push('-');
+                    }
+                }
+            });
+    
+            const addedRow = worksheet.addRow(row);
+            addedRow.eachCell((cell, colNumber) => {
+                cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    
+                if (colNumber === 1) {
+                    // Première colonne : heures
+                    cell.font = { bold: true };
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'D9E1F2' } };
+                } else if (heure.type === 'dejeuner') {
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2CC' } };
+                } else {
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'E2EFDA' } };
+                }
+            });
+        });
+    
+        // Ajustement des colonnes
+        worksheet.columns.forEach(column => {
+            column.width = 25;
+        });
+    
+        // Génération et téléchargement du fichier
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        saveAs(blob, `EmploiDuTemps_${section?.classe}.xlsx`);
+    };
 
     return (
         <div className="container-fluid py-3">
             <nav aria-label="breadcrumb">
                 <ol className="breadcrumb">
                     <li className="breadcrumb-item"><Link to="/dashboard">Dashboard</Link></li>
-                    <li className="breadcrumb-item active">Emploi du temps</li>
+                    <li className="breadcrumb-item active">Emploi du temps V2</li>
                 </ol>
             </nav>
 
@@ -729,80 +607,68 @@ const EmploiDuTemps = () => {
                     </h3>
                 </div>
                 <div className="card-body">
-                    {/* Sélection du niveau */}
-                    <div className="mb-4">
-                        <h4>Sélectionnez un niveau :</h4>
-                        <div className="d-flex flex-wrap gap-2">
-                            {niveaux.map((niveau) => (
-                                <button
-                                    key={niveau.id}
-                                    onClick={() => handleNiveauClick(niveau.id)}
-                                    className={`btn ${selectedNiveau === niveau.id ? 'btn-success' : 'btn-outline-secondary'}`}
-                                >
-                                    {niveau.nomniveau}
-                                </button>
-                            ))}
+                    <div className="row mb-4">
+                        <div className="col-md-4">
+                            <label>Cycle scolaire</label>
+                            <select
+                                className="form-control"
+                                value={selectedCycle}
+                                onChange={(e) => setSelectedCycle(e.target.value)}
+                                disabled={loading.cycles}
+                            >
+                                <option value="">Sélectionnez un cycle</option>
+                                {cycles.map(cycle => (
+                                    <option key={cycle.id} value={cycle.nomCycle}>
+                                        {cycle.nomCycle}
+                                    </option>
+                                ))}
+                            </select>
+                            {loading.cycles && <small>Chargement...</small>}
+                        </div>
+
+                        <div className="col-md-4">
+                            <label>Niveau</label>
+                            <select
+                                className="form-control"
+                                value={selectedNiveau}
+                                onChange={(e) => setSelectedNiveau(e.target.value)}
+                                disabled={!selectedCycle || loading.niveaux}
+                            >
+                                <option value="">Sélectionnez un niveau</option>
+                                {niveaux.map(niveau => (
+                                    <option key={niveau.id} value={niveau.id}>
+                                        {niveau.nomniveau} {niveau.nomniveuarab && `(${niveau.nomniveuarab})`}
+                                    </option>
+                                ))}
+                            </select>
+                            {loading.niveaux && <small>Chargement...</small>}
+                        </div>
+
+                        <div className="col-md-4">
+                            <label>Section</label>
+                            <select
+                                className="form-control"
+                                value={selectedSection}
+                                onChange={(e) => setSelectedSection(e.target.value)}
+                                disabled={!selectedNiveau || loading.sections}
+                            >
+                                <option value="">Sélectionnez une section</option>
+                                {sections.map(section => (
+                                    <option key={section.id} value={section.id}>
+                                        {section.classe} {section.classearab && `(${section.classearab})`}
+                                    </option>
+                                ))}
+                            </select>
+                            {loading.sections && <small>Chargement...</small>}
                         </div>
                     </div>
 
-                    {/* Sélection de la section */}
-                    {selectedNiveau && sections.length > 0 && (
-                        <div className="mb-4">
-                            <h4>Sélectionnez une section :</h4>
-                            <div className="d-flex flex-wrap gap-2">
-                                {sections.map((section) => (
-                                    <button
-                                        key={section.id}
-                                        onClick={() => handleSectionClick(section.id)}
-                                        className={`btn ${selectedSection === section.id ? 'btn-primary' : 'btn-outline-secondary'}`}
-                                    >
-                                        {section.classe} {section.classearab && `(${section.classearab})`}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Affichage de l'emploi du temps */}
                     {selectedSection && (
                         <div className="mt-4">
                             <div className="d-flex justify-content-between align-items-center mb-3">
                                 <h4 className="mb-0">
                                     Emploi du temps - {sections.find(s => s.id === selectedSection)?.classe}
                                 </h4>
-                                <div>
-                                    <button
-                                        className="btn btn-warning ml-2"
-                                        onClick={handleGenererAuto}
-                                        disabled={generationStatus.loading}
-                                    >
-                                        {generationStatus.loading ? (
-                                            <>
-                                                <span className="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
-                                                Génération...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <i className="fas fa-magic mr-2"></i>
-                                                Générer automatiquement
-                                            </>
-                                        )}
-                                    </button>
-                                    <button
-                                        className="btn btn-secondary mr-2"
-                                        onClick={handleOpenMatieresModal}
-                                    >
-                                        <i className="fas fa-book mr-2"></i>
-                                        Durée des matières
-                                    </button>
-                                    <button
-                                        className="btn btn-info"
-                                        onClick={handleOpenPeriodModal}
-                                    >
-                                        <i className="fas fa-clock mr-2"></i>
-                                        Configurer les périodes
-                                    </button>
-                                </div>
                             </div>
 
                             <div className="table-responsive">
@@ -834,18 +700,22 @@ const EmploiDuTemps = () => {
                                                         );
                                                     }
 
-                                                    const cours = emploiDuTemps.find(
-                                                        (c) =>
-                                                            c.jour.toLowerCase() === jour.toLowerCase() &&
-                                                            c.heure === heure.plage
-                                                    );
+                                                    const sectionData = emploiDuTempsData[selectedSection] || {};
+                                                    const jourData = sectionData[jour] || {};
+                                                    const cours = jourData[heure.plage];
 
                                                     return (
                                                         <td key={`${jour}-${idx}`} className="align-middle">
                                                             {cours ? (
                                                                 <div className="text-center p-2 bg-light rounded">
-                                                                    <strong className="d-block">{cours.Matiere?.nom || cours.matiere?.nom || 'Matière inconnue'}</strong>
-                                                                    {cours.Enseignant?.Employe?.User ? (
+                                                                    <strong className="d-block">
+                                                                        {cours.matiere?.nom || cours.Matiere?.nom || 'Matière inconnue'}
+                                                                    </strong>
+                                                                    {cours.enseignant ? (
+                                                                        <span className="text-muted">
+                                                                            {cours.enseignant.nom} {cours.enseignant.prenom}
+                                                                        </span>
+                                                                    ) : cours.Enseignant?.Employe?.User ? (
                                                                         <span className="text-muted">
                                                                             {cours.Enseignant.Employe.User.nom} {cours.Enseignant.Employe.User.prenom}
                                                                         </span>
@@ -861,333 +731,27 @@ const EmploiDuTemps = () => {
                                                 })}
                                             </tr>
                                         ))}
+
                                     </tbody>
                                 </table>
                             </div>
 
                             {/* Boutons d'action */}
                             <div className="mt-3 d-flex justify-content-end gap-2">
-                                <button className="btn btn-success">
-                                    <i className="fas fa-plus mr-2"></i>
-                                    Ajouter un cours
+                                <button className="btn btn-primary" onClick={exportToPDF}>
+                                    <i className="fas fa-file-pdf mr-2"></i>
+                                    PDF
                                 </button>
-                                <button className="btn btn-primary">
-                                    <i className="fas fa-print mr-2"></i>
-                                    Imprimer
+                                <button className="btn btn-success" onClick={exportToExcel}>
+                                    <i className="fas fa-file-excel mr-2"></i>
+                                    Excel
                                 </button>
                             </div>
                         </div>
                     )}
                 </div>
             </div>
-
-            {/* Modal de configuration des périodes */}
-            <Modal show={showPeriodModal} onHide={handleClosePeriodModal} size="lg">
-                <Modal.Header closeButton className="bg-primary text-white">
-                    <Modal.Title>Configuration des périodes horaires</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <Form>
-                        {/* Configuration matin */}
-                        <div className="mb-4 p-3 border rounded">
-                            <h5 className="mb-3">
-                                <i className="fas fa-sun mr-2 text-warning"></i>
-                                Période du matin
-                            </h5>
-                            <Row className="mb-3">
-                                <Col md={5}>
-                                    <Form.Label>Heure de début</Form.Label>
-                                    <Form.Control
-                                        type="time"
-                                        value={formData.matin.debut}
-                                        onChange={(e) => handleTimeChange('matin', 'debut', e.target.value)}
-                                    />
-                                </Col>
-                                <Col md={5}>
-                                    <Form.Label>Heure de fin</Form.Label>
-                                    <Form.Control
-                                        type="time"
-                                        value={formData.matin.fin}
-                                        onChange={(e) => handleTimeChange('matin', 'fin', e.target.value)}
-                                    />
-                                </Col>
-                            </Row>
-
-                            <h6 className="mt-4 mb-3">
-                                <i className="fas fa-list-ul mr-2"></i>
-                                Sous-périodes
-                            </h6>
-                            {formData.matin.sousPeriodes.length === 0 && (
-                                <Alert variant="info" className="small">
-                                    Aucune sous-période définie. La plage globale sera utilisée.
-                                </Alert>
-                            )}
-                            {formData.matin.sousPeriodes.map((sp, index) => (
-                                <Row key={`matin-${index}`} className="mb-3 align-items-center">
-                                    <Col md={3}>
-                                        <Form.Control
-                                            type="time"
-                                            value={sp.debut}
-                                            onChange={(e) => handleSubPeriodChange('matin', index, 'debut', e.target.value)}
-                                            placeholder="Début"
-                                        />
-                                    </Col>
-                                    <Col md={3}>
-                                        <Form.Control
-                                            type="time"
-                                            value={sp.fin}
-                                            onChange={(e) => handleSubPeriodChange('matin', index, 'fin', e.target.value)}
-                                            placeholder="Fin"
-                                        />
-                                    </Col>
-                                    <Col md={4}>
-                                        <Form.Control
-                                            type="text"
-                                            value={sp.label}
-                                            onChange={(e) => handleSubPeriodChange('matin', index, 'label', e.target.value)}
-                                            placeholder="Libellé (ex: Cours, Récréation...)"
-                                        />
-                                    </Col>
-                                    <Col md={2} className="text-center">
-                                        <Button
-                                            variant="outline-danger"
-                                            size="sm"
-                                            onClick={() => handleRemoveSubPeriod('matin', index)}
-                                        >
-                                            <i className="fas fa-trash"></i>
-                                        </Button>
-                                    </Col>
-                                </Row>
-                            ))}
-                            <Button
-                                variant="outline-primary"
-                                size="sm"
-                                onClick={() => handleAddSubPeriod('matin')}
-                                className="mt-2"
-                            >
-                                <i className="fas fa-plus mr-2"></i>
-                                Ajouter une sous-période
-                            </Button>
-                        </div>
-
-                        {/* Configuration déjeuner */}
-                        <div className="mb-4 p-3 border rounded bg-light">
-                            <h5 className="mb-3">
-                                <i className="fas fa-utensils mr-2 text-success"></i>
-                                Pause déjeuner
-                            </h5>
-                            <Row className="mb-3">
-                                <Col md={5}>
-                                    <Form.Label>Heure de début</Form.Label>
-                                    <Form.Control
-                                        type="time"
-                                        value={formData.dejeuner.debut}
-                                        onChange={(e) => handleTimeChange('dejeuner', 'debut', e.target.value)}
-                                    />
-                                </Col>
-                                <Col md={5}>
-                                    <Form.Label>Heure de fin</Form.Label>
-                                    <Form.Control
-                                        type="time"
-                                        value={formData.dejeuner.fin}
-                                        onChange={(e) => handleTimeChange('dejeuner', 'fin', e.target.value)}
-                                    />
-                                </Col>
-                            </Row>
-                            <Row>
-                                <Col md={10}>
-                                    <Form.Label>Libellé à afficher</Form.Label>
-                                    <Form.Control
-                                        type="text"
-                                        value={formData.dejeuner.label}
-                                        onChange={(e) => handleDejeunerLabelChange(e.target.value)}
-                                        placeholder="Libellé (ex: Déjeuner, Pause...)"
-                                    />
-                                </Col>
-                            </Row>
-                        </div>
-
-                        {/* Configuration après-midi */}
-                        <div className="p-3 border rounded">
-                            <h5 className="mb-3">
-                                <i className="fas fa-moon mr-2 text-info"></i>
-                                Période de l'après-midi
-                            </h5>
-                            <Row className="mb-3">
-                                <Col md={5}>
-                                    <Form.Label>Heure de début</Form.Label>
-                                    <Form.Control
-                                        type="time"
-                                        value={formData.apres_midi.debut}
-                                        onChange={(e) => handleTimeChange('apres_midi', 'debut', e.target.value)}
-                                    />
-                                </Col>
-                                <Col md={5}>
-                                    <Form.Label>Heure de fin</Form.Label>
-                                    <Form.Control
-                                        type="time"
-                                        value={formData.apres_midi.fin}
-                                        onChange={(e) => handleTimeChange('apres_midi', 'fin', e.target.value)}
-                                    />
-                                </Col>
-                            </Row>
-
-                            <h6 className="mt-4 mb-3">
-                                <i className="fas fa-list-ul mr-2"></i>
-                                Sous-périodes
-                            </h6>
-                            {formData.apres_midi.sousPeriodes.length === 0 && (
-                                <Alert variant="info" className="small">
-                                    Aucune sous-période définie. La plage globale sera utilisée.
-                                </Alert>
-                            )}
-                            {formData.apres_midi.sousPeriodes.map((sp, index) => (
-                                <Row key={`apres_midi-${index}`} className="mb-3 align-items-center">
-                                    <Col md={3}>
-                                        <Form.Control
-                                            type="time"
-                                            value={sp.debut}
-                                            onChange={(e) => handleSubPeriodChange('apres_midi', index, 'debut', e.target.value)}
-                                            placeholder="Début"
-                                        />
-                                    </Col>
-                                    <Col md={3}>
-                                        <Form.Control
-                                            type="time"
-                                            value={sp.fin}
-                                            onChange={(e) => handleSubPeriodChange('apres_midi', index, 'fin', e.target.value)}
-                                            placeholder="Fin"
-                                        />
-                                    </Col>
-                                    <Col md={4}>
-                                        <Form.Control
-                                            type="text"
-                                            value={sp.label}
-                                            onChange={(e) => handleSubPeriodChange('apres_midi', index, 'label', e.target.value)}
-                                            placeholder="Libellé (ex: Cours, Récréation...)"
-                                        />
-                                    </Col>
-                                    <Col md={2} className="text-center">
-                                        <Button
-                                            variant="outline-danger"
-                                            size="sm"
-                                            onClick={() => handleRemoveSubPeriod('apres_midi', index)}
-                                        >
-                                            <i className="fas fa-trash"></i>
-                                        </Button>
-                                    </Col>
-                                </Row>
-                            ))}
-                            <Button
-                                variant="outline-primary"
-                                size="sm"
-                                onClick={() => handleAddSubPeriod('apres_midi')}
-                                className="mt-2"
-                            >
-                                <i className="fas fa-plus mr-2"></i>
-                                Ajouter une sous-période
-                            </Button>
-                        </div>
-                    </Form>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={handleClosePeriodModal}>
-                        <i className="fas fa-times mr-2"></i>
-                        Annuler
-                    </Button>
-                    <Button variant="primary" onClick={handleSavePeriodes}>
-                        <i className="fas fa-save mr-2"></i>
-                        Enregistrer les périodes
-                    </Button>
-                </Modal.Footer>
-            </Modal>
-
-
-            <Modal show={showMatieresModal} onHide={() => setShowMatieresModal(false)} size="lg">
-                <Modal.Header closeButton className="bg-primary text-white">
-                    <Modal.Title>Configuration des matières pour le niveau</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <div className="table-responsive">
-                        <table className="table table-bordered table-hover">
-                            <thead className="thead-light">
-                                <tr>
-                                    <th>Matière</th>
-                                    <th style={{ width: '120px' }}>Durée totale (h/semaine)</th>
-                                    <th style={{ width: '120px' }}>Durée séance (min)/jour</th>
-                                    <th style={{ width: '150px' }}>Nb. séances/jour</th>
-                                    <th style={{ width: '150px' }}>Préférence</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {matieresNiveau.map((item) => (
-                                    <tr key={item.id}>
-                                        <td>
-                                            {item.Matiere?.nom || 'N/A'}
-                                            {item.Matiere?.nomarabe && (
-                                                <div className="text-muted small">{item.Matiere.nomarabe}</div>
-                                            )}
-                                        </td>
-                                        <td>
-                                            <Form.Control
-                                                type="number"
-                                                min="0"
-                                                value={durees[item.id]?.duree || ''}
-                                                onChange={(e) => handleFieldChange(item.id, 'duree', e.target.value)}
-                                                placeholder="Heures"
-                                            />
-                                        </td>
-                                        <td>
-                                            <Form.Control
-                                                type="number"
-                                                min="0"
-                                                value={durees[item.id]?.dureeseance || ''}
-                                                onChange={(e) => handleFieldChange(item.id, 'dureeseance', e.target.value)}
-                                                placeholder="Minutes"
-                                            />
-                                        </td>
-                                        <td>
-                                            <Form.Control
-                                                type="number"
-                                                min="0"
-                                                max="10"
-                                                value={durees[item.id]?.nombreseanceparjour || ''}
-                                                onChange={(e) => handleFieldChange(item.id, 'nombreseanceparjour', e.target.value)}
-                                                placeholder="Nombre"
-                                            />
-                                        </td>
-                                        <td>
-                                            <Form.Control
-                                                as="select"
-                                                value={durees[item.id]?.preference || ''}
-                                                onChange={(e) => handleFieldChange(item.id, 'preference', e.target.value)}
-                                            >
-                                                <option value="">Sélectionner</option>
-                                                <option value="Uniquement La matiné">Uniquement La matiné</option>
-                                                <option value="Uniquement L'après-midi">Uniquement L'après-midi</option>
-                                                <option value="Plus Grand Moitié La Matin">Plus Grand Moitié La Matin</option>
-                                                <option value="Moitié Moitié">Moitié Moitié</option>
-                                            </Form.Control>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowMatieresModal(false)}>
-                        <i className="fas fa-times mr-2"></i>
-                        Annuler
-                    </Button>
-                    <Button variant="primary" onClick={handleSaveConfigurations}>
-                        <i className="fas fa-save mr-2"></i>
-                        Enregistrer
-                    </Button>
-                </Modal.Footer>
-            </Modal>
         </div>
     );
 };
-
 export default EmploiDuTemps;

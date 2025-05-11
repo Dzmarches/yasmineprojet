@@ -1,5 +1,7 @@
 import express from 'express';
-import { getNiveaux, createNiveau, updateNiveau, deleteNiveau,getNiveauById } from '../../controllers/Admin/NiveauController.js';
+import { getNiveaux, createNiveau, updateNiveau, deleteNiveau,getNiveauById , getNiveauxByCycle,
+  getNiveauxWithSectionsByCycle
+} from '../../controllers/Admin/NiveauController.js';
 import NiveauxMatieres from '../../models/Admin/NiveauxMatieres.js';
 import Matiere from '../../models/Admin/Matiere.js';
 import Enseignant from '../../models/Admin/Enseignant.js';
@@ -13,6 +15,10 @@ router.post('/', createNiveau); // Ajouter un niveau
 router.get('/:id', getNiveauById);
 router.put('/modifier/:id', updateNiveau); // Modifier un niveau
 router.delete('/:id', deleteNiveau); // Supprimer un niveau
+// Dans vos routes (par exemple niveauxRoutes.js)
+router.get('/by-cycle/:cycle',getNiveauxByCycle); 
+router.get('/by-cycle-with-sections/:cycle',getNiveauxWithSectionsByCycle);
+
 // Récupérer les matières par niveau
 router.get('/:niveauId/matieres', async (req, res) => {
   try {

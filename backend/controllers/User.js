@@ -243,7 +243,6 @@ const getMacAddress = (ip) => {
   //   });
   // });
 };
-
 export const Login = async (req, res) => {
   const { username, password, latitude, longitude } = req.body;
 
@@ -277,9 +276,13 @@ export const Login = async (req, res) => {
       return res.status(401).json({ message: "Nom d'utilisateur ou mot de passe incorrect." });
     }
 
+    // 3. Vérification du statut du compte
+    if (user.statuscompte === 'désactiver') {
+      return res.status(403).json({ message: "Votre compte n'est pas encore activé." });
+    }
 
+    // 4. Tentative de récupération des informations de connexion
     try {
-      // 3. Tentative de récupération des informations de connexion (optionnelles)
       const ip = await getClientIp(req);
       let locationInfo = {};
 
@@ -300,28 +303,6 @@ export const Login = async (req, res) => {
         console.warn("Erreur lors de la récupération de l'adresse MAC:", macError);
       }
 
-      // 3. Récupération des informations de connexion
-      // const ip = await getClientIp(req);
-      // const macAddress = await getMacAddress(ip);
-      // const location = await getLocationFromIp(ip);
-      // const city = location?.city || "Inconnu";
-      // const region = location?.region || "Inconnu";
-
-      // 4. Mise à jour des informations de connexion
-      await User.update(
-        {
-          // lastLogin: new Date(),
-          // lastIp: ip,
-          // lastMac: macAddress,
-          // lastLocation: `${city}, ${region}`,
-          // latitude,
-          // longitude,
-        },
-        { where: { id: user.id } }
-      );
-
-
-      // 4. Mise à jour des informations de connexion (même si partielles)
       await User.update(
         {
           lastLogin: new Date(),
@@ -335,9 +316,9 @@ export const Login = async (req, res) => {
         },
         { where: { id: user.id } }
       );
+
     } catch (infoError) {
       console.warn("Erreur lors de la collecte des informations de connexion:", infoError);
-      // On continue même si les informations de connexion n'ont pas pu être récupérées
       await User.update(
         {
           lastLogin: new Date(),
@@ -346,7 +327,7 @@ export const Login = async (req, res) => {
       );
     }
 
-    // Le reste du code reste inchangé...
+    // 5. Traitement des rôles, permissions, école associée
     const ecoleeId = user.UserEcoles?.length > 0
       ? user.UserEcoles[0].dataValues.ecoleeId
       : null;
@@ -376,6 +357,7 @@ export const Login = async (req, res) => {
       ? user.Roles.filter(role => role !== null).map(role => role.id)
       : [];
 
+    // 6. Génération du token
     const token = jwt.sign(
       {
         userId: user.id,
@@ -390,6 +372,7 @@ export const Login = async (req, res) => {
       { expiresIn: "2d" }
     );
 
+    // 7. Réponse finale
     res.json({
       token,
       username: user.username,
@@ -562,3 +545,171 @@ export const Logout = async (req, res) => {
 // };
 
 
+// export const Login = async (req, res) => {
+//   const { username, password, latitude, longitude } = req.body;
+
+//   try {
+//     // 1. Recherche de l'utilisateur avec ses relations de base
+//     const user = await User.findOne({
+//       where: { username },
+//       include: [
+//         {
+//           model: UserEcole,
+//           include: [{ model: Ecole, attributes: ["id", "nomecole"] }],
+//           attributes: ["ecoleeId"],
+//           required: false
+//         },
+//         {
+//           model: Role,
+//           attributes: ["id", "name"],
+//           through: { attributes: [] },
+//           required: false
+//         },
+//       ],
+//     });
+
+//     if (!user) {
+//       return res.status(401).json({ message: "Nom d'utilisateur ou mot de passe incorrect." });
+//     }
+
+//     // 2. Vérification du mot de passe
+//     const match = await bcrypt.compare(password, user.password);
+//     if (!match) {
+//       return res.status(401).json({ message: "Nom d'utilisateur ou mot de passe incorrect." });
+//     }
+
+
+//     try {
+//       // 3. Tentative de récupération des informations de connexion (optionnelles)
+//       const ip = await getClientIp(req);
+//       let locationInfo = {};
+
+//       try {
+//         const location = await getLocationFromIp(ip);
+//         locationInfo = {
+//           city: location?.city || "Inconnu",
+//           region: location?.region || "Inconnu"
+//         };
+//       } catch (ipError) {
+//         console.warn("Erreur lors de la récupération de la localisation IP:", ipError);
+//       }
+
+//       let macAddress = null;
+//       try {
+//         macAddress = await getMacAddress(ip);
+//       } catch (macError) {
+//         console.warn("Erreur lors de la récupération de l'adresse MAC:", macError);
+//       }
+
+//       // 3. Récupération des informations de connexion
+//       // const ip = await getClientIp(req);
+//       // const macAddress = await getMacAddress(ip);
+//       // const location = await getLocationFromIp(ip);
+//       // const city = location?.city || "Inconnu";
+//       // const region = location?.region || "Inconnu";
+
+//       // 4. Mise à jour des informations de connexion
+//       await User.update(
+//         {
+//           // lastLogin: new Date(),
+//           // lastIp: ip,
+//           // lastMac: macAddress,
+//           // lastLocation: `${city}, ${region}`,
+//           // latitude,
+//           // longitude,
+//         },
+//         { where: { id: user.id } }
+//       );
+
+
+//       // 4. Mise à jour des informations de connexion (même si partielles)
+//       await User.update(
+//         {
+//           lastLogin: new Date(),
+//           lastIp: ip || null,
+//           lastMac: macAddress || null,
+//           lastLocation: locationInfo.city && locationInfo.region
+//             ? `${locationInfo.city}, ${locationInfo.region}`
+//             : null,
+//           latitude: latitude || null,
+//           longitude: longitude || null,
+//         },
+//         { where: { id: user.id } }
+//       );
+//     } catch (infoError) {
+//       console.warn("Erreur lors de la collecte des informations de connexion:", infoError);
+//       // On continue même si les informations de connexion n'ont pas pu être récupérées
+//       await User.update(
+//         {
+//           lastLogin: new Date(),
+//         },
+//         { where: { id: user.id } }
+//       );
+//     }
+
+//     // Le reste du code reste inchangé...
+//     const ecoleeId = user.UserEcoles?.length > 0
+//       ? user.UserEcoles[0].dataValues.ecoleeId
+//       : null;
+
+//     const userRolesWithPermissions = await UserRole.findAll({
+//       where: { userId: user.id },
+//       include: [{
+//         model: Permission,
+//         attributes: ['name'],
+//         required: false,
+//         where: {
+//           id: { [Op.not]: null }
+//         }
+//       }]
+//     });
+
+//     const permissions = userRolesWithPermissions
+//       .filter(ur => ur.Permission !== null)
+//       .map(ur => ur.Permission.name)
+//       .filter(name => name);
+
+//     const roles = user.Roles
+//       ? user.Roles.filter(role => role !== null).map(role => role.name)
+//       : [];
+
+//     const roleIds = user.Roles
+//       ? user.Roles.filter(role => role !== null).map(role => role.id)
+//       : [];
+
+//     const token = jwt.sign(
+//       {
+//         userId: user.id,
+//         username: user.username,
+//         ecoleId: user.ecoleId,
+//         ecoleeId,
+//         roles,
+//         roleIds,
+//         permissions,
+//       },
+//       process.env.ACCESS_TOKEN_SECRET,
+//       { expiresIn: "2d" }
+//     );
+
+//     res.json({
+//       token,
+//       username: user.username,
+//       userId: user.id,
+//       ecoleId: user.ecoleId,
+//       ecoleeId,
+//       roles,
+//       roleIds,
+//       permissions,
+//       redirectTo: roles.includes("Administrateur")
+//         ? "/dashboardadministrateur"
+//         : "/dashboard",
+//     });
+
+//   } catch (error) {
+//     console.error("Erreur lors du login:", error);
+//     res.status(500).json({
+//       message: "Une erreur est survenue lors de la connexion.",
+//       error: process.env.NODE_ENV === 'development' ? error.message : null
+//     });
+//   }
+// }; c'est ça la dernier méthode de login

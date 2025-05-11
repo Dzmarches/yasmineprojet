@@ -4,6 +4,7 @@ import EcoleNiveau from '../../models/Admin/EcoleNiveau.js';
 import Sequelize from 'sequelize';
 import jwt from 'jsonwebtoken';
 import NiveauxMatieres from '../../models/Admin/NiveauxMatieres.js';
+import Section from '../../models/Admin/Section.js';
 
 export const getNiveaux = async (req, res) => {
     try {
@@ -219,5 +220,45 @@ export const deleteNiveau = async (req, res) => {
     } catch (err) {
         console.error("Erreur lors de l'archivage du niveau :", err);
         res.status(500).json({ error: 'Erreur lors de l\'archivage du niveau' });
+    }
+};
+
+// Dans votre contrôleur (par exemple niveauxController.js)
+
+export const getNiveauxByCycle = async (req, res) => {
+    try {
+        const { cycle } = req.params;
+        
+        const niveaux = await Niveaux.findAll({
+            where: { cycle },
+            order: [['ordre', 'ASC']] // Optionnel: tri par ordre
+        });
+
+        res.status(200).json(niveaux);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Erreur lors de la récupération des niveaux" });
+    }
+};
+
+// Nouveau contrôleur
+export const getNiveauxWithSectionsByCycle = async (req, res) => {
+    try {
+        const { cycle } = req.params;
+
+        const niveaux = await Niveaux.findAll({
+            where: { cycle },
+            include: [{
+                model: Section,
+                where: { archiver: 0 },
+                required: false,
+            }],
+            order: [['ordre', 'ASC']]
+        });
+
+        res.status(200).json(niveaux);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Erreur lors de la récupération des niveaux et sections." });
     }
 };

@@ -34,7 +34,7 @@ const Login = () => {
     const Auth = async (e) => {
         e.preventDefault();
         console.log("Tentative de connexion...");
-    
+
         try {
             let location = null;
             try {
@@ -43,31 +43,33 @@ const Login = () => {
                 console.warn("La géolocalisation n'est pas disponible:", geoError.message);
                 // On continue sans la localisation
             }
-    
+
             const response = await axios.post('http://localhost:5000/Login', {
                 username,
                 password,
                 latitude: location?.latitude || null,
                 longitude: location?.longitude || null,
             });
-    
+
             const { token, redirectTo, username: responseUsername, userId, ecoleId, ecoleeId, permissions } = response.data;
-    
+
             localStorage.setItem('token', token);
             localStorage.setItem('username', responseUsername);
             localStorage.setItem('userId', userId);
             localStorage.setItem('ecoleId', ecoleId);
             localStorage.setItem('ecoleeId', ecoleeId);
             localStorage.setItem('permissions', JSON.stringify(permissions));
-    
+
             login(token, responseUsername, userId, ecoleId, ecoleeId, permissions);
             console.log("Permissions stockées :", permissions);
-    
+
             navigate(redirectTo);
         } catch (error) {
-            console.error("Erreur lors de la connexion :", error);
-            setMsg(error.response?.data?.message || "Erreur lors de la connexion");
+            const errorMsg = error.response?.data?.message || "Erreur lors de la connexion";
+            console.error("Erreur lors de la connexion :", errorMsg);
+            setMsg(errorMsg);
         }
+
     };
 
     return (

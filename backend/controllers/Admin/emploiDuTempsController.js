@@ -8,6 +8,8 @@ import Matiere from '../../models/Admin/Matiere.js';
 import Enseignant from '../../models/Admin/Enseignant.js';
 import Employe from '../../models/RH/employe.js';
 import User from '../../models/User.js';
+import Section from '../../models/Admin/Section.js';
+import Niveaux from '../../models/Admin/Niveaux.js';
 
 // Fonction utilitaire pour calculer la durée d'une période en heures
 function calculerDureePeriode(debut, fin) {
@@ -15,6 +17,86 @@ function calculerDureePeriode(debut, fin) {
     const [h2, m2] = fin.split(':').map(Number);
     return (h2 - h1) + (m2 - m1) / 60;
 }
+
+
+export const getEmploiDuTempsEnseignant = async (req, res) => {
+    try {
+        const enseignantId = req.params.enseignantId;
+        
+        // Vérifier si l'enseignant existe
+        const enseignant = await Enseignant.findByPk(enseignantId);
+        if (!enseignant) {
+            return res.status(404).json({ message: "Enseignant non trouvé" });
+        }
+
+        // Récupérer l'emploi du temps avec les associations
+        const emploiDuTemps = await EmploiDuTemps.findAll({
+            where: { enseignantId: enseignantId },
+            include: [
+                {
+                    model: Matiere,
+                    attributes: ['id', 'nom']
+                },
+                {
+                    model: Section,
+                    attributes: ['id', 'classe', 'classearab']
+                },
+                {
+                    model: Niveaux,
+                    attributes: ['id', 'nomniveau', 'nomniveuarab']
+                }
+            ],
+            order: [
+                ['jour', 'ASC'],
+                ['heure', 'ASC']
+            ]
+        });
+
+        // Organiser les données par jour pour une meilleure présentation
+        const emploiOrganise = {};
+        const jours = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi'];
+
+        // Initialiser la structure
+        jours.forEach(jour => {
+            emploiOrganise[jour] = [];
+        });
+
+        // Remplir avec les données
+        emploiDuTemps.forEach(cours => {
+            if (emploiOrganise[cours.jour]) {
+                emploiOrganise[cours.jour].push({
+                    id: cours.id,
+                    heure: cours.heure,
+                    duree: cours.duree,
+                    matiere: {
+                        id: cours.Matiere.id,
+                        nom: cours.Matiere.nom,
+                        code: cours.Matiere.code
+                    },
+                    section: {
+                        id: cours.Section.id,
+                        classe: cours.Section.classe,
+                        classeArab: cours.Section.classearab
+                    },
+                    niveau: {
+                        id: cours.Niveaux.id,
+                        nom: cours.Niveaux.nomniveau,
+                        nomArab: cours.Niveaux.nomniveuarab
+                    }
+                });
+            }
+        });
+        console.log('emploi du temps ', emploiOrganise);
+        res.status(200).json(emploiOrganise);
+    } catch (error) {
+        console.error("Erreur lors de la récupération de l'emploi du temps:", error);
+        res.status(500).json({ 
+            message: "Erreur lors de la récupération de l'emploi du temps",
+            error: error.message 
+        });
+    }
+};
+
 export const getEmploiDuTempsBySection = async (req, res) => {
     try {
         const { sectionId } = req.params;
@@ -43,7 +125,7 @@ export const getEmploiDuTempsBySection = async (req, res) => {
             ]
         });
 
-        console.log('Données retournées:', JSON.stringify(emploiDuTemps, null, 2)); // Pour débogage
+        //console.log('Données retournées:', JSON.stringify(emploiDuTemps, null, 2)); // Pour débogage
         res.json(emploiDuTemps);
     } catch (error) {
         console.error(error);
@@ -83,11 +165,13 @@ export const updateDureeMatiere = async (req, res) => {
 // Gestion des périodes
 export const getPeriodes = async (req, res) => {
     try {
-        const { niveauId, sectionId } = req.params;
+        const { cycleId } = req.params;
+
         const periodes = await Periode.findAll({
-            where: { niveauId, sectionId },
+            where: { cycleId },
             order: [['heureDebut', 'ASC']]
         });
+
         res.status(200).json(periodes);
     } catch (error) {
         console.error("Erreur:", error);
@@ -95,20 +179,19 @@ export const getPeriodes = async (req, res) => {
     }
 };
 
+
 export const savePeriodes = async (req, res) => {
     try {
-        const { niveauId, sectionId, periodes } = req.body;
+        const { cycleId, periodes } = req.body;
 
-        // Supprimer les anciennes périodes
-        await Periode.destroy({ where: { niveauId, sectionId } });
+        await Periode.destroy({ where: { cycleId } });
 
-        // Ajouter les nouvelles périodes
         const nouvellesPeriodes = await Periode.bulkCreate(
             periodes.map(p => ({
                 ...p,
-                niveauId,
-                sectionId,
-                sousPeriodes: JSON.stringify(p.sousPeriodes || [])
+                cycleId,
+                sousPeriodes: p.sousPeriodes || [],
+                label: p.label || null
             }))
         );
 
@@ -121,6 +204,7 @@ export const savePeriodes = async (req, res) => {
         res.status(500).json({ message: "Erreur lors de l'enregistrement" });
     }
 };
+
 
 // Génération automatique de l'emploi du temps
 // export const genererEmploiAuto = async (req, res) => {

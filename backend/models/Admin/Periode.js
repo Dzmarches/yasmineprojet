@@ -7,19 +7,11 @@ const Periode = db.define('Periode', {
         primaryKey: true,
         autoIncrement: true
     },
-    niveauId: {
+    cycleId: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: 'niveauxes',
-            key: 'id'
-        }
-    },
-    sectionId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: 'Sections',
+            model: 'Cyclescolaires',
             key: 'id'
         }
     },
@@ -48,7 +40,7 @@ const Periode = db.define('Periode', {
     indexes: [
         {
             unique: true,
-            fields: ['niveauId', 'sectionId', 'type']
+            fields: ['cycleId', 'type']
         }
     ]
 });

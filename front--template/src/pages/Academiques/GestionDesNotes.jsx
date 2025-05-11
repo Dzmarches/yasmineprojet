@@ -6,10 +6,14 @@ import NoteModal from './NoteModal';
 import AbsenceRemarqueRow from './AbsenceRemarqueRow';
 import DecisionFinaleRow from './DecisionFinaleRow';
 import add from '../../assets/imgs/add.png';
+import edite from '../../assets/imgs/edit.png';
+import delet from '../../assets/imgs/delete.png';
+import archive from '../../assets/imgs/archive.png';
 import show from '../../assets/imgs/vu.png';
 import './modal.css';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { FaCalendarAlt, FaUsers, FaUserCheck, FaChartLine, FaClipboardList } from 'react-icons/fa';
+import { ToastContainer, toast } from 'react-toastify';
 
 const HorizontalStepper = () => {
     const [exemptionAll, setExemptionAll] = useState({});
@@ -44,9 +48,13 @@ const HorizontalStepper = () => {
     const [enseignantsParMatiere, setEnseignantsParMatiere] = useState({});
     const [selectedStudents, setSelectedStudents] = useState([]);
     const [selectAll, setSelectAll] = useState(false);
+    const [allSelected, setAllSelected] = useState(false);
+    const [remarques, setRemarques] = useState([]);
+    const [remarque, setRemarque] = useState(''); // Changé de [] à ''
+    const [loadingRemarques, setLoadingRemarques] = useState(false);
+    const [editMode, setEditMode] = useState(false);
+    const [editId, setEditId] = useState(null);
 
-
-    const [remarque, setRemarque] = useState([]);
     const [trimestreDates, setTrimestreDates] = useState({
         debut: '',
         fin: ''
@@ -62,6 +70,90 @@ const HorizontalStepper = () => {
         });
     };
 
+    const onSelectAll = () => {
+        if (allSelected) {
+            setSelectedStudents([]);
+        } else {
+            setSelectedStudents(eleves.map(eleve => eleve.id));
+        }
+        setAllSelected(!allSelected);
+    };
+
+    // Fonction pour mettre à jour les élèves sélectionnés
+    // Dans GestionDesNotes.jsx
+    const handleUpdateEleves = async () => {
+        if (!selectedAnnee || !selectedNiveau || selectedStudents.length === 0) {
+            alert('Veuillez sélectionner une année scolaire, un niveau et au moins un élève');
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('token');
+            const nextNiveau = findNextNiveau(selectedNiveau);
+            if (!nextNiveau) {
+                alert('Impossible de déterminer le niveau suivant');
+                return;
+            }
+
+            const currentYear = new Date(selectedAnnee.datedebut).getFullYear();
+            const nextAnnee = annees.find(a => {
+                const debut = new Date(a.datedebut).getFullYear();
+                return debut === currentYear + 1;
+            });
+
+            if (!nextAnnee) {
+                alert('Année scolaire suivante non trouvée');
+                return;
+            }
+
+            const updateData = selectedStudents.map(id => ({
+                id: parseInt(id),
+                niveauId: parseInt(nextNiveau.id),
+                annescolaireId: parseInt(nextAnnee.id),
+                cycle: nextNiveau.cycle
+            }));
+
+            console.log('📤 Données formatées envoyées au serveur :', updateData);
+
+            const response = await axios({
+                method: 'put',
+                url: 'http://localhost:5000/eleves/update-bulk',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                data: updateData
+            });
+
+            alert(`${response.data.updatedCount} élèves mis à jour avec succès!`);
+            setSelectedStudents([]);
+            setAllSelected(false);
+
+        } catch (error) {
+            console.error('❌ Erreur lors de la mise à jour:', error);
+            let errorMessage = error.response?.data?.message || error.message;
+
+            if (error.response?.data?.error) {
+                errorMessage += ` (Détails: ${error.response.data.error})`;
+            }
+
+            alert(`Erreur: ${errorMessage}`);
+        }
+    };
+
+
+    // Fonction utilitaire pour trouver le niveau suivant
+    const findNextNiveau = (currentNiveauId) => {
+        if (!niveaux || !currentNiveauId) return null;
+
+        const currentNiveau = niveaux.find(n => n.id === parseInt(currentNiveauId));
+        if (!currentNiveau) return null;
+
+        return niveaux.find(n =>
+            n.cycle === currentNiveau.cycle &&
+            n.ordre > currentNiveau.ordre
+        );
+    };
     // Fonction pour sélectionner/désélectionner tous les élèves
     const toggleSelectAll = () => {
         if (selectAll) {
@@ -244,7 +336,11 @@ const HorizontalStepper = () => {
     const handleShowModalRemarque = () => setShowModalRemarque(true);
     const handleCloseModalRemarque = () => {
         setShowModalRemarque(false);
+        setRemarque('');
+        setEditMode(false);
+        setEditId(null);
     };
+    
     const fetchEnseignantsParMatiere = async () => {
         if (!selectedNiveau || !selectedSection) return;
 
@@ -1127,9 +1223,101 @@ const HorizontalStepper = () => {
     };
 
 
+    const fetchRemarques = async () => {
+        try {
+            setLoadingRemarques(true);
+            const res = await axios.get('http://localhost:5000/remarques/liste', {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+            });
+            setRemarques(res.data);
+        } catch (error) {
+            toast.error("Erreur lors du chargement des remarques.");
+        } finally {
+            setLoadingRemarques(false);
+        }
+    };
+
+    // Charger les remarques au montage du composant
+    useEffect(() => {
+        fetchRemarques();
+    }, []);
+
+    const handleAddRemarque = async () => {
+        if (!remarque.trim()) {
+            toast.warning('Veuillez saisir une remarque.');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            await axios.post('http://localhost:5000/remarques',
+                { remarque },
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    },
+                }
+            );
+            toast.success('Remarque ajoutée avec succès.');
+            setRemarque('');
+            fetchRemarques(); // Recharge les remarques après ajout
+        } catch (error) {
+            toast.error('Erreur lors de l\'ajout.');
+        } finally {
+            setLoading(false);
+        }
+    };
+    const handleEditClick = (item) => {
+        setRemarque(item.remarque);
+        setEditId(item.id);
+        setEditMode(true);
+        setShowModalRemarque(true); // Ouvre la modale pour éditer
+    };
+    const handleUpdateRemarque = async () => {
+        if (!remarque.trim()) {
+            toast.warning('Veuillez saisir une remarque.');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            await axios.put(`http://localhost:5000/remarques/${editId}`, { remarque }, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+            });
+            toast.success('Remarque modifiée avec succès.');
+            setRemarque('');
+            setEditMode(false);
+            setEditId(null);
+            fetchRemarques();
+        } catch (error) {
+            toast.error("Erreur lors de la modification.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleArchiveRemarque = async (id) => {
+        try {
+            await axios.patch(`http://localhost:5000/remarques/${id}/archive`, { archiver: 1 }, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+            });
+            toast.success('Remarque archivée.');
+            fetchRemarques();
+        } catch (err) {
+            toast.error('Erreur lors de l’archivage.');
+        }
+    };
+
+
     const steps = [
         { id: 0, label: "Gestion des notes", icon: <FaChartLine /> },
-        { id: 1, label: "Gestion des Exemptions", icon: <FaUserCheck /> },
+        { id: 1, label: "Gestion des Dispenses", icon: <FaUserCheck /> },
         { id: 2, label: "Remarques & Décisions", icon: <FaClipboardList /> },
         { id: 3, label: "Décision Finale", icon: <FaUserCheck /> },
     ];
@@ -1495,45 +1683,72 @@ const HorizontalStepper = () => {
                 annescolaireId={selectedAnnee?.id}
                 trimestId={selectedTrimestre}
             />
-
-
-            <div className={`modal fade ${showModalRemarque ? 'show' : ''}`} style={{ display: showModalRemarque ? 'block' : 'none' }} id="modal-niveau" tabIndex="-1" role="dialog" aria-labelledby="modalNiveauLabel" aria-hidden={!showModalRemarque}>
-                <div className="modal-dialog modal-custom" role="document">
-                    <div className="modal-content modal-custom-content">
+            <div className={`modal fade ${showModalRemarque ? 'show' : ''}`}
+                style={{ display: showModalRemarque ? 'block' : 'none' }}
+                id="modal-niveau"
+                tabIndex="-1"
+                role="dialog"
+                aria-labelledby="modalNiveauLabel"
+                aria-hidden={!showModalRemarque}>
+                <div className="modal-dialog">
+                    <div className="modal-content">
+                        <ToastContainer />
                         <div className="modal-header">
-                            <h5 className="modal-title" id="modalNiveauLabel"></h5>
+                            <h5 className="modal-title" id="modalNiveauLabel">Ajouter Une Remarque</h5>
                             <button type="button" className="close" onClick={handleCloseModalRemarque} aria-label="Close">
                                 <span aria-hidden="true">&times;</span>
                             </button>
                         </div>
                         <div className="modal-body">
-                            <form>
-                                <div className="form-group">
-                                    <input
-                                        type="hidden"
-                                        className="form-control input"
-                                        value={ecoleId || ''}
-                                        readOnly
-                                    />
-                                    <input
-                                        type="hidden"
-                                        className="form-control input"
-                                        value={ecoleeId || ''}
-                                        readOnly
-                                    />
-                                    <input
-                                        type="text"
-                                        className="form-control input"
-                                        value={remarque}
-                                        onChange={(e) => setRemarque(e.target.value)}
-                                        placeholder="Remarque"
-                                    />
-                                </div>
-                                <div className="modal-footer">
-                                    <button type="button" className="btn btn-secondary" onClick={handleCloseModalRemarque}>Fermer</button>
-                                    <button type="submit" className="btn btn-primary">Enregistrer</button>
-                                </div>
-                            </form>
+                            <p className="mbp">Ajouter une Remarque</p>
+
+                            <div className="input">
+                                <input
+                                    type="text"
+                                    className="form-control input"
+                                    value={remarque}
+                                    onChange={(e) => setRemarque(e.target.value)}
+                                    placeholder="Entrez votre remarque"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={editMode ? handleUpdateRemarque : handleAddRemarque}
+                                    disabled={loading}
+                                >
+                                    {loading ? 'En cours...' : editMode ? 'Modifier' : 'Ajouter'}
+                                </button>
+
+                            </div>
+
+                            <hr />
+                            <div className="list-item">
+                                {loadingRemarques ? (
+                                    <p>Chargement des remarques...</p>
+                                ) : remarques.length > 0 ? (
+                                    remarques
+                                        .filter(item => !item.archiver) // Filtre les remarques non archivées
+                                        .map((item) => (
+                                            <div className="item" key={item.id}>
+                                                <p>{item.remarque}</p>
+                                                <div className="item-btn">
+                                                    <button onClick={() => handleEditClick(item)}>
+                                                        <img src={edite} alt="Modifier" title="modifier" />
+                                                    </button>
+                                                    <button onClick={() => handleArchiveRemarque(item.id)}>
+                                                        <img src={archive} alt="Archiver" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))
+                                ) : (
+                                    <p>Aucune remarque ajoutée.</p>
+                                )}
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button type="button" className="btn btn-secondary" onClick={handleCloseModalRemarque}>
+                                Fermer
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1542,7 +1757,7 @@ const HorizontalStepper = () => {
         <div className="p-3 border rounded card mt-2">
             <div className="card shadow">
                 <div className="card-header bg-primary text-white">
-                    <h3 className="card-title mb-0">Gestion des exemptions</h3>
+                    <h3 className="card-title mb-0">Gestion des Dispenses</h3>
                 </div>
 
                 <div className="card-body">
@@ -1715,13 +1930,13 @@ const HorizontalStepper = () => {
                                                         <Form.Check
                                                             type="checkbox"
                                                             id={`exemption-${eleve.id}`}
-                                                            label={note.exemption ? "Exempté" : "Non exempté"}
+                                                            label={note.exemption ? "Dispenses" : "indispense "}
                                                             checked={!!note.exemption}
                                                             onChange={(e) =>
                                                                 handleUpdateExemption(
                                                                     eleve.id,
                                                                     selectedMatiere.id,
-                                                                    e.target.checked ? "Exempté" : null
+                                                                    e.target.checked ? "Dispenses" : null
                                                                 )
                                                             }
                                                         />
@@ -1876,6 +2091,7 @@ const HorizontalStepper = () => {
                 </div>
             </div>
         </div>,
+        // Dans le tableau stepContents, remplacez le 4ème élément par :
         <div className="p-3 border rounded card mt-2">
             <div className="card shadow">
                 <div className="card-header bg-primary text-white">
@@ -1950,10 +2166,29 @@ const HorizontalStepper = () => {
 
                     {selectedSection && (
                         <div className="mt-4">
+                            <div className="d-flex justify-content-between mb-3">
+                                <div>
+                                    <Form.Check
+                                        type="checkbox"
+                                        label="Sélectionner tous"
+                                        checked={allSelected}
+                                        onChange={() => onSelectAll()}
+                                    />
+                                </div>
+                                <Button
+                                    variant="primary"
+                                    onClick={handleUpdateEleves}
+                                    disabled={selectedStudents.length === 0}
+                                >
+                                    Mettre à jour les élèves sélectionnés
+                                </Button>
+                            </div>
+
                             <div className="table-responsive">
                                 <Table striped bordered hover>
                                     <thead>
                                         <tr>
+                                            <th>Sélection</th>
                                             <th>Numéro Identification</th>
                                             <th>Nom & Prénom</th>
                                             <th>Trimestre 1</th>
@@ -1965,14 +2200,6 @@ const HorizontalStepper = () => {
                                     </thead>
                                     <tbody>
                                         {eleves.map((eleve) => (
-                                            // <DecisionFinaleRow
-                                            //     key={eleve.id}
-                                            //     eleve={eleve}
-                                            //     selectedAnnee={selectedAnnee}
-                                            //     selectedNiveau={selectedNiveau}
-                                            //     selectedSection={selectedSection}
-                                            //     cycle={cycle}
-                                            // />
                                             <DecisionFinaleRow
                                                 key={eleve.id}
                                                 eleve={eleve}
@@ -1980,8 +2207,11 @@ const HorizontalStepper = () => {
                                                 selectedNiveau={selectedNiveau}
                                                 selectedSection={selectedSection}
                                                 cycle={cycle}
-                                                niveaux={niveaux}  // Ajoutez ceci
-                                                sections={sections} // Ajoutez ceci
+                                                niveaux={niveaux}
+                                                sections={sections}
+                                                isSelected={selectedStudents.includes(eleve.id)}
+                                                onSelect={handleSelectStudent}
+                                                allSelected={allSelected}
                                             />
                                         ))}
                                     </tbody>

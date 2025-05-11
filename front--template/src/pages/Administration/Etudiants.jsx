@@ -22,19 +22,17 @@ import * as XLSX from 'xlsx';
 import Select from 'react-select';
 import ProfileEmploye from './profil';
 import './PrintStyles.css';
+import moment from 'moment';
 // Définir les colonnes par défaut en dehors du composant
 const defaultColumns = [
   { key: 'photo', label: 'photo' },
   { key: 'nom', label: 'Nom & Prénom' },
   { key: 'prenom', label: 'Nom & Prénom (Arabe)' },
   { key: 'numinscription', label: 'Numéro d\'inscription' },
-  { key: 'niveau', label: 'Niveau' },
   { key: 'cycle', label: 'Cycle' },
   { key: 'numidentnational', label: 'Numéro d\'Identification National' },
 ];
-
 const Etudiants = () => {
-
 
   const [ecoleInfo, setEcoleInfo] = useState(null);
   const [showCard, setShowCard] = useState(false);
@@ -62,6 +60,9 @@ const Etudiants = () => {
   const [selectedEcole, setSelectedEcole] = useState(null);
   const [filteredEleves, setFilteredEleves] = useState([]);
   const [filteredEcoles, setFilteredEcoles] = useState([]);
+
+  const [selectedEleves, setSelectedEleves] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
   // Combiner les colonnes par défaut et les colonnes supplémentaires
   const columns = [...defaultColumns, ...additionalColumns];
 
@@ -78,6 +79,26 @@ const Etudiants = () => {
   const handleShowModal = () => setShowModal(true);
   const handleCloseModal = () => setShowModal(false);
 
+
+
+  const handleSelectEleve = (id) => {
+    setSelectedEleves(prev =>
+      prev.includes(id)
+        ? prev.filter(eleveId => eleveId !== id)
+        : [...prev, id]
+    );
+
+  };
+
+  const handleSelectAll = (e) => {
+    const isChecked = e.target.checked;
+    setSelectAll(isChecked);
+    if (isChecked) {
+      setSelectedEleves(currentItems.map(eleve => eleve.id));
+    } else {
+      setSelectedEleves([]);
+    }
+  };
   const handleDownloadTemplate = () => {
     const ws = XLSX.utils.aoa_to_sheet([["Nom", "Prénom", "Email"]]);
     const wb = XLSX.utils.book_new();
@@ -177,6 +198,7 @@ const Etudiants = () => {
         //   setEleves(response.data.listeEleves);
         //   setFilteredEleves(response.data.listeEleves); // Initialisez filteredEleves
         // } 
+        console.log('les eleves', response.data.listeEleves)
         if (response.data && response.data.listeEleves) {
           setEleves(response.data.listeEleves);
           setFilteredEleves(response.data.listeEleves); // Initialiser filteredEleves
@@ -447,7 +469,6 @@ const Etudiants = () => {
             };
           }
         }
-
         return {
           ...eleve,
           ecoleInfo,
@@ -462,6 +483,336 @@ const Etudiants = () => {
     }
   };
 
+  const handleToggleStatus = async (eleveId) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert("Vous devez être connecté");
+        return;
+      }
+
+      // Trouver l'élève dans les données
+      const eleveToUpdate = eleves.find(e => e.id === eleveId);
+      if (!eleveToUpdate) {
+        console.error("Élève non trouvé");
+        return;
+      }
+
+      // Nouveau statut
+      const currentStatus = eleveToUpdate.statuscompte;
+      const newStatus = currentStatus === "activer" ? "désactiver" : "activer";
+
+      // Appel API pour mettre à jour le statut
+      await axios.put(
+        `http://localhost:5000/eleves/users/${eleveId}/statut`, // Utilise eleveId ici
+        { statuscompte: newStatus },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      // Mise à jour locale
+      const updatedEleves = eleves.map(eleve => {
+        if (eleve.id === eleveId) {
+          return {
+            ...eleve,
+            statuscompte: newStatus,
+            dateAD: newStatus === 'désactiver' ? new Date().toISOString() : null
+          };
+        }
+        return eleve;
+      });
+
+      setEleves(updatedEleves);
+      setFilteredEleves(updatedEleves);
+
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du statut:", error);
+      alert("Une erreur est survenue lors de la mise à jour du statut");
+    }
+  };
+
+
+
+
+  //dounia
+  useEffect(() => {
+    handleListeDE()
+  }, [])
+
+  const handleListeDE = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Vous devez être connecté");
+        return;
+      }
+      const response = await axios.get('http://localhost:5000/attestation/liste',
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      const filteredDocs = response.data.filter((doc) => doc.module === "eleve" && doc.code === "RPE");
+      const options = filteredDocs.map((doc) => ({
+        value: doc.id,
+        label: doc.nom,
+        modele: doc.modeleTexte
+      }));
+
+      const ttdoc = response.data.filter((doc) => doc.module === "eleve");
+      const optionsttdoc = ttdoc.map((doc) => ({
+        value: doc.id,
+        label: doc.nom,
+        modele: doc.modeleTexte
+      }));
+
+      setPrintOptions(optionsttdoc);
+      return options
+    } catch (error) {
+      console.log("Erreur lors de la récupération des attestations", error);
+    }
+  };
+
+  const printrecu = async (id) => {
+    const eleve = eleves.find(plan => plan.id === id);
+    console.log('selectedPlan', eleve);
+    const reponse = await handleListeDE();
+
+    const modeleText = reponse[0].modele;
+
+    let nomR = "", prenomR = "", emailR = "", telR = "", adresseR = "";
+    const pere = eleve?.Eleve?.Parents?.find(p => p.typerole === "Père");
+    const mere = eleve?.Eleve?.Parents?.find(p => p.typerole === "Mère");
+    const tuteur = eleve?.Eleve?.Parents?.find(p => p.typerole === "Tuteur");
+
+    let responsable = null;
+    if (tuteur) {
+      responsable = tuteur;
+    } else if (pere && mere) {
+      responsable = pere;
+    } else if (pere) {
+      responsable = pere;
+    } else if (mere) {
+      responsable = mere;
+    }
+    if (responsable?.User) {
+      nomR = responsable.User.nom || "";
+      prenomR = responsable.User.prenom || "";
+      emailR = responsable.User.email || "";
+      telR = responsable.User.telephone || "";
+      adresseR = responsable.User.adresse || "";
+    }
+
+    if (!eleve || !modeleText) {
+      alert('plannig ou model du contrat non défini')
+      return;
+    }
+    const modeleTextupdate = modeleText
+      .replace(/\[nomecolePE\]/g, eleve?.EcolePrincipal?.nomecole || "")
+      .replace(/\[logoecoleP\]/g,
+        `<img src="http://localhost:5000${eleve?.EcolePrincipal?.logo}" alt="Logo de l'école" style="max-width: 70px; max-height: 70px;">`
+      )
+      .replace(/\[adressePE\]/g, eleve?.EcolePrincipal?.adresse || "")
+      .replace(/\[nomE\]/g, eleve?.nom || "")
+      .replace(/\[nomAbE\]/g, eleve?.nom_ar || "")
+      .replace(/\[prenomE\]/g, eleve?.prenom || "")
+      .replace(/\[prenomAbE\]/g, eleve?.prenom_ar || "")
+      .replace(/\[LieunaisE\]/g, eleve?.lieuxnaiss || "")
+      .replace(/\[LieunaisAbE\]/g, eleve?.adresse || "")
+      .replace(/\[AdresseE\]/g, eleve?.prenom_ar || "")
+      .replace(/\[AdresseAbE\]/g, eleve?.adresse_ar || "")
+      .replace(/\[datenaissE\]/g, eleve?.datenaiss ? moment(eleve.datenaiss).format("DD/MM/YYYY") : "")
+      .replace(/\[numInscription\]/g, eleve?.numinscription || "")
+      .replace(/\[FraisInsc\]/g, eleve?.fraixinscription || "")
+      .replace(/\[NV\]/g, `${eleve?.Niveaux?.nomniveau} ${eleve?.Niveaux?.cycle} ` || "")
+      //responsable
+      .replace(/\[nomP\]/g, nomR || "")
+      .replace(/\[prenomP\]/g, prenomR || "")
+      .replace(/\[EmailP\]/g, emailR || "")
+      .replace(/\[TelP\]/g, telR || "")
+      .replace(/\[AdresseP\]/g, adresseR || "")
+      .replace(/\[dateToday\]/g, moment().format("DD/MM/YYYY"))
+      //contrat
+      .replace(/\[totalC\]/g, eleve?.Eleve.fraixinscription || "")
+      .replace(/\[ModeP\]/g, eleve?.Eleve?.mode_paiement || "")
+      .replace(/\[detail\]/g, `Frais d'Inscription `
+      )
+
+    //plannig
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    const iframeDocument = iframe.contentWindow.document;
+    iframeDocument.open();
+    // @page{ margin: 0;}
+    iframeDocument.write(`
+                  <html>
+                    <head>
+                      <title>${eleve?.nom}${eleve?.prenom}</title>
+                      <style>
+                        @media print {
+                          body { margin: 0 !important ; padding: 40px !important ; }
+                          table {
+                            border-collapse: collapse;
+                            width: 100%;
+                          }
+                          table, th, td {
+                            border: 1px solid #EBEBEB;
+                          }
+                        }
+                      </style>
+                    </head>
+                    <body>
+                    <body>
+                      <div class="containerEditor">
+                        <div class="ql-editor">
+                          ${modeleTextupdate}
+                        </div>
+                      </div>
+                    </body>
+                  </html>
+                `);
+    iframeDocument.close();
+    const originalTitle = document.title;
+    document.title = `${eleve?.nom}.${eleve?.prenom}`;
+    setTimeout(() => {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+      document.title = originalTitle;
+      document.body.removeChild(iframe);
+    }, 1000);
+  };
+  // imprimer
+  // Gérer le clic sur le bouton "Imprimer"
+  const handlePrintClick = () => {
+    setShowPrintOptions(!showPrintOptions);
+  };
+  const handlePrintOptionSelect = (option) => {
+    if (selectedEleves.length === 0) {
+      alert("Veuillez sélectionner au moins un élève");
+      return;
+    }
+    // Trouver le modèle complet dans printOptions
+    const selectedDoc = printOptions.find(doc => doc.value === option.value);
+    if (selectedDoc) {
+      handlePrintSelected(selectedEleves, selectedDoc.modele, selectedDoc.label);
+    }
+    setShowPrintOptions(false);
+  };
+
+
+  const handlePrintSelected = (selectedElevesIds, modele, label) => {
+    if (selectedElevesIds.length === 0) {
+      alert("Veuillez sélectionner au moins un élève");
+      return;
+    }
+    // Ouvrir une nouvelle fenêtre pour l'impression
+    const printWindow = window.open("", "_blank");
+    let htmlContent = `
+        <html>
+          <head>
+            <title>${label}</title>
+            <style>
+              @page { margin: 0; }
+              body { padding: 20px; }
+              .document-container { 
+                margin-bottom: 50px; 
+                page-break-after: always;
+              }
+              .document-container:last-child { 
+                page-break-after: auto; 
+              }
+            </style>
+          </head>
+          <body>
+      `;
+
+    // Pour chaque élève sélectionné
+    selectedElevesIds.forEach(id => {
+      const eleve = eleves.find(e => e.id === id);
+      if (!eleve) return;
+
+
+
+      let nomR = "", prenomR = "", emailR = "", telR = "", adresseR = "";
+      const pere = eleve?.Eleve?.Parents?.find(p => p.typerole === "Père");
+      const mere = eleve?.Eleve?.Parents?.find(p => p.typerole === "Mère");
+      const tuteur = eleve?.Eleve?.Parents?.find(p => p.typerole === "Tuteur");
+
+      let responsable = null;
+      if (tuteur) {
+        responsable = tuteur;
+      } else if (pere && mere) {
+        responsable = pere;
+      } else if (pere) {
+        responsable = pere;
+      } else if (mere) {
+        responsable = mere;
+      }
+      if (responsable?.User) {
+        nomR = responsable.User.nom || "";
+        prenomR = responsable.User.prenom || "";
+        emailR = responsable.User.email || "";
+        telR = responsable.User.telephone || "";
+        adresseR = responsable.User.adresse || "";
+      }
+
+      console.log('eleve', eleve)
+      let modeleText = modele
+        .replace(/\[nomecolePE\]/g, eleve?.EcolePrincipal?.nomecole || "")
+        .replace(/\[logoecoleP\]/g,
+          `<img src="http://localhost:5000${eleve?.EcolePrincipal?.logo}" alt="Logo de l'école" style="max-width: 70px; max-height: 70px;">`
+        )
+        .replace(/\[adressePE\]/g, eleve?.EcolePrincipal?.adresse || "")
+        .replace(/\[nomE\]/g, eleve?.nom || "")
+        .replace(/\[nomAbE\]/g, eleve?.nom_ar || "")
+        .replace(/\[prenomE\]/g, eleve?.prenom || "")
+        .replace(/\[prenomAbE\]/g, eleve?.prenom_ar || "")
+        .replace(/\[LieunaisE\]/g, eleve?.lieuxnaiss || "")
+        .replace(/\[LieunaisAbE\]/g, eleve?.adresse || "")
+        .replace(/\[AdresseE\]/g, eleve?.prenom_ar || "")
+        .replace(/\[AdresseAbE\]/g, eleve?.adresse_ar || "")
+        .replace(/\[datenaissE\]/g, eleve?.datenaiss ? moment(eleve.datenaiss).format("DD/MM/YYYY") : "")
+        .replace(/\[numInscription\]/g, eleve?.numinscription || "")
+        .replace(/\[FraisInsc\]/g, eleve?.fraixinscription || "")
+        .replace(/\[NV\]/g, `${eleve?.Niveaux?.nomniveau} ${eleve?.Niveaux?.cycle} ` || "")
+        //responsable
+        .replace(/\[nomP\]/g, nomR || "")
+        .replace(/\[prenomP\]/g, prenomR || "")
+        .replace(/\[EmailP\]/g, emailR || "")
+        .replace(/\[TelP\]/g, telR || "")
+        .replace(/\[AdresseP\]/g, adresseR || "")
+        .replace(/\[dateToday\]/g, moment().format("DD/MM/YYYY"))
+        //contrat
+        .replace(/\[totalC\]/g, eleve?.Eleve.fraixinscription || "")
+        .replace(/\[ModeP\]/g, eleve?.Eleve?.mode_paiement || "")
+        .replace(/\[detail\]/g, `Frais d'Inscription `
+        )
+
+      htmlContent += `
+          <div class="document-container">
+            ${modeleText}
+          </div>
+        `;
+    });
+
+    htmlContent += `</body></html>`;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+
+    // Délai pour permettre le chargement avant impression
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+    }, 500);
+  };
   return (
     <>
 
@@ -595,9 +946,28 @@ const Etudiants = () => {
                                 <img src={add} alt="" width="30px" /><br />
                                 Ajouter
                               </Link>
-                              <a className='btn btn-app p-1' href="">
-                                <img src={printer} alt="" width="30px" /><br />Imprimer
-                              </a>
+                              {/* imprimer documents */}
+                              <div className="btn-group">
+                                <button className='btn btn-app p-1' onClick={handlePrintClick}>
+                                  <img src={printer} alt="" width="30px" /><br />Imprimer
+                                </button>
+                                {showPrintOptions && (
+                                  <div className="dropdown-menu show" style={{ display: 'block' }}>
+                                    {printOptions.map((option) => (
+                                      <button
+                                        key={option.value}
+                                        className="dropdown-item"
+                                        onClick={() => {
+                                          handlePrintOptionSelect(option);
+                                          setShowPrintOptions(false);
+                                        }}
+                                      >
+                                        {option.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                               <a className='btn btn-app p-1' href="#" onClick={handleShowModal}>
                                 <img src={importexel} alt="" width="30px" /><br />Importer
                               </a>
@@ -682,10 +1052,18 @@ const Etudiants = () => {
                           <table className="table table-bordered table-hover">
                             <thead>
                               <tr>
-                                <th>#</th>
+                                <th>
+                                  <input
+                                    type="checkbox"
+                                    checked={selectAll}
+                                    onChange={handleSelectAll}
+                                  />
+                                </th>
                                 {columns.map((column, index) => (
                                   <th key={index}>{column.label}</th>
                                 ))}
+                                <th>Année / Niveau / Classe</th>
+                                <th>Status</th>
                                 <th>Ecole</th>
                                 <th style={{ width: '250px' }}>Action</th>
                               </tr>
@@ -693,7 +1071,13 @@ const Etudiants = () => {
                             <tbody>
                               {currentItems.map((eleve, index) => (
                                 <tr key={eleve.id}>
-                                  <td>{indexOfFirstItem + index + 1}</td>
+                                  <td>
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedEleves.includes(eleve.id)}
+                                      onChange={() => handleSelectEleve(eleve.id)}
+                                    />
+                                  </td>
                                   {columns.map((column, colIndex) => (
                                     <td key={colIndex} className={column.key === 'photo' ? 'td-photo' : ''}>
                                       {column.key === 'photo' ? (
@@ -717,6 +1101,31 @@ const Etudiants = () => {
                                     </td>
 
                                   ))}
+                                  <td>
+                                    {eleve.Eleve?.Anneescolaire?.datedebut && eleve.Eleve?.Anneescolaire?.datefin
+                                      ? `${new Date(eleve.Eleve.Anneescolaire.datedebut).getFullYear()} - ${new Date(eleve.Eleve.Anneescolaire.datefin).getFullYear()}`
+                                      : 'N/A'
+                                    }
+                                    <br />
+                                    {eleve.Eleve?.Niveaux?.nomniveau || 'N/A'}<br />
+                                    {eleve.Eleve?.Section?.classe || 'N/A'}
+                                  </td>
+                                  <td style={{ padding: "4px", verticalAlign: "middle" }}>
+                                    <label className="switch small-switch">
+                                      <input
+                                        type="checkbox"
+                                        checked={eleve.statuscompte === "activer"}
+                                        onChange={() => handleToggleStatus(eleve.id)}
+                                      />
+                                      <span className="slider round"></span>
+                                    </label>
+                                    <br />
+                                    {eleve.User?.dateAD && (
+                                      <p style={{ margin: 0, fontSize: "15px" }}>
+                                        {new Date(eleve.User.dateAD).toLocaleDateString()}
+                                      </p>
+                                    )}
+                                  </td>
                                   <td>
                                     {eleve.ecoleName || 'N/A'}
                                   </td>
@@ -752,6 +1161,13 @@ const Etudiants = () => {
                                       onClick={() => handleShowCard(eleve)}
                                     >
                                       <img src={studentcard} alt="Carte étudiant" width="10px" />
+                                    </button>
+                                    <button
+                                      className="btn btn-outline-secondary btn-sm p-1 ml-1"
+                                      style={{ minWidth: '28px', minHeight: '28px' }}
+                                      onClick={() => printrecu(eleve.id)}
+                                    >
+                                      <img src={printer} alt="imptimer" width="10px" />
                                     </button>
                                   </td>
                                 </tr>
@@ -913,72 +1329,232 @@ const Etudiants = () => {
       </Modal>
 
       {showCard && selectedEleve && (
-        <div className="modal show d-block" tabIndex="-1">
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header d-flex justify-content-between align-items-center">
-                {/* Logo à droite */}
-                {ecoleInfo?.logo && (
-                  <img
-                    src={`http://localhost:5000${ecoleInfo.logo}`}
-                    alt={`Logo de ${ecoleInfo.nomecole}`}
-                    style={{
-                      maxWidth: '50px',
-                      maxHeight: '50px',
-                      order: 2
-                    }}
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                )}
-
-                {/* Nom de l'école au centre */}
-                <h1 className="text-center mx-auto" style={{ order: 1 }}>
-                  {ecoleInfo?.nomecole || "N/A"}
-                </h1>
-
-                {/* Bouton fermer */}
-                <button
-                  type="button"
-                  className="close"
-                  onClick={handleCloseCard}
-                  style={{ order: 3 }}
-                >
-                  &times;
-                </button>
+        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
+          <div className="modal-dialog modal-lg">
+            <div className="modal-content" style={{
+              borderRadius: '15px',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+              overflow: 'hidden'
+            }}>
+              {/* En-tête avec logo et infos école */}
+              <div className="modal-header" style={{
+                background: 'linear-gradient(135deg, #2c3e50, #3498db)',
+                color: 'white',
+                borderBottom: 'none',
+                padding: '1.5rem'
+              }}>
+                <div className="d-flex justify-content-between w-100 align-items-center">
+                  {ecoleInfo?.logo && (
+                    <img
+                      src={`http://localhost:5000${ecoleInfo.logo}`}
+                      alt="Logo école"
+                      style={{
+                        width: '60px',
+                        height: '60px',
+                        objectFit: 'contain',
+                        borderRadius: '8px'
+                      }}
+                    />
+                  )}
+                  <div className="text-center mx-3">
+                    <h2 className="mb-0" style={{ fontWeight: '600', letterSpacing: '1px' }}>
+                      {ecoleInfo?.nomecole || "Établissement Scolaire"}
+                    </h2>
+                    <p className="mb-0" style={{ fontSize: '0.9em', opacity: '0.9' }}>
+                      Carte d'Identité Scolaire
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="close"
+                    onClick={handleCloseCard}
+                    style={{ color: 'white', opacity: '1', fontSize: '2rem' }}
+                  >
+                    &times;
+                  </button>
+                </div>
               </div>
 
-              <div className="modal-body d-flex">
-                {/* Informations élève à gauche */}
-                <div className="card p-3 flex-grow-1">
-                  <h4>{selectedEleve.nom || "Nom inconnu"}</h4>
-                  <p>Date de naissance: {selectedEleve.dateNaissance || "N/A"}</p>
-                  <p>Section: {selectedEleve.section || "N/A"}</p>
-                  <p>Année scolaire: {selectedEleve.anneeScolaire || "2024 - 2025"}</p>
-                  <p>Nom d'utilisateur: {selectedEleve.username || "N/A"}</p>
-                </div>
+              {/* Corps de la modal */}
+              <div className="modal-body" style={{ padding: '2rem' }}>
+                <div className="row">
+                  {/* Colonne Photo + Info élève */}
+                  <div className="col-md-8">
+                    <div className="d-flex align-items-start mb-4">
+                      {/* Photo élève */}
+                      <div className="mr-4" style={{ position: 'relative' }}>
+                        <div style={{
+                          width: '120px',
+                          height: '120px',
+                          borderRadius: '50%',
+                          border: '3px solid #3498db',
+                          overflow: 'hidden',
+                          background: '#f8f9fa'
+                        }}>
+                          <img
+                            src={
+                              selectedEleve.Eleve?.photo
+                                ? `http://localhost:5000${selectedEleve.Eleve?.photo}`
+                                : 'http://localhost:5000/images/Eleve/default.png'
+                            }
+                            alt="Photo élève"
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover'
+                            }}
+                          />
+                        </div>
+                        {/* <div style={{
+                          position: 'absolute',
+                          bottom: '-10px',
+                          right: '-10px',
+                          background: '#3498db',
+                          color: 'white',
+                          borderRadius: '50%',
+                          width: '40px',
+                          height: '40px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.8em',
+                          fontWeight: 'bold',
+                          boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
+                        }}>
+                          {selectedEleve.niveau || 'N/A'}
+                        </div> */}
+                      </div>
 
-                <div className="ml-3 d-flex flex-column justify-content-center">
-                  <QRCode
-                    value={JSON.stringify({
-                      nom: selectedEleve.nom,
-                      classe: selectedEleve.classe,
-                      section: selectedEleve.section
-                    })}
-                    size={80}
-                    level="L"
-                  />
-                </div>
+                      {/* Info texte */}
+                      <div style={{ flex: 1 }}>
+                        <h3 style={{
+                          color: '#2c3e50',
+                          marginBottom: '0.5rem',
+                          fontWeight: '600'
+                        }}>
+                          {selectedEleve.nom} {selectedEleve.prenom}
+                        </h3>
 
-                {/* QR Code à droite */}
-                {/* <div className="ml-3 d-flex flex-column justify-content-center">
-                  <QRCode
-                    value={`https://votresite.com/eleve/${selectedEleve.id}`}
-                    size={128}
-                  />
-                </div> */}
+                        <div className="mb-2">
+                          <div className="d-flex align-items-center" style={{ marginBottom: '0.3rem' }}>
+                            <span className="mr-2" style={{ minWidth: '120px', color: '#7f8c8d' }}>N° Inscription:</span>
+                            <strong style={{ color: '#2c3e50' }}>{selectedEleve.Eleve?.numinscription || 'N/A'}</strong>
+                          </div>
+                          <div className="d-flex align-items-center" style={{ marginBottom: '0.3rem' }}>
+                            <span className="mr-2" style={{ minWidth: '120px', color: '#7f8c8d' }}>Date Naissance:</span>
+                            <strong style={{ color: '#2c3e50' }}>
+                              {new Date(selectedEleve.dateNaiss).toLocaleDateString() || 'N/A'}
+                            </strong>
+                          </div>
+                          <div className="d-flex align-items-center">
+                            <span className="mr-2" style={{ minWidth: '120px', color: '#7f8c8d' }}>Identité Nationale:</span>
+                            <strong style={{ color: '#2c3e50' }}>{selectedEleve.Eleve?.numidentnational || 'N/A'}</strong>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section supplémentaire */}
+                    <div className="row">
+                      <div className="col-md-6 mb-3">
+                        <div style={{
+                          background: '#f8f9fa',
+                          borderRadius: '10px',
+                          padding: '1rem',
+                          height: '100%'
+                        }}>
+                          <h6 style={{ color: '#3498db', borderBottom: '2px solid #3498db', paddingBottom: '0.5rem' }}>
+                            <i className="fas fa-school mr-2"></i>
+                            Scolarité
+                          </h6>
+                          <div className="mt-2">
+                            <p className="mb-1"><strong>Cycle:</strong> {selectedEleve.Eleve?.cycle || 'N/A'}</p>
+                            <p className="mb-1"><strong>Niveau:</strong> {selectedEleve.Eleve?.Niveaux?.nomniveau || 'N/A'}</p>
+                            <p className="mb-1"><strong>Section:</strong> {selectedEleve.Eleve?.Section?.classe || 'N/A'}</p>
+                            <p className="mb-0"><strong>Année Scolaire:</strong> {selectedEleve.Eleve?.Anneescolaire?.annee || 'N/A'}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-md-6 mb-3">
+                        <div style={{
+                          background: '#f8f9fa',
+                          borderRadius: '10px',
+                          padding: '1rem',
+                          height: '100%'
+                        }}>
+                          <h6 style={{ color: '#3498db', borderBottom: '2px solid #3498db', paddingBottom: '0.5rem' }}>
+                            <i className="fas fa-id-card mr-2"></i>
+                            Authentification
+                          </h6>
+                          <div className="mt-2">
+                            <p className="mb-1"><strong>Identifiant:</strong> {selectedEleve.username || 'N/A'}</p>
+                            <p className="mb-0"><strong>Code Accès:</strong> •••••••••</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Colonne QR Code */}
+                  <div className="col-md-4">
+                    <div style={{
+                      background: '#f8f9fa',
+                      borderRadius: '12px',
+                      padding: '1.5rem',
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <QRCode
+                        value={JSON.stringify({
+                          id: selectedEleve.id,
+                          nom: selectedEleve.nom,
+                          prenom: selectedEleve.prenom,
+                          numinscription: selectedEleve.numinscription
+                        })}
+                        size={160}
+                        level="H"
+                        fgColor="#2c3e50"
+                        bgColor="transparent"
+                      />
+                      <div className="mt-3 text-center">
+                        <small style={{ color: '#7f8c8d', display: 'block' }}>
+                          Scannez ce code pour vérifier l'authenticité
+                        </small>
+                        <div style={{
+                          marginTop: '0.5rem',
+                          color: '#3498db',
+                          fontSize: '0.8em',
+                          fontWeight: '500'
+                        }}>
+                          <i className="fas fa-shield-alt mr-2"></i>
+                          Certifié Numérique
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pied de modal */}
+              <div className="modal-footer" style={{
+                background: '#f8f9fa',
+                borderTop: 'none',
+                padding: '1rem 2rem',
+                justifyContent: 'space-between'
+              }}>
+                <small style={{ color: '#7f8c8d' }}>
+                  <i className="fas fa-info-circle mr-2"></i>
+                  Carte valide jusqu'au 31/08/2024
+                </small>
+                <button
+                  className="btn btn-link text-primary"
+                  onClick={() => window.print()}
+                >
+                  <i className="fas fa-print mr-2"></i>Imprimer
+                </button>
               </div>
             </div>
           </div>

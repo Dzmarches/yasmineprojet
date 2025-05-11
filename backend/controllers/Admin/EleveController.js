@@ -22,7 +22,78 @@ import Devoire from '../../models/Admin/Devoire.js';
 import Trimest from '../../models/Admin/Trimest.js';
 import Note from '../../models/Admin/Note.js';
 import TravailRendu from '../../models/Admin/TravailRendu.js';
+import Section from '../../models/Admin/Section.js';
 
+
+// controllers/eleveController.js
+
+// Modifier le statut d'un élève (activer/désactiver)
+export const modifierStatutEleve = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { statuscompte } = req.body;
+
+        // Validation des données
+        if (!id || !statuscompte) {
+            return res.status(400).json({
+                message: "ID utilisateur et statut sont requis"
+            });
+        }
+
+        if (!['activer', 'désactiver'].includes(statuscompte)) {
+            return res.status(400).json({
+                message: "Statut invalide. Doit être 'activer' ou 'désactiver'"
+            });
+        }
+
+        // Trouver l'utilisateur
+        const user = await User.findByPk(id);
+        if (!user) {
+            return res.status(404).json({
+                message: "Utilisateur non trouvé"
+            });
+        }
+
+        // Vérifier que c'est bien un élève
+        if (user.type !== 'Eleve') {
+            return res.status(400).json({
+                message: "Seuls les élèves peuvent être activés/désactivés"
+            });
+        }
+
+        // Mettre à jour le statut
+        const updateData = {
+            statuscompte: statuscompte,
+            updatedAt: new Date()
+        };
+
+        if (statuscompte === 'désactiver') {
+            updateData.dateAD = new Date();
+        } else {
+            updateData.dateAD = null;
+        }
+
+        await user.update(updateData);
+
+        res.status(200).json({
+            success: true,
+            message: `Statut mis à jour avec succès`,
+            data: {
+                id: user.id,
+                statuscompte: user.statuscompte,
+                dateAD: user.dateAD
+            }
+        });
+
+    } catch (error) {
+        console.error("Erreur lors de la modification du statut:", error);
+        res.status(500).json({
+            success: false,
+            message: "Erreur serveur",
+            error: error.message
+        });
+    }
+};
 
 //récupere la liste des éléve selon niveau 
 // controllers/eleveController.js
@@ -85,7 +156,7 @@ export const getElevesBySection = async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur' });
     }
 };
-// Récupérer tous les élèves non archivés
+
 export const ListeEleveParent = async (req, res) => {
     try {
         const ecoleId = req.user.ecoleId;
@@ -95,24 +166,15 @@ export const ListeEleveParent = async (req, res) => {
         const isAdminPrincipal = roles.includes('AdminPrincipal');
         const isAdmin = roles.includes('Admin');
 
-        let listeEleves = [];
-        let ecoleIds = [];
+        let elevesEcolePrincipale = [];
+        let elevesSousEcoles = [];
 
+        // Si AdminPrincipal, on récupère les élèves de son école principale
         if (isAdminPrincipal) {
-            ecoleIds = [ecoleId];
-        } else if (isAdmin) {
-            const userEcoles = await UserEcole.findAll({
-                where: { userId: userId },
-                attributes: ['ecoleeId']
-            });
-            ecoleIds = userEcoles.map((ue) => ue.ecoleeId);
-        }
-
-        if (isAdminPrincipal) {
-            listeEleves = await User.findAll({
+            elevesEcolePrincipale = await User.findAll({
                 where: {
                     type: 'Eleve',
-                    ecoleId: { [Op.in]: ecoleIds }
+                    ecoleId: ecoleId
                 },
                 include: [
                     {
@@ -122,71 +184,119 @@ export const ListeEleveParent = async (req, res) => {
                                 model: Parent,
                                 through: { attributes: [] },
                                 include: [{ model: User }]
+                            },
+                            {
+                                model: Niveaux,
+                                attributes: ['id', 'nomniveau', 'cycle']
+                            },
+                            {
+                                model: Section,
+                                attributes: ['id', 'classe', 'classearab']
+                            },
+                            {
+                                model: Anneescolaire,
+                                attributes: ['id', 'titre', 'datedebut', 'datefin']
                             }
                         ]
-                    },
-                    // Simplifié pour ne récupérer que le nom
+                    }
+                    ,
                     {
                         model: EcolePrincipal,
-                        attributes: ['nomecole'] // Seul le nom est récupéré
+                        attributes: ['id', 'nomecole']
                     }
                 ]
             });
-        } else if (isAdmin) {
-            listeEleves = await User.findAll({
-                include: [
-                    {
-                        model: UserEcole,
-                        where: { ecoleeId: { [Op.in]: ecoleIds } },
-                        attributes: [],
-                        include: [
-                            {
-                                model: Ecole,
-                                attributes: ['nomecole'] // Seul le nom est récupéré
-                            }
-                        ]
-                    },
-                    {
-                        model: Eleve,
-                        include: [
-                            {
-                                model: Parent,
-                                through: { attributes: [] },
-                                include: [{ model: User }]
-                            }
-                        ]
-                    }
-                ],
-                where: { type: 'Eleve' }
-            });
         }
 
-        // Formater les données de manière simplifiée
-        const elevesFormatted = listeEleves.map(eleve => {
-            // Cas école principale
-            if (eleve.EcolePrincipal) {
-                return {
-                    ...eleve.toJSON(),
-                    ecoleName: eleve.EcolePrincipal.nomecole || 'N/A'
-                };
+        // Si Admin, on récupère les élèves des écoles associées
+        if (isAdmin) {
+            // Obtenir les écoles associées à cet admin
+            const userEcoles = await UserEcole.findAll({
+                where: { userId },
+                include: [{ model: Ecole, attributes: ['id', 'nomecole'] }]
+            });
+
+            const ecoleAssocieesIds = userEcoles.map(ue => ue.ecoleeId);
+
+            if (ecoleAssocieesIds.length > 0) {
+                elevesSousEcoles = await User.findAll({
+                    where: {
+                        type: 'Eleve'
+                    },
+                    include: [
+                        {
+                            model: UserEcole,
+                            where: { ecoleeId: { [Op.in]: ecoleAssocieesIds } },
+                            include: [
+                                {
+                                    model: Ecole,
+                                    attributes: ['id', 'nomecole']
+                                }
+                            ]
+                        },
+                        {
+                            model: Eleve,
+                            include: [
+                                {
+                                    model: Parent,
+                                    through: { attributes: [] },
+                                    include: [{ model: User }]
+                                },
+                                {
+                                    model: Niveaux,
+                                    attributes: ['id', 'nomniveau', 'cycle']
+                                },
+                                {
+                                    model: Section,
+                                    attributes: ['id', 'classe', 'classearab']
+                                },
+                                {
+                                    model: Anneescolaire,
+                                    attributes: ['id', 'titre', 'datedebut', 'datefin']
+                                }
+                            ]
+                        }
+
+                    ]
+                });
             }
-            // Cas sous-école
-            else if (eleve.UserEcoles && eleve.UserEcoles.length > 0) {
-                const userEcole = eleve.UserEcoles[0];
-                return {
-                    ...eleve.toJSON(),
-                    ecoleName: userEcole.Ecole?.nomecole || 'N/A'
-                };
-            }
+        }
+
+        // Fusionner et dédupliquer les élèves
+        const listeEleves = [...elevesEcolePrincipale, ...elevesSousEcoles];
+        const uniqueEleves = {};
+        listeEleves.forEach(eleve => {
+            uniqueEleves[eleve.id] = eleve;
+        });
+
+        // Formatage final
+        const elevesFormatted = Object.values(uniqueEleves).map(eleve => {
+            const json = eleve.toJSON();
+
+            const ecolePrincipale = eleve.EcolePrincipal ? {
+                id: eleve.EcolePrincipal.id,
+                nomecole: eleve.EcolePrincipal.nomecole,
+                logo: eleve.EcolePrincipal.logo,
+                type: 'principal'
+            } : null;
+
+            const ecoleAssociee = eleve.UserEcoles && eleve.UserEcoles.length > 0 ? {
+                id: eleve.UserEcoles[0].Ecole.id,
+                nomecole: eleve.UserEcoles[0].Ecole.nomecole,
+                logo: eleve.UserEcoles[0].Ecole.logo,
+                type: 'associee'
+            } : null;
+
+            const ecoleInfo = ecoleAssociee || ecolePrincipale;
 
             return {
-                ...eleve.toJSON(),
-                ecoleName: 'N/A'
+                ...json,
+                ecoleInfo,
+                ecoleName: ecoleInfo?.nomecole || 'N/A'
             };
         });
-        console.log("Élèves formatés:", elevesFormatted);
-        res.status(200).json({ listeEleves: elevesFormatted });
-
+        console.log('les eleves', listeEleves),
+            res.status(200).json({ listeEleves: elevesFormatted });
     } catch (error) {
         console.error("Erreur lors de la récupération des élèves et parents :", error);
         res.status(500).json({ message: "Erreur interne du serveur", error });

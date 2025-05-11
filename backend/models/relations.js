@@ -55,6 +55,9 @@ import Devoire from './Admin/Devoire.js';
 import TravailRendu from './Admin/TravailRendu.js';
 
 
+
+Niveaux.hasMany(Section, { foreignKey: 'niveauxId' });
+Section.belongsTo(Niveaux, { foreignKey: 'niveauxId' });
 // User and Role Many-to-Many Relationship
 User.belongsToMany(Role, { through: UserRole, foreignKey: 'userId' });
 Role.belongsToMany(User, { through: UserRole, foreignKey: 'roleId' });

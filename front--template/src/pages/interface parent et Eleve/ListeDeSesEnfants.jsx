@@ -48,38 +48,25 @@ const ListeDeSesEnfants = () => {
         }
     };
 
-    // const fetchTrimestres = async (enfantId, anneeId) => {
-    //     try {
-    //         const token = localStorage.getItem('token');
-    //         const response = await axios.get(`http://localhost:5000/parent/enfant/${enfantId}/annee/${anneeId}/trimestres`, {
-    //             headers: { Authorization: `Bearer ${token}` }
-    //         });
-    //         setTrimestres(response.data);
-    //     } catch (error) {
-    //         console.error('Erreur lors de la récupération des trimestres:', error);
-    //     }
-    // };
-
     const fetchTrimestres = async (enfantId, anneeId) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get(
-                `http://localhost:5000/parent/enfant/${enfantId}/annee/${anneeId}/trimestres?published=true`,
-                { headers: { Authorization: `Bearer ${token}` }}
-            );
+            const response = await axios.get(`http://localhost:5000/parent/enfant/${enfantId}/annee/${anneeId}/trimestres`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
             setTrimestres(response.data);
         } catch (error) {
             console.error('Erreur lors de la récupération des trimestres:', error);
         }
     };
+
     const fetchNotes = async (enfantId, trimestreId) => {
         try {
             setLoadingNotes(true);
             const token = localStorage.getItem('token');
-            const response = await axios.get(
-                `http://localhost:5000/parent/enfant/${enfantId}/trimestre/${trimestreId}/notes?published=true`,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+            const response = await axios.get(`http://localhost:5000/parent/enfant/${enfantId}/trimestre/${trimestreId}/notes`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
             setNotes(response.data);
             setLoadingNotes(false);
             setShowNotesModal(true);
@@ -475,334 +462,316 @@ const ListeDeSesEnfants = () => {
                                 <div
                                     key={enfant.id}
                                     onClick={() => handleEnfantClick(enfant.id)}
-                                    style={{
-                                        textAlign: 'center',
-                                        cursor: 'pointer',
-                                        transition: 'transform 0.3s',
-                                        border: selectedEnfant?.id === enfant.id ? '2px solid #007bff' : '1px solid #ddd',
-                                        borderRadius: '10px',
-                                        padding: '15px',
-                                        width: '150px',
-                                        background: '#fff'
-                                    }}
+                                    className={`enfant-card ${selectedEnfant?.id === enfant.id ? 'selected' : ''}`}
                                 >
-                                    {/* Afficher l'image avec l'URL dynamique */}
                                     <img
                                         src={`http://localhost:5000${enfant.photo}`}
                                         alt="enfant"
-                                        style={{ width: '100px', height: '100px', borderRadius: '50%' }}
+                                        className="enfant-photo"
                                     />
                                     <p><strong>{enfant.prenom} {enfant.nom}</strong></p>
                                 </div>
                             ))}
                         </div>
 
-                        {selectedEnfant && (
-                            <div style={{
-                                border: '1px solid #ccc',
-                                borderRadius: '8px',
-                                padding: '20px',
-                                background: '#fff'
-                            }}>
-                                {/* Stepper custom */}
-                                <div style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-around',
-                                    marginBottom: '20px'
-                                }}>
-                                    {steps.map((step, index) => (
-                                        <div
-                                            key={index}
-                                            onClick={() => setActiveStep(index)}
-                                            style={{
-                                                cursor: 'pointer',
-                                                textAlign: 'center',
-                                                color: activeStep === index ? '#007bff' : '#666'
-                                            }}
-                                        >
-                                            <div style={{ fontSize: '24px' }}>{step.icon}</div>
-                                            <div>{step.label}</div>
-                                        </div>
-                                    ))}
-                                </div>
+                        <div className="enfant-details">
+                            {/* Stepper */}
 
-                                {/* Step content */}
-                                {activeStep === 0 && (
-                                    <div>
-                                        <h3>Informations de {selectedEnfant.prenom}</h3>
-                                        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                                            <img
-                                                src={`http://localhost:5000${selectedEnfant.photo}`}
-                                                alt="profil"
-                                                style={{ width: '80px', height: '80px', borderRadius: '50%' }}
-                                            />
-                                            <div>
-                                                <p><strong>Nom complet:</strong> {selectedEnfant.prenom} {selectedEnfant.nom}</p>
-                                                <p><strong>Date de naissance:</strong> {new Date(selectedEnfant.datenaiss).toLocaleDateString()}</p>
-                                                <p><strong>Classe:</strong> {selectedEnfant.classe}</p>
-                                                <p><strong>Niveau:</strong> {selectedEnfant.niveau}</p>
-                                                <p><strong>Groupe sanguin:</strong> {selectedEnfant.groupeSanguin || 'Non spécifié'}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
 
-                                {activeStep === 1 && (
-                                    <div>
-                                        <h3>Notes de {selectedEnfant.prenom}</h3>
-
-                                        {anneesScolaires.length === 0 ? (
-                                            <div className="alert alert-info">
-                                                Aucune année scolaire trouvée.
-                                            </div>
-                                        ) : (
-                                            <div>
-                                                <h4>Années scolaires</h4>
-                                                <div className="d-flex flex-wrap gap-2 mb-4">
-                                                    {anneesScolaires.map(annee => (
-                                                        <button
-                                                            key={annee.id}
-                                                            className={`btn ${selectedAnnee?.id === annee.id ? 'btn-primary' : 'btn-outline-primary'}`}
-                                                            onClick={() => handleAnneeClick(annee)}
-                                                            style={{ margin: '5px' }}
-                                                        >
-                                                            {new Date(annee.datedebut).getFullYear()} - {new Date(annee.datefin).getFullYear()}
-                                                        </button>
-                                                    ))}
-
-                                                </div>
-
-                                                {selectedAnnee && trimestres.length > 0 && (
-                                                    <div>
-                                                        <h4 style={{ marginTop: '20px' }}>Trimestres</h4>
-                                                        <div className="d-flex flex-wrap gap-2">
-                                                            {trimestres.map(trimestre => {
-                                                                const moyenne = trimestre.moyenne;
-                                                                const moyenneFormatee = typeof moyenne === 'number'
-                                                                    ? moyenne.toFixed(2)
-                                                                    : (typeof moyenne === 'string' && !isNaN(parseFloat(moyenne)))
-                                                                        ? parseFloat(moyenne).toFixed(2)
-                                                                        : 'N/A';
-
-                                                                return (
-                                                                    <button
-                                                                        key={trimestre.id}
-                                                                        className={`btn ${selectedTrimestre?.id === trimestre.id ? 'btn-success' : 'btn-outline-success'}`}
-                                                                        onClick={() => handleTrimestreClick(trimestre)}
-                                                                        style={{ minWidth: '200px', position: 'relative' }}
-                                                                        disabled={!trimestre.status} // Désactiver si non publié
-                                                                    >
-                                                                        <div>{trimestre.Trimest.titre}</div>
-                                                                        <div>Moyenne: {moyenneFormatee}</div>
-                                                                        {!trimestre.status && (
-                                                                            <small className="text-muted">(Non publié)</small>
-                                                                        )}
-                                                                        {trimestre.status && (
-                                                                            <small className="text-success">(Publié)</small>
-                                                                        )}
-                                                                    </button>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {activeStep === 2 && (
-                                    <div>
-                                        <div className="d-flex justify-content-between mb-3">
-                                            <h3>Absences et retards de {selectedEnfant.prenom}</h3>
-                                            <Button
-                                                variant="warning"
-                                                onClick={() => setShowReportAbsenceModal(true)}
+                            {selectedEnfant && (
+                                <div>
+                                    <div className="stepper-container">
+                                        {steps.map((step, index) => (
+                                            <div
+                                                key={index}
+                                                onClick={() => setActiveStep(index)}
+                                                className={`stepper-step ${activeStep === index ? 'active' : ''}`}
                                             >
-                                                <i className="fas fa-calendar-times mr-2"></i>
-                                                Signaler une absence prévue
-                                            </Button>
-                                        </div>
+                                                <div className="icon">{step.icon}</div>
+                                                <div>{step.label}</div>
+                                            </div>
+                                        ))}
+                                    </div>
 
-                                        {loadingPresences ? (
-                                            <div className="text-center my-4">
-                                                <div className="spinner-border text-primary" role="status">
-                                                    <span className="sr-only">Chargement...</span>
+                                    {/* Step content */}
+                                    {activeStep === 0 && (
+                                        <div>
+                                            <h3>Informations de {selectedEnfant.prenom}</h3>
+                                            <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                                                <img
+                                                    src={`http://localhost:5000${selectedEnfant.photo}`}
+                                                    alt="profil"
+                                                    style={{ width: '80px', height: '80px', borderRadius: '50%' }}
+                                                />
+                                                <div>
+                                                    <p><strong>Nom complet:</strong> {selectedEnfant.prenom} {selectedEnfant.nom}</p>
+                                                    <p><strong>Date de naissance:</strong> {new Date(selectedEnfant.datenaiss).toLocaleDateString()}</p>
+                                                    <p><strong>Classe:</strong> {selectedEnfant.classe}</p>
+                                                    <p><strong>Niveau:</strong> {selectedEnfant.niveau}</p>
+                                                    <p><strong>Groupe sanguin:</strong> {selectedEnfant.groupeSanguin || 'Non spécifié'}</p>
                                                 </div>
-                                                <p>Chargement des absences...</p>
                                             </div>
-                                        ) : presences.length === 0 ? (
-                                            <div className="alert alert-info">
-                                                Aucune absence ou retard enregistré pour le moment.
-                                            </div>
-                                        ) : (
-                                            <div className="table-responsive">
-                                                <table className="table table-striped table-hover">
-                                                    <thead className="thead-light">
-                                                        <tr>
-                                                            <th>Date</th>
-                                                            <th>Matin</th>
-                                                            <th>Après-midi</th>
-                                                            <th>Justification</th>
-                                                            <th>Actions</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {presences.map((presence) => (
-                                                            <tr key={presence.id}>
-                                                                <td>
-                                                                    {new Date(presence.date).toLocaleDateString('fr-FR', {
-                                                                        day: '2-digit',
-                                                                        month: '2-digit',
-                                                                        year: 'numeric'
-                                                                    })}
-                                                                </td>
-                                                                <td>
-                                                                    <span className={`badge ${presence.matin === 'present' ? 'badge-success' :
-                                                                        presence.matin === 'retard' ? 'badge-warning' : 'badge-danger'
-                                                                        }`}>
-                                                                        {presence.matin}
-                                                                    </span>
-                                                                    {presence.justificationMatin && (
-                                                                        <span className="ml-2 text-success">
-                                                                            <i className="fas fa-check-circle"></i>
-                                                                        </span>
-                                                                    )}
-                                                                </td>
-                                                                <td>
-                                                                    <span className={`badge ${presence.apres_midi === 'present' ? 'badge-success' :
-                                                                        presence.apres_midi === 'retard' ? 'badge-warning' : 'badge-danger'
-                                                                        }`}>
-                                                                        {presence.apres_midi}
-                                                                    </span>
-                                                                    {presence.justificationApresMidi && (
-                                                                        <span className="ml-2 text-success">
-                                                                            <i className="fas fa-check-circle"></i>
-                                                                        </span>
-                                                                    )}
-                                                                </td>
-                                                                <td>
-                                                                    {/* Justification matin */}
-                                                                    {presence.justificationTextMatin && (
-                                                                        <div className="mb-1">
-                                                                            <i className="fas fa-comment-alt mr-1"></i>
-                                                                            {presence.justificationTextMatin}
-                                                                        </div>
-                                                                    )}
+                                        </div>
+                                    )}
 
-                                                                    {/* Justification après-midi */}
-                                                                    {presence.justificationTextApresMidi && (
-                                                                        <div className="mb-1">
-                                                                            <i className="fas fa-comment-alt mr-1"></i>
-                                                                            {presence.justificationTextApresMidi}
-                                                                        </div>
-                                                                    )}
+                                    {activeStep === 1 && (
+                                        <div>
+                                            <h3>Notes de {selectedEnfant.prenom}</h3>
 
-                                                                    {/* Fichier de justification matin */}
-                                                                    {presence.fichierJustificationMatin && presence.justificationMatin === 'justifié' && (
-                                                                        <div>
-                                                                            <button
-                                                                                onClick={() => downloadJustification(presence.fichierJustificationMatin)}
-                                                                                className="btn btn-sm btn-link p-0"
-                                                                            >
-                                                                                <i className="fas fa-file-download mr-1"></i>
-                                                                                Voir fichier (matin)
-                                                                            </button>
-                                                                        </div>
-                                                                    )}
+                                            {anneesScolaires.length === 0 ? (
+                                                <div className="alert alert-info">
+                                                    Aucune année scolaire trouvée.
+                                                </div>
+                                            ) : (
+                                                <div>
+                                                    <h4>Années scolaires</h4>
+                                                    <div className="d-flex flex-wrap gap-2 mb-4">
+                                                        {anneesScolaires.map(annee => (
+                                                            <button
+                                                                key={annee.id}
+                                                                className={`btn ${selectedAnnee?.id === annee.id ? 'btn-primary' : 'btn-outline-primary'}`}
+                                                                onClick={() => handleAnneeClick(annee)}
+                                                                style={{ margin: '5px' }}
+                                                            >
+                                                                {new Date(annee.datedebut).getFullYear()} - {new Date(annee.datefin).getFullYear()}
+                                                            </button>
+                                                        ))}
 
-                                                                    {/* Fichier de justification après-midi */}
-                                                                    {presence.fichierJustificationApresMidi && presence.justificationApresMidi === 'justifié' && (
-                                                                        <div>
-                                                                            <button
-                                                                                onClick={() => downloadJustification(presence.fichierJustificationApresMidi)}
-                                                                                className="btn btn-sm btn-link p-0"
-                                                                            >
-                                                                                <i className="fas fa-file-download mr-1"></i>
-                                                                                Voir fichier (après-midi)
-                                                                            </button>
-                                                                        </div>
-                                                                    )}
-                                                                </td>
-                                                                <td>
-                                                                    {isWithin7Days(presence.date) ? (
+                                                    </div>
+
+                                                    {selectedAnnee && trimestres.length > 0 && (
+                                                        <div>
+                                                            <h4 style={{ marginTop: '20px' }}>Trimestres</h4>
+                                                            <div className="d-flex flex-wrap gap-2">
+                                                                {trimestres.map(trimestre => {
+                                                                    const moyenne = trimestre.moyenne;
+                                                                    const moyenneFormatee = typeof moyenne === 'number'
+                                                                        ? moyenne.toFixed(2)
+                                                                        : (typeof moyenne === 'string' && !isNaN(parseFloat(moyenne)))
+                                                                            ? parseFloat(moyenne).toFixed(2)
+                                                                            : 'N/A';
+
+                                                                    return (
                                                                         <button
-                                                                            onClick={() => handleJustify(presence)}
+                                                                            key={trimestre.id}
+                                                                            className={`btn ${selectedTrimestre?.id === trimestre.id ? 'btn-success' : 'btn-outline-success'}`}
+                                                                            onClick={() => handleTrimestreClick(trimestre)}
+                                                                            style={{ minWidth: '200px', position: 'relative' }}
+                                                                            disabled={!trimestre.status} // Désactiver si non publié
+                                                                        >
+                                                                            <div>{trimestre.Trimest.titre}</div>
+                                                                            <div>Moyenne: {moyenneFormatee}</div>
+                                                                            {!trimestre.status && (
+                                                                                <small className="text-muted">(Non publié)</small>
+                                                                            )}
+                                                                            {trimestre.status && (
+                                                                                <small className="text-success">(Publié)</small>
+                                                                            )}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {activeStep === 2 && (
+                                        <div>
+                                            <div className="d-flex justify-content-between mb-3">
+                                                <h3>Absences et retards de {selectedEnfant.prenom}</h3>
+                                                <Button
+                                                    variant="warning"
+                                                    onClick={() => setShowReportAbsenceModal(true)}
+                                                >
+                                                    <i className="fas fa-calendar-times mr-2"></i>
+                                                    Signaler une absence prévue
+                                                </Button>
+                                            </div>
+
+                                            {loadingPresences ? (
+                                                <div className="text-center my-4">
+                                                    <div className="spinner-border text-primary" role="status">
+                                                        <span className="sr-only">Chargement...</span>
+                                                    </div>
+                                                    <p>Chargement des absences...</p>
+                                                </div>
+                                            ) : presences.length === 0 ? (
+                                                <div className="alert alert-info">
+                                                    Aucune absence ou retard enregistré pour le moment.
+                                                </div>
+                                            ) : (
+                                                <div className="table-responsive">
+                                                    <table className="table table-striped table-hover">
+                                                        <thead className="thead-light">
+                                                            <tr>
+                                                                <th>Date</th>
+                                                                <th>Matin</th>
+                                                                <th>Après-midi</th>
+                                                                <th>Justification</th>
+                                                                <th>Actions</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {presences.map((presence) => (
+                                                                <tr key={presence.id}>
+                                                                    <td>
+                                                                        {new Date(presence.date).toLocaleDateString('fr-FR', {
+                                                                            day: '2-digit',
+                                                                            month: '2-digit',
+                                                                            year: 'numeric'
+                                                                        })}
+                                                                    </td>
+                                                                    <td>
+                                                                        <span className={`badge ${presence.matin === 'present' ? 'badge-success' :
+                                                                            presence.matin === 'retard' ? 'badge-warning' : 'badge-danger'
+                                                                            }`}>
+                                                                            {presence.matin}
+                                                                        </span>
+                                                                        {presence.justificationMatin && (
+                                                                            <span className="ml-2 text-success">
+                                                                                <i className="fas fa-check-circle"></i>
+                                                                            </span>
+                                                                        )}
+                                                                    </td>
+                                                                    <td>
+                                                                        <span className={`badge ${presence.apres_midi === 'present' ? 'badge-success' :
+                                                                            presence.apres_midi === 'retard' ? 'badge-warning' : 'badge-danger'
+                                                                            }`}>
+                                                                            {presence.apres_midi}
+                                                                        </span>
+                                                                        {presence.justificationApresMidi && (
+                                                                            <span className="ml-2 text-success">
+                                                                                <i className="fas fa-check-circle"></i>
+                                                                            </span>
+                                                                        )}
+                                                                    </td>
+                                                                    <td>
+                                                                        {/* Justification matin */}
+                                                                        {presence.justificationTextMatin && (
+                                                                            <div className="mb-1">
+                                                                                <i className="fas fa-comment-alt mr-1"></i>
+                                                                                {presence.justificationTextMatin}
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* Justification après-midi */}
+                                                                        {presence.justificationTextApresMidi && (
+                                                                            <div className="mb-1">
+                                                                                <i className="fas fa-comment-alt mr-1"></i>
+                                                                                {presence.justificationTextApresMidi}
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* Fichier de justification matin */}
+                                                                        {presence.fichierJustificationMatin && presence.justificationMatin === 'justifié' && (
+                                                                            <div>
+                                                                                <button
+                                                                                    onClick={() => downloadJustification(presence.fichierJustificationMatin)}
+                                                                                    className="btn btn-sm btn-link p-0"
+                                                                                >
+                                                                                    <i className="fas fa-file-download mr-1"></i>
+                                                                                    Voir fichier (matin)
+                                                                                </button>
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* Fichier de justification après-midi */}
+                                                                        {presence.fichierJustificationApresMidi && presence.justificationApresMidi === 'justifié' && (
+                                                                            <div>
+                                                                                <button
+                                                                                    onClick={() => downloadJustification(presence.fichierJustificationApresMidi)}
+                                                                                    className="btn btn-sm btn-link p-0"
+                                                                                >
+                                                                                    <i className="fas fa-file-download mr-1"></i>
+                                                                                    Voir fichier (après-midi)
+                                                                                </button>
+                                                                            </div>
+                                                                        )}
+                                                                    </td>
+                                                                    <td>
+                                                                        {isWithin7Days(presence.date) ? (
+                                                                            <button
+                                                                                onClick={() => handleJustify(presence)}
+                                                                                className="btn btn-primary btn-sm"
+                                                                            >
+                                                                                <i className="fas fa-edit"></i> Justifier
+                                                                            </button>
+                                                                        ) : (
+                                                                            <span className="text-muted">Délai expiré</span>
+                                                                        )}
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {activeStep === 3 && (
+                                        <div>
+                                            <h3>Devoirs de {selectedEnfant.prenom}</h3>
+
+                                            {loadingDevoirs ? (
+                                                <div className="text-center my-4">
+                                                    <div className="spinner-border text-primary" role="status">
+                                                        <span className="sr-only">Chargement...</span>
+                                                    </div>
+                                                    <p>Chargement des devoirs...</p>
+                                                </div>
+                                            ) : devoirs.length === 0 ? (
+                                                <div className="alert alert-info">
+                                                    Aucun devoir trouvé pour le moment.
+                                                </div>
+                                            ) : (
+                                                <div className="table-responsive">
+                                                    <table className="table table-striped table-hover">
+                                                        <thead className="thead-light">
+                                                            <tr>
+                                                                <th>Matière</th>
+                                                                <th>Titre</th>
+                                                                <th>Description</th>
+                                                                <th>Date limite</th>
+                                                                <th>Actions</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {devoirs.map((devoir) => (
+                                                                <tr key={devoir.id}>
+                                                                    <td>{devoir.Matiere?.nom}</td>
+                                                                    <td>{devoir.titre}</td>
+                                                                    <td>{devoir.description || 'Aucune description'}</td>
+                                                                    <td>
+                                                                        {new Date(devoir.dateLimite).toLocaleDateString('fr-FR', {
+                                                                            day: '2-digit',
+                                                                            month: '2-digit',
+                                                                            year: 'numeric'
+                                                                        })}
+                                                                    </td>
+                                                                    <td>
+                                                                        <button
+                                                                            onClick={() => downloadDevoir(devoir.fichier)}
                                                                             className="btn btn-primary btn-sm"
                                                                         >
-                                                                            <i className="fas fa-edit"></i> Justifier
+                                                                            <i className="fas fa-download mr-1"></i> Télécharger
                                                                         </button>
-                                                                    ) : (
-                                                                        <span className="text-muted">Délai expiré</span>
-                                                                    )}
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {activeStep === 3 && (
-                                    <div>
-                                        <h3>Devoirs de {selectedEnfant.prenom}</h3>
-
-                                        {loadingDevoirs ? (
-                                            <div className="text-center my-4">
-                                                <div className="spinner-border text-primary" role="status">
-                                                    <span className="sr-only">Chargement...</span>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
                                                 </div>
-                                                <p>Chargement des devoirs...</p>
-                                            </div>
-                                        ) : devoirs.length === 0 ? (
-                                            <div className="alert alert-info">
-                                                Aucun devoir trouvé pour le moment.
-                                            </div>
-                                        ) : (
-                                            <div className="table-responsive">
-                                                <table className="table table-striped table-hover">
-                                                    <thead className="thead-light">
-                                                        <tr>
-                                                            <th>Matière</th>
-                                                            <th>Titre</th>
-                                                            <th>Description</th>
-                                                            <th>Date limite</th>
-                                                            <th>Actions</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {devoirs.map((devoir) => (
-                                                            <tr key={devoir.id}>
-                                                                <td>{devoir.Matiere?.nom}</td>
-                                                                <td>{devoir.titre}</td>
-                                                                <td>{devoir.description || 'Aucune description'}</td>
-                                                                <td>
-                                                                    {new Date(devoir.dateLimite).toLocaleDateString('fr-FR', {
-                                                                        day: '2-digit',
-                                                                        month: '2-digit',
-                                                                        year: 'numeric'
-                                                                    })}
-                                                                </td>
-                                                                <td>
-                                                                    <button
-                                                                        onClick={() => downloadDevoir(devoir.fichier)}
-                                                                        className="btn btn-primary btn-sm"
-                                                                    >
-                                                                        <i className="fas fa-download mr-1"></i> Télécharger
-                                                                    </button>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
                     </>
                 )}
             </div>
@@ -916,7 +885,6 @@ const ListeDeSesEnfants = () => {
                 </Modal.Footer>
             </Modal>
 
-
             <Modal show={showNotesModal} onHide={() => setShowNotesModal(false)} size="lg">
                 <Modal.Header closeButton style={{ backgroundColor: '#f8f9fa', borderBottom: '1px solid #dee2e6' }}>
                     <Modal.Title style={{ color: '#2c3e50', fontWeight: 'bold' }}>
@@ -995,6 +963,42 @@ const ListeDeSesEnfants = () => {
 
             <style>
                 {`
+                .enfant-card {
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 15px;
+  width: 150px;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.enfant-card:hover {
+  transform: translateY(-5px) scale(1.03);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+}
+
+.enfant-card.selected {
+  border: 2px solid #007bff;
+}
+
+.enfant-photo {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #eaeaea;
+  transition: border-color 0.3s ease;
+}
+
+.enfant-card:hover .enfant-photo {
+  border-color: #007bff;
+}
+
           .note-item {
             display: flex;
             justify-content: space-between;
@@ -1040,6 +1044,74 @@ const ListeDeSesEnfants = () => {
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
           }
+          .stepper-container {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.stepper-step {
+  cursor: pointer;
+  text-align: center;
+  color: #666;
+  transition: all 0.3s ease;
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.stepper-step:hover {
+  background-color: #f1f1f1;
+}
+
+.stepper-step.active {
+  color: #007bff;
+  font-weight: bold;
+  background-color: #e9f5ff;
+}
+
+.stepper-step .icon {
+  font-size: 24px;
+  margin-bottom: 5px;
+}
+
+/* Conteneur principal */
+.enfant-details {
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 25px;
+  background: #fff;
+  box-shadow: 0 5px 10px rgba(0,0,0,0.05);
+  transition: all 0.3s ease;
+}
+
+/* Titres de section */
+.section-title {
+  font-size: 1.4rem;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+/* Spinner personnalisé */
+.spinner-border {
+  width: 2rem;
+  height: 2rem;
+}
+
+/* Boutons année scolaire et trimestre */
+.btn-annee,
+.btn-trimestre {
+  transition: all 0.3s ease;
+  border-radius: 8px;
+}
+
+.btn-annee:hover,
+.btn-trimestre:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
         
         `}
             </style>

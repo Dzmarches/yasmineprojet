@@ -178,16 +178,12 @@ const Formulaire = ({ eleveId: propEleveId, onSuccess }) => {
 
     const nextStep = (e) => {
         e?.preventDefault();
-        const newErrors = validateStep(step);
+        const newErrors = validateStep(step); // Valide l'étape actuelle
         setErrors(newErrors);
-
-        // Afficher les erreurs dans la console pour le débogage
-        console.log("Erreurs de validation:", newErrors);
 
         if (Object.keys(newErrors).length === 0) {
             setStep(step + 1);
         } else {
-            // Afficher un message d'erreur si la validation échoue
             alert("Veuillez remplir tous les champs obligatoires avant de continuer.");
         }
     };
@@ -381,7 +377,12 @@ const Formulaire = ({ eleveId: propEleveId, onSuccess }) => {
                     { icon: children, label: 'Scolarité' },
                     { icon: enrollmentIcon, label: 'Inscription' },
                 ].map((item, index) => (
-                    <div key={index} className={`step ${step === index + 1 ? 'active' : ''} text-center`}>
+                    <div
+                        key={index}
+                        className={`step ${step === index + 1 ? 'active' : ''} text-center`}
+                        onClick={() => handleStepClick(index + 1)}
+                        style={{ cursor: 'pointer' }} // Ajout du style pour le curseur
+                    >
                         <img src={item.icon} alt={`Étape ${index + 1}`} className="step-icon" style={{ width: 50, height: 50 }} />
                         <p className="mt-2">{item.label}</p>
                     </div>
@@ -460,6 +461,32 @@ const Formulaire = ({ eleveId: propEleveId, onSuccess }) => {
                 break;
         }
         return newErrors;
+    };
+
+    const validateAllStepsUpTo = (targetStep) => {
+        let allErrors = {};
+        for (let i = 1; i < targetStep; i++) {
+            const stepErrors = validateStep(i);
+            if (Object.keys(stepErrors).length > 0) {
+                allErrors = { ...allErrors, ...stepErrors };
+            }
+        }
+        return allErrors;
+    };
+    const handleStepClick = (targetStep) => {
+        if (targetStep < step) {
+            // Autoriser la navigation vers les étapes précédentes sans validation
+            setStep(targetStep);
+        } else {
+            // Valider toutes les étapes précédentes
+            const errors = validateAllStepsUpTo(targetStep);
+            if (Object.keys(errors).length === 0) {
+                setStep(targetStep);
+            } else {
+                setErrors(errors);
+                alert("Veuillez remplir tous les champs obligatoires des étapes précédentes avant de continuer.");
+            }
+        }
     };
     useEffect(() => {
         const fetchEleve = async () => {
@@ -808,7 +835,7 @@ const Formulaire = ({ eleveId: propEleveId, onSuccess }) => {
             <nav className="mb-3">
                 <Link to="/home" className="text-primary">Accueil</Link>
                 <span> / </span>
-                <Link to="/etudiants" className="text-primary">Gestion des étudiants</Link>
+                <Link to="/eleves" className="text-primary">Gestion des étudiants</Link>
                 <span> / </span>
                 <span>{isEditing ? "Modifier" : "Ajouter"}</span>
             </nav>
@@ -3136,6 +3163,22 @@ const Formulaire = ({ eleveId: propEleveId, onSuccess }) => {
                     </Button>
                 </Modal.Footer>
             </Modal>
+            <style>
+        {`
+          .step {
+            cursor: pointer;
+            transition: transform 0.2s;
+          }
+
+          .step:hover {
+            transform: scale(1.05);
+          }
+
+          .step.active {
+            font-weight: bold;
+          }
+        `}
+      </style>
         </>
     );
 };
