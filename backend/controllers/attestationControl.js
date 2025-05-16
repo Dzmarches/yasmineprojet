@@ -1,34 +1,42 @@
-/////Documents
+//Documents
 
 import Attestation from "../models/Attestation.js";
 import dotenv from 'dotenv'
 import EcolePrincipal from "../models/EcolePrincipal.js";
 import { Ecole } from "../models/relations.js";
+import { Op } from "sequelize";
 dotenv.config();
 
 export const ajouterDE = async (req, res) => {
   try {
     const ecoleId = req.user.ecoleId;   
     const ecoleeId = req.user.ecoleeId; 
-    console.log('ecoleeId',ecoleeId)
-    const { nom, description, modeleTexte, module } = req.body;
-    if (!nom || !module || !modeleTexte) {
-      return res.status(400).json({ message: "Nom, module et modèle de texte sont obligatoires." });
+    const { nom, description, modeleTexte, module ,code} = req.body;
+
+    if (!nom || !module || !modeleTexte || !code) {
+      return res.status(400).json({ message: "Nom, module,code et modèle de texte sont obligatoires." });
     }
-    
+
+    const existAttestation = await Attestation.findOne({
+      where: {code} 
+    });
+    if (existAttestation) {
+      return res.status(409).json({ message: "Ce code existe déjà" });
+    }
     const nouvelleAttestation = await Attestation.create({
       nom,
+      code,
       description: description || "",
       modeleTexte,
       module,ecoleId,ecoleeId
     });
 
     res.status(201).json({
-      message: "Attestation ajoutée avec succès !",
+      message: "Document ajoutée avec succès !",
       attestation: nouvelleAttestation
     });
   } catch (error) {
-    console.error("Erreur lors de l'ajout de l'attestation :", error);
+    console.error("Erreur lors de l'ajout du document :", error);
     res.status(500).json({
       message: "Erreur lors de l'ajout",
       error: error.message
@@ -57,9 +65,9 @@ export const ListeDE = async (req, res) => {
     }
 
   } catch (error) {
-    console.error("Erreur lors de la récupération des attestations :", error);
+    console.error("Erreur lors de la récupération des documents :", error);
     res.status(500).json({
-      message: "Erreur lors de la récupération des attestations",
+      message: "Erreur lors de la récupération des documents",
       error: error.message
     });
   }
@@ -69,51 +77,61 @@ export const InfoDE = async (req, res) => {
   try {
     const { id } = req.params;
     if (!id) {
-      return res.status(400).json({ message: "L'ID de l'attestation est requis." });
+      return res.status(400).json({ message: "L'ID du l'document est requis." });
     }
 
     const attestation = await Attestation.findByPk(id);
     if (!attestation) {
-      return res.status(404).json({ message: "Attestation non trouvée." });
+      return res.status(404).json({ message: "document non trouvée." });
     }
-
     res.status(200).json(attestation);
   } catch (error) {
-    console.error("Erreur lors de la récupération de l'attestation :", error);
-    res.status(500).json({ message: "Erreur serveur lors de la récupération de l'attestation." });
+    console.error("Erreur lors de la récupération du document :", error);
+    res.status(500).json({ message: "Erreur serveur lors de la récupération du document." });
   }
 };
 
 export const ModifierDE = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nom, description, modeleTexte, module } = req.body;
-
-
+    const { nom, description, modeleTexte, module,code } = req.body;
     if (!id) {
-      return res.status(400).json({ message: "L'ID de l'attestation est requis." });
+      return res.status(400).json({ message: "L'ID du document est requis." });
     }
 
     const attestation = await Attestation.findByPk(id);
-
     if (!attestation) {
-      return res.status(404).json({ message: "Attestation non trouvée." });
+      return res.status(404).json({ message: "document non trouvée." });
     }
 
+    if (!nom || !module || !modeleTexte || !code) {
+      return res.status(400).json({ message: "Nom, module,code et modèle de texte sont obligatoires." });
+    }
 
+    const existAttestation = await Attestation.findOne({
+      where: {
+        code,
+        id: { [Op.ne]: id }, 
+      },
+    });
+    
+    if (existAttestation) {
+      return res.status(409).json({ message: "Ce code existe déjà pour un autre document." });
+    }
+    
     if (nom) attestation.nom = nom;
     if (description) attestation.description = description;
     if (modeleTexte) attestation.modeleTexte = modeleTexte;
     if (module) attestation.module = module;
+    if (code) attestation.code = code;
 
     // Sauvegarder les modifications
     await attestation.save();
 
-
-    res.status(200).json({ message: "Attestation mise à jour avec succès.", attestation });
+    res.status(200).json({ message: "document mise à jour avec succès.", attestation });
   } catch (error) {
-    console.error("Erreur lors de la mise à jour de l'attestation :", error);
-    res.status(500).json({ message: "Erreur serveur lors de la mise à jour de l'attestation." });
+    console.error("Erreur lors de la mise à jour du document :", error);
+    res.status(500).json({ message: "Erreur serveur lors de la mise à jour du document." });
   }
 };
 
@@ -121,21 +139,18 @@ export const AttestationInfo = async (req, res) => {
   try {
     const { id } = req.params;
     const attestation = await Attestation.findByPk(id);
-
     if (attestation) {
       return res.status(200).json(attestation);
     } else {
-      return res.status(404).json({ message: 'attestation non trouvé' })
+      return res.status(404).json({ message: 'document non trouvé' })
     }
-
   } catch (error) {
     console.log(error)
   }
 }
 
 export const uploadImagemodele=async(req,res)=>{
-  console.log('rrererrerrre');
-  console.log('rererer',req.file);
+
     if (!req.file) {
       return res.status(400).send('No file uploaded.');
     }

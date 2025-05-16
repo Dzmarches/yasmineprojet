@@ -1,21 +1,77 @@
 import React, { useEffect, useState } from 'react';
 import {
   Card, Row, Col, Form, Table, ProgressBar, Button, Container, Tab, Tabs,
-  CardFooter
+  CardFooter, Spinner
 } from 'react-bootstrap';
 import { Link } from 'react-router-dom'
 import {
   CashStack, CreditCard, PeopleFill,
-  Building, Calendar, CurrencyDollar, GraphUp, PieChart, FileText,
+  Building, Calendar, CurrencyDollar, GraphUp, FileText,
   Circle,
 
 } from 'react-bootstrap-icons';
 import axios from 'axios';
 import moment from 'moment';
+import { PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 
 const RapportComptabilite = () => {
-  
   const [activeTab, setActiveTab] = useState('revenus');
+  const [loading, setLoading] = useState(true);
+
+  // -----------------sousecole--------------
+  const [selectedEcole, setSelectedEcole] = useState(null);
+  const [filteredEcoles, setFilteredEcoles] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [ecole, setEcoles] = useState([]);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("❌ Aucun token trouvé. Veuillez vous connecter.");
+        return;
+      }
+      try {
+        const response = await axios.get("http://localhost:5000/getMe", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setRoles(response.data.roles || []);
+      } catch (error) {
+        console.error("❌ Erreur lors de la récupération des informations de l'utilisateur :", error);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  useEffect(() => {
+    const fetchEcoles = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('Aucun token trouvé. Veuillez vous connecter.');
+          return;
+        }
+        const response = await axios.get('http://localhost:5000/ecoles', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        // Vérifier que les données contiennent bien les champs nécessaires
+        const ecolesWithDefaults = response.data.map(ecole => ({
+          ...ecole,
+          nomecole: ecole.nomecole || '', // Valeur par défaut si undefined
+          nom_arecole: ecole.nom_arecole || '', // Valeur par défaut si undefined
+        }));
+        setEcoles(ecolesWithDefaults);
+        setFilteredEcoles(ecolesWithDefaults);
+      } catch (error) {
+        console.error('Erreur lors de la récupération des écoles', error);
+      }
+    };
+    fetchEcoles();
+  }, []);
 
 
   //les mois-------------------------
@@ -23,14 +79,17 @@ const RapportComptabilite = () => {
     'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
     'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
   ];
-  const  mois=parseInt(moment().format('MM'));
-  const  cemois=months[mois-1];
-  const [selectedMonth, setSelectedMonth] = useState(cemois);
+  const mois = parseInt(moment().format('MM'));
+  const cemois = months[mois - 1];
+  // const [selectedMonth, setSelectedMonth] = useState(cemois);
+  const [selectedMonth, setSelectedMonth] = useState('Avril');
   // ---------------------------------------
 
   //recuperés les annee scolaire
   const [years, setYears] = useState([]);
   const [selectedYear, setSelectedYear] = useState(null);
+  const [error, setError] = useState(null);
+
   useEffect(() => {
     const fetchAnneesScolaires = async () => {
       try {
@@ -60,71 +119,97 @@ const RapportComptabilite = () => {
     fetchAnneesScolaires();
   }, []);
 
-  const [data,setdata]=useState([]);
+  const [data, setdata] = useState([]);
 
-  useEffect(() => {
-    const DashboardCompt = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const response = await axios.post(
-          'http://localhost:5000/contrat/dashboard',
-          { selectedMonth, selectedYear },
-          {
-            headers: { Authorization: `Bearer ${token}` }
-          }
-        );
-        if (response.status === 200) {
-          console.log('response.data', response.data);
+
+  const DashboardCompt = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        'http://localhost:5000/contrat/dashboard',
+        {
+          selectedMonth,
+          selectedYear,
+          ecoleeId: selectedEcole || null
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
         }
-      } catch (error) {
-        console.error("Erreur lors de la récupération des données du dashboard", error);
+      );
+      if (response.status === 200) {
+        console.log('response.data', response.data);
+        setdata(response.data);
+        setLoading(false);
       }
-    };
-    if (selectedMonth && selectedYear) {
-      DashboardCompt();
+    } catch (error) {
+      setError("Erreur lors du chargement des données.");
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
-  }, [selectedMonth, selectedYear]); 
-
-
-
-
-
-
-  // Données simulées
-  const stats = {
-    totalRevenu: 1250000,
-    totalDepense: 850000,
-    payementPaye: 950000,
-    payementNonPaye: 300000,
-    depensesParCategorie: [
-      { categorie: 'Salaires', montant: 500000, pourcentage: 58.8, paye: 450000, nonPaye: 50000 },
-      { categorie: 'Loyer', montant: 150000, pourcentage: 17.6, paye: 150000, nonPaye: 0 },
-      { categorie: 'Fournitures', montant: 100000, pourcentage: 11.8, paye: 100000, nonPaye: 0 },
-      { categorie: 'Services', montant: 50000, pourcentage: 5.9, paye: 50000, nonPaye: 0 },
-      { categorie: 'Autres', montant: 50000, pourcentage: 5.9, paye: 50000, nonPaye: 0 }
-    ],
-    employes: [
-      { id: 1, nom: 'Mohamed Ali', poste: 'Enseignant', salaire: 80000, paye: 80000 },
-      { id: 2, nom: 'Fatima Zohra', poste: 'Secrétaire', salaire: 60000, paye: 60000 },
-      { id: 3, nom: 'Karim Benzema', poste: 'Directeur', salaire: 120000, paye: 100000 },
-      { id: 4, nom: 'Amina Belkacem', poste: 'Comptable', salaire: 70000, paye: 70000 },
-      { id: 5, nom: 'Youssef Khan', poste: 'Maintenance', salaire: 50000, paye: 50000 }
-    ],
-    revenusParMois: [
-      { mois: 'Janvier', montant: 200000 },
-      { mois: 'Février', montant: 180000 },
-      { mois: 'Mars', montant: 220000 },
-      { mois: 'Avril', montant: 210000 },
-      { mois: 'Mai', montant: 230000 },
-      { mois: 'Juin', montant: 210000 }
-    ]
   };
 
+  const DashboardComptAll = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        'http://localhost:5000/contrat/dashboard/all',
+        {
+          selectedMonth,
+          selectedYear,
+          ecoleeId: selectedEcole || null
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      if (response.status === 200) {
+        setdata(response.data);
+        setLoading(false);
+      }
+    } catch (error) {
+      setError("Erreur lors du chargement des données.");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
+    if (selectedMonth && selectedYear && !roles.includes("AdminPrincipal")) {
+      DashboardCompt();
+    } else if (selectedMonth && selectedYear && roles.includes("AdminPrincipal") && selectedEcole) {
+      DashboardCompt();
+    }
+  }, [selectedMonth, selectedYear,selectedEcole],roles);
 
+  useEffect(() => {
+    if (selectedMonth && selectedYear && roles.includes("AdminPrincipal") && !selectedEcole) {
+      DashboardComptAll();
+    }
+  }, [selectedMonth, selectedYear,selectedEcole,roles]);
+
+  const total = (parseFloat(data?.AutreRevenus?.totalRevenus) || 0) +
+    (parseFloat(data?.AutresDepenses?.totaldepenses) || 0);
+  const chartData = [
+    {
+      name: 'Revenus',
+      value: parseFloat(data?.AutreRevenus?.totalRevenus) || 0,
+      percent: total ? Math.round((parseFloat(data?.AutreRevenus?.totalRevenus) / total) * 100) : 0
+    },
+    {
+      name: 'Dépenses',
+      value: parseFloat(data?.AutresDepenses?.totaldepenses) || 0,
+      percent: total ? Math.round((parseFloat(data?.AutresDepenses?.totaldepenses) / total) * 100) : 0
+    }
+  ];
+
+  const COLORS = ['#28a745', '#dc3545'];
+  if (error) return <p style={{ color: "red" }}>{error}</p>;
+  if (loading) return <Spinner animation="border" variant="primary" style={{ marginTop: '20%', marginLeft: '50%' }} />
+  //detecter le role de user
 
   return (
-
     <>
       <nav className="mt-5">
         <Link to="/dashboard">Dashboard</Link>
@@ -135,34 +220,35 @@ const RapportComptabilite = () => {
 
         {/* En-tête avec sélecteurs */}
 
-        <Row className="mb-4 mt-5">
-          <Col className='mt-5 ml-3' md={6} >
-            <h2 className="text-primary">
+        <Row className="mb-4  ">
+          <Col className='mt-2 ml-3 mr-5' md={4} >
+            <h1 className="text-primary">
               Tableau de Bord Comptable
-            </h2>
+            </h1>
             <p className="text-muted">Vue d’ensemble des revenus, des dépenses et des paiements des élèves pour le mois en cours </p>
           </Col>
-
-          <Col md={2}>
+          <Col md={2} className='mt-5 ml-5'  >
             <Form.Group controlId="formYear">
               <Form.Label>Année</Form.Label>
               <Form.Select
+                style={{ minHeight: '40px' }}
                 className='form-control'
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
               >
-                  {years.map((year) => (
-                    <option key={year.value} value={year.value}>
-                      {year.label}
-                    </option>
+                {years.map((year) => (
+                  <option key={year.value} value={year.value}>
+                    {year.label}
+                  </option>
                 ))}
               </Form.Select>
             </Form.Group>
           </Col>
-          <Col md={2}>
+          <Col md={2} className='mt-5 '>
             <Form.Group controlId="formMonth">
               <Form.Label>Mois</Form.Label>
               <Form.Select
+                style={{ minHeight: '40px' }}
                 className='form-control'
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
@@ -173,6 +259,53 @@ const RapportComptabilite = () => {
               </Form.Select>
             </Form.Group>
           </Col>
+          {/* {roles.includes("AdminPrincipal") ? (
+            <Col md={2} className='mt-5'>
+              <Form.Group controlId="formMonth">
+                <Form.Label>Ecole</Form.Label>
+                <Form.Select
+                  style={{ minHeight: '40px' }}
+                  className='form-control'
+                  value={selectedEcole || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSelectedEcole(value === "null" ? null : value);
+                  }}  >
+                 
+                  <option value="" disabled>Sélectionnez une ecole</option>
+                  <option value="null">Ecole Principale</option>
+                  {ecole.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.nomecole}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+            </Col>
+          ) : ''} */}
+
+          {roles.includes("AdminPrincipal") ? (
+            <Col md={2} className='mt-5'>
+              <Form.Group controlId="formMonth">
+                <Form.Label>Ecole</Form.Label>
+                <Form.Select
+                  style={{ minHeight: '40px' }}
+                  className='form-control'
+                  value={selectedEcole || ''}
+                  onChange={(e) => setSelectedEcole(e.target.value)}
+                >
+                  <option value="" disabled>Sélectionnez une école</option>
+                  <option value="EP">Ecole Principale</option>
+                  {ecole.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.nomecole}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+            </Col>
+          ) : ''}
+
         </Row>
         {/* Cartes de statistiques */}
         <Row className="mb-4">
@@ -188,9 +321,11 @@ const RapportComptabilite = () => {
                   <h5 className="text-muted mb-0 ms-3 ml-2">Total Revenu</h5>
                 </div>
                 {/* Montant principal */}
-                <h2 className="text-success mb-3">
-                  {stats.totalRevenu.toLocaleString('fr-FR')} <small className="fs-6">DZD</small>
-                </h2>
+                <h4 className="text-success mb-3">
+                  {/* {stats.totalRevenu.toLocaleString('fr-FR')}  */}
+                  {(data.AutreRevenus?.totalRevenus || 0)}
+                  <small className="fs-6">DZD</small>
+                </h4>
 
                 {/* Détails des revenus */}
                 <div className="revenue-breakdown">
@@ -200,12 +335,15 @@ const RapportComptabilite = () => {
                       <div className="dot-indicator bg-success me-2"></div>
                       <div>
                         <span className="text-muted small">Frais de scolarité Élèves:</span>
-                        <div className="fw-semibold">660,000 DZD</div>
+                        <div className="fw-semibold">{data.FraiScolarite?.totalPaye || 0} DZD</div>
                       </div>
                     </div>
                     <div className="percentage-value text-success">
                       <GraphUp size={14} className="me-1" />
-                      75%
+                      {data.FraiScolarite?.totalPaye && data.AutreRevenus?.totalRevenus
+                        && data.AutreRevenus?.totalRevenus != 0.00
+                        ? Math.round((data?.FraiScolarite?.totalPaye / data?.AutreRevenus?.totalRevenus) * 100) + '%'
+                        : '0.00%'}
                     </div>
                   </div>
                   <div className="revenue-item d-flex justify-content-between align-items-center mb-2 py-2">
@@ -213,12 +351,15 @@ const RapportComptabilite = () => {
                       <div className="dot-indicator bg-success me-2"></div>
                       <div>
                         <span className="text-muted small">Frais de inscription Élèves:</span>
-                        <div className="fw-semibold">660,000 DZD</div>
+                        <div className="fw-semibold">{data.FraiScolarite?.totalFraisInscription || 0}  DZD</div>
                       </div>
                     </div>
                     <div className="percentage-value text-success">
                       <GraphUp size={14} className="me-1" />
-                      75%
+                      {data.FraiScolarite?.totalFraisInscription && data.AutreRevenus?.totalRevenus
+                        && data.AutreRevenus?.totalRevenus != 0.00
+                        ? Math.round((data.FraiScolarite?.totalFraisInscription / data?.AutreRevenus?.totalRevenus) * 100) + '%'
+                        : '0.00%'}
                     </div>
                   </div>
 
@@ -228,12 +369,15 @@ const RapportComptabilite = () => {
                       <div className="dot-indicator bg-info me-2"></div>
                       <div>
                         <span className="text-muted small">Autres Revenus:</span>
-                        <div className="fw-semibold">590,000 DZD</div>
+                        <div className="fw-semibold">{data.AutreRevenus?.total || 0} DZD</div>
                       </div>
                     </div>
-                    <div className="percentage-value text-danger">
+                    <div className="percentage-value text-success">
                       <GraphUp size={14} className="me-1" />
-                      8%
+                      {data.AutreRevenus?.total && data.AutreRevenus?.totalRevenus
+                        && data.AutreRevenus?.totalRevenus != 0.00
+                        ? Math.round((data.AutreRevenus?.total / data.AutreRevenus?.totalRevenus) * 100) + '%'
+                        : '0.00%'}
                     </div>
                   </div>
                 </div>
@@ -255,15 +399,13 @@ const RapportComptabilite = () => {
                   <div className="icon-circle bg-success-light">
                     <CreditCard size={20} className="text-danger" />
                   </div>
-                  <h5 className="text-muted mb-0 ms-3 ml-2">Total Dépense</h5>
+                  <h5 className="text-muted mb-0 ms-3 ml-2">Total Dépense </h5>
                 </div>
                 {/* Montant principal */}
-                <h2 className="text-danger mb-3">
-                  {stats.totalRevenu.toLocaleString('fr-FR')} <small className="fs-6">DZD</small>
-                </h2>
-
+                <h4 className="text-danger mb-3">
+                  {data.AutresDepenses?.totaldepenses || 0} <small className="fs-6">DZD</small>
+                </h4>
                 {/* Détails des revenus */}
-
                 <div className="revenue-breakdown">
                   {/* Ligne paiments des employes */}
                   <div className="revenue-item d-flex justify-content-between align-items-center py-2">
@@ -271,12 +413,15 @@ const RapportComptabilite = () => {
                       <div className="dot-indicator bg-danger me-2"></div>
                       <div>
                         <span className="text-muted small">Dépenses salariales:</span>
-                        <div className="fw-semibold">590,000 DZD</div>
+                        <div className="fw-semibold">{data.Salaires?.total || 0} DZD</div>
                       </div>
                     </div>
                     <div className="percentage-value text-danger">
                       <GraphUp size={14} className="me-1" />
-                      8%
+                      {data.Salaires?.total && data.AutresDepenses?.totaldepenses
+                        && data.AutresDepenses.totaldepenses != 0.00
+                        ? Math.round((data.Salaires?.total / data.AutresDepenses?.totaldepenses) * 100) + '%'
+                        : '0.00%'}
                     </div>
                   </div>
                 </div>
@@ -288,18 +433,19 @@ const RapportComptabilite = () => {
                       <div className="dot-indicator bg-info me-2"></div>
                       <div>
                         <span className="text-muted small">Autres dépense:</span>
-                        <div className="fw-semibold">590,000 DZD</div>
+                        <div className="fw-semibold">{data.AutresDepenses?.total || 0} DZD</div>
                       </div>
                     </div>
                     <div className="percentage-value text-danger">
                       <GraphUp size={14} className="me-1" />
-                      8%
+                      {data.AutresDepenses?.total && data.AutresDepenses?.totaldepenses
+                        && data.AutresDepenses?.totaldepenses != 0.00
+                        ? Math.round((data.AutresDepenses?.total / data.AutresDepenses?.totaldepenses) * 100) + '%'
+                        : '0.00'}
                     </div>
                   </div>
                 </div>
-
                 {/* Pied de carte */}
-
               </Card.Body>
               <CardFooter>
                 <small className="text-muted">
@@ -317,12 +463,18 @@ const RapportComptabilite = () => {
                   <div className="icon-circle bg-success-light">
                     <CreditCard size={20} className="text-success" />
                   </div>
-                  <h5 className="text-muted mb-0 ms-3 ml-2">Total Frais Scolarité  </h5>
+                  <h5 className="text-muted mb-0 ms-3 ml-2">
+                    Frais Scolarité Payés <br />
+                    < small className='text-muted'>
+                      {years.find((item) => item.value === selectedYear)?.label || ""
+                      }</small>
+
+                  </h5>
                 </div>
                 {/* Montant principal */}
-                <h2 className="text-success mb-3">
-                  {stats.totalRevenu.toLocaleString('fr-FR')} <small className="fs-6">DZD</small>
-                </h2>
+                <h4 className="text-success mb-3">
+                  {data.Contrat?.totalPayeC} <small className="fs-6">DZD</small>
+                </h4>
 
                 {/* Détails des revenus */}
                 <div className="revenue-breakdown">
@@ -332,12 +484,14 @@ const RapportComptabilite = () => {
                       <div className="dot-indicator bg-success me-2"></div>
                       <div>
                         <span className="text-muted small">Frais Scolarité Payés </span>
-                        <div className="fw-semibold">660,000 DZD</div>
+                        <div className="fw-semibold">{data.FraiScolarite?.totalPaye} DZD</div>
                       </div>
                     </div>
                     <div className="percentage-value text-success">
                       <GraphUp size={14} className="me-1" />
-                      75%
+                      {data.FraiScolarite?.totalPaye && data.Contrat?.totalPayeC
+                        ? Math.round((data.FraiScolarite?.totalPaye / data.Contrat?.totalPayeC) * 100) + '%'
+                        : '0.00%'}
                     </div>
                   </div>
 
@@ -360,13 +514,18 @@ const RapportComptabilite = () => {
                   <div className="icon-circle bg-success-light">
                     <CreditCard size={20} className="text-danger" />
                   </div>
-                  <h5 className="text-muted mb-0 ms-3 ml-2">Frais Scolarité Impayés</h5>
+                  <h5 className="text-muted mb-0 ms-3 ml-2">
+                    Frais Scolarité Impayés
+                    <br />
+                    < small className='text-muted'>
+                      {years.find((item) => item.value === selectedYear)?.label || ""
+                      }</small>
+                  </h5>
                 </div>
                 {/* Montant principal */}
-                <h2 className="text-danger mb-3">
-                  {stats.totalRevenu.toLocaleString('fr-FR')} <small className="fs-6">DZD</small>
-                </h2>
-
+                <h4 className="text-danger mb-3">
+                  {data.Contrat?.totalNonPayeC || 0} <small className="fs-6">DZD</small>
+                </h4>
                 {/* Détails des revenus */}
                 <div className="revenue-breakdown">
                   {/* Ligne Autres Revenus */}
@@ -374,13 +533,15 @@ const RapportComptabilite = () => {
                     <div className="d-flex align-items-center">
                       <div className="dot-indicator bg-info me-2"></div>
                       <div>
-                        <span className="text-muted small"> Total Paiements Élèves (En Retard) :</span>
-                        <div className="fw-semibold">590,000 DZD</div>
+                        <span className="text-muted small">Total Paiements (En Retard) :</span>
+                        <div className="fw-semibold">{data.FraiScolarite?.totalNonPaye} DZD</div>
                       </div>
                     </div>
                     <div className="percentage-value text-danger">
                       <GraphUp size={14} className="me-1" />
-                      8%
+                      {data.FraiScolarite?.totalNonPaye && data.Contrat?.totalNonPayeC
+                        ? Math.round((data.FraiScolarite?.totalNonPaye / data.Contrat?.totalNonPayeC) * 100) + '%'
+                        : '0.00%'}
                     </div>
                   </div>
                 </div>
@@ -412,7 +573,7 @@ const RapportComptabilite = () => {
                 </h5>
               </Card.Header>
               <Card.Body>
-                <Table striped hover responsive>
+                <Table striped hover responsive style={{ maxHeight: '150px', overflowY: 'auto' }}>
                   <thead>
                     <tr>
                       <th>Code</th>
@@ -420,22 +581,24 @@ const RapportComptabilite = () => {
                       <th>Montant</th>
                       <th>% du Montant</th>
                       <th>Progression</th>
+                      <th>Ecole</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {stats.revenusParMois.map((item, index) => (
+                    {data?.AutreRevenus?.liste.map((item, index) => (
                       <tr key={index}>
-                        <td>{item.mois}</td>
+                        <td>{item.code}</td>
+                        <td>{item.cause_fr}</td>
                         <td>{item.montant.toLocaleString('fr-FR')}</td>
-                        <td>{item.montant.toLocaleString('fr-FR')}</td>
-                        <td>{((item.montant / stats.totalRevenu) * 100)}%</td>
+                        <td>{Math.round((item.montant / data.AutreRevenus?.total) * 100)}%</td>
                         <td>
                           <ProgressBar
-                            now={(item.montant / stats.totalRevenu) * 100}
+                            now={(item.montant / data?.AutreRevenus?.total) * 100}
                             variant="primary"
                             style={{ height: '6px' }}
                           />
                         </td>
+                        <td>{item.Ecole?.nomecole}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -449,40 +612,42 @@ const RapportComptabilite = () => {
               <Card.Header className="bg-light">
                 <h5 className="mb-0">
                   <CreditCard className="me-2" />
-                  Détails des Dépenses par Catégorie
+                  &nbsp;&nbsp;Détails des Dépenses
                 </h5>
               </Card.Header>
               <Card.Body>
                 <Row>
                   <Col md={12}>
-                  <Table striped hover responsive>
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>Cause</th>
-                      <th>Montant</th>
-                      <th>% du Montant</th>
-                      <th>Progression</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.revenusParMois.map((item, index) => (
-                      <tr key={index}>
-                        <td>{item.mois}</td>
-                        <td>{item.montant.toLocaleString('fr-FR')}</td>
-                        <td>{item.montant.toLocaleString('fr-FR')}</td>
-                        <td>{((item.montant / stats.totalRevenu) * 100)}%</td>
-                        <td>
-                          <ProgressBar
-                            now={(item.montant / stats.totalRevenu) * 100}
-                            variant="primary"
-                            style={{ height: '6px' }}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
+                    <Table striped hover responsive style={{ maxHeight: '150px', overflowY: 'auto' }}>
+                      <thead>
+                        <tr>
+                          <th>Code</th>
+                          <th>Cause</th>
+                          <th>Montant</th>
+                          <th>% du Montant</th>
+                          <th>Progression</th>
+                          <th>Ecole</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data?.AutresDepenses?.liste.map((item, index) => (
+                          <tr key={index}>
+                            <td>{item.code}</td>
+                            <td>{item.cause_fr}</td>
+                            <td>{item.montant.toLocaleString('fr-FR')}</td>
+                            <td>{Math.round((item.montant / data.AutresDepenses?.total) * 100)}%</td>
+                            <td>
+                              <ProgressBar
+                                now={(item.montant / data.AutresDepenses?.total) * 100}
+                                variant="primary"
+                                style={{ height: '6px' }}
+                              />
+                            </td>
+                            <td>{item.Ecole?.nomecole}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
                   </Col>
                 </Row>
               </Card.Body>
@@ -497,42 +662,54 @@ const RapportComptabilite = () => {
                   Détails des Salaires
                 </h5>
               </Card.Header>
-              <Card.Body>
-                <Table striped hover responsive>
+              <Card.Body >
+                <Table striped hover responsive style={{ maxHeight: '150px', overflowY: 'auto' }}>
                   <thead>
                     <tr>
+                      <th>Code employé</th>
                       <th>Employé</th>
                       <th>Poste</th>
                       <th>Salaire (DZ)</th>
-                      <th>Payé (DZ)</th>
-                      <th>Reste (DZ)</th>
-                     
+                      <th>Date</th>
+                      <th>Ecole</th>
+
                     </tr>
                   </thead>
                   <tbody>
-                    {stats.employes.map((employe) => (
+                    {data?.Salaires?.liste.map((employe) => (
                       <tr key={employe.id}>
-                        <td>{employe.nom}</td>
-                        <td>{employe.poste}</td>
-                        <td>{employe.salaire.toLocaleString('fr-FR')}</td>
-                        <td>{employe.paye.toLocaleString('fr-FR')}</td>
-                        <td>{(employe.salaire - employe.paye).toLocaleString('fr-FR')}</td>
+                        <td>{employe.Employe?.CE}</td>
+                        <td>
+                          {employe.Employe?.User?.nom}
+                          {employe.Employe?.User?.prenom}
+                        </td>
+                        <td>{employe.Employe?.Poste?.poste}</td>
+                        <td>{employe.salaireNet}</td>
+                        {/* <td>
+                          {employe.PeriodePaie?.dateDebut && employe.PeriodePaie?.dateFin
+                            ? `${moment(employe.PeriodePaie.dateDebut).format('DD-MM-YYYY')} / ${moment(employe.PeriodePaie.dateFin).format('DD-MM-YYYY')}`
+                            : ''}
+                        </td> */}
+                        <td>{employe.date ? moment(employe.date).format('DD-MM-YYYY') : ''}</td>
+                        <td>{employe.Employe?.User?.Ecoles[0]?.nomecole}</td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="fw-bold">
-                      <td colSpan="2">Total</td>
-                      <td>
-                        {stats.employes.reduce((sum, emp) => sum + emp.salaire, 0).toLocaleString('fr-FR')} DZ
+                    <tr>
+                      <td colSpan="6" style={{ textAlign: 'right', paddingTop: '10px' }}>
+                        <strong style={{
+                          fontSize: '16px',
+                          color: '#2c3e50',
+                          backgroundColor: '#ecf0f1',
+                          padding: '8px 12px',
+                          borderRadius: '6px',
+                          display: 'inline-block',
+                          marginTop: '7px'
+                        }}>
+                          Total : {data.Salaires?.total?.toLocaleString('fr-DZ')} DZD
+                        </strong>
                       </td>
-                      <td>
-                        {stats.employes.reduce((sum, emp) => sum + emp.paye, 0).toLocaleString('fr-FR')} DZ
-                      </td>
-                      <td>
-                        {stats.employes.reduce((sum, emp) => sum + (emp.salaire - emp.paye), 0).toLocaleString('fr-FR')} DZ
-                      </td>
-                      <td></td>
                     </tr>
                   </tfoot>
                 </Table>
@@ -542,36 +719,71 @@ const RapportComptabilite = () => {
         </Tabs>
 
         {/* Résumé mensuel */}
+        {/* Résumé mensuel */}
         <Card className="shadow-sm mt-3">
           <Card.Header className="bg-light d-flex justify-content-between align-items-center">
             <h5 className="mb-0">
-              <Calendar className="me-2" />
+              <Calendar className="me-2 mr-2" />
               Résumé Mensuel
             </h5>
-            <Button variant="outline-primary" size="sm">
-              Exporter PDF
-            </Button>
           </Card.Header>
           <Card.Body>
             <Row>
               <Col md={6}>
                 <h6 className="text-muted">Revenus vs Dépenses</h6>
-                <div className="bg-light p-3 rounded text-center">
-                  <PieChart size={100} className="text-primary" />
-                  <div className="mt-2">
-                    <span className="badge bg-primary me-2">Revenus: {stats.totalRevenu.toLocaleString('fr-FR')} DZ</span>
-                    <span className="badge bg-warning">Dépenses: {stats.totalDepense.toLocaleString('fr-FR')} DZ</span>
-                  </div>
+                <div className="bg-light p-3 rounded d-flex flex-column justify-content-center align-items-center" style={{ minHeight: '300px' }}>
+                  {chartData.some(item => item.value > 0) ? (
+                    <>
+                      <PieChart width={300} height={250}>
+                        <Pie
+                          data={chartData}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={80}
+                          label={({ percent }) => `${(percent)}%`}
+                          labelLine={false}
+                        >
+                          {chartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index]} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value, name, props) => [
+                            `${value.toLocaleString('fr-FR')} DZD`,
+                            name
+                          ]}
+                        />
+                        <Legend />
+                      </PieChart>
+                      <div className="mt-2 d-flex flex-wrap justify-content-center">
+                        {chartData.map((item, index) => (
+                          <span
+                            key={index}
+                            className={`badge ${index === 0 ? 'bg-success' : 'bg-danger'} me-2 mb-2`}
+                          >
+                            {item.name}: {item.value.toLocaleString('fr-FR')} DZ ({item.percent}%)
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-muted p-4 text-center">
+                      Aucune donnée disponible pour afficher le graphique
+                    </div>
+                  )}
                 </div>
               </Col>
+
               <Col md={6}>
                 <h6 className="text-muted">Balance</h6>
                 <div className="p-3 rounded bg-light">
-                  <h3 className={stats.totalRevenu - stats.totalDepense >= 0 ? "text-success" : "text-danger"}>
-                    {(stats.totalRevenu - stats.totalDepense).toLocaleString('fr-FR')} DZ
+                  <h3 className={data.AutreRevenus?.totalRevenus - data.AutresDepenses?.totaldepenses >= 0 ? "text-success" : "text-danger"}>
+                    {((data.AutreRevenus?.totalRevenus || 0) - (data.AutresDepenses?.totaldepenses || 0)).toLocaleString('fr-FR')} DZ
                   </h3>
                   <p className="mb-0">
-                    {stats.totalRevenu - stats.totalDepense >= 0 ? (
+                    {(data.AutreRevenus?.totalRevenus || 0) - (data.AutresDepenses?.totaldepenses || 0) >= 0 ? (
                       <span className="text-success">Bénéfice ce mois-ci</span>
                     ) : (
                       <span className="text-danger">Déficit ce mois-ci</span>

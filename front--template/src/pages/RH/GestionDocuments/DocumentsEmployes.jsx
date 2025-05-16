@@ -26,6 +26,7 @@ const DocumentsEmployes = () => {
     // Vous pouvez filtrer en fonction de n'importe quel champ. Exemple ici : 'nom' et 'prenom'
     return (item.nom && item.nom.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
       (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
+      (item.code && item.code.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
       (item.module && item.module.toLowerCase().includes(searchTerm.toLowerCase().trim()))
 
   });
@@ -165,7 +166,6 @@ const DocumentsEmployes = () => {
 
                             </div>
                             <div className="col-md-4" style={{ flex: '1', marginRight: '10px' }}>
-
                               <div className="input-group mr-2">
                                 <div className="form-outline" data-mdb-input-init> <input
                                   type="search"
@@ -185,10 +185,11 @@ const DocumentsEmployes = () => {
                           </div>
                         </div>
                         <div className="card-body mt-2">
-                          <table id="example2" className="table table-bordered ">
+                          <table id="example2" className="table table-bordered table-sm">
                             <thead>
                               <tr>
                                 <th>Id</th>
+                                <th>Code</th>
                                 <th>Nom du modèle</th>
                                 <th>Module</th>
                                 <th>Description</th>
@@ -202,41 +203,45 @@ const DocumentsEmployes = () => {
                                 // {currentItems.map((item, index) => (
                                 <tr key={index}>
                                   <td>{indexOfFirstItem + index + 1}</td>
+                                  <td>{item.code}</td>
                                   <td>{item.nom}</td>
                                   <td>{item.module}</td>
                                   <td>{item.description}</td>
                                   <td>{item.EcolePrincipal?.nomecole}</td>
                                   <td>{item.Ecole?.nomecole}</td>
                                   {(
-
                                     roles.some(role => ["AdminPrincipal", "Employé"].includes(role)) && !item.Ecole ? (
                                       // roles.includes("AdminPrincipal") ? (
-                                      <td>
-                                        <Link
-                                          className="btn btn-outline-success"
-                                          to={`/employes/document/modifier/${item.id}`}
-                                          style={{ height: "45px" }}
-                                        >
-                                          <img src={edit} alt="" width="24px" title="modifier" />
-                                        </Link>
-                                        &nbsp;&nbsp;&nbsp;&nbsp;
-                                        <a className="btn btn-outline-danger p-2" onClick={() => handleShow(item.id)}>
-                                          <img src={deletee} alt="" width="27px" title="Supprimer" />
-                                        </a>
+                                      <td style={{maxWidth:"25px"}}>
+                                        <div className="d-flex gap-2">
+                                          <Link
+                                            className="btn btn-outline-success action-btn"
+                                            to={`/employes/document/modifier/${item.id}`}
+                                          >
+                                            <img src={edit} alt="" width="24px" title="Modifier" className="action-icon" />
+                                          </Link>
+                                          <button
+                                            className="btn btn-outline-danger action-btn"
+                                            onClick={() => handleShow(item.id)}>
+                                            <img src={deletee} alt="" width="27px" title="Supprimer" className="action-icon" />
+                                          </button>
+                                        </div>
                                       </td>
-                                    ) : roles.some(role => ["Admin","AdminPrincipal", "Employé"].includes(role)) && item.Ecole?.nomecole ? (
-                                      <td>
-                                        <Link
-                                          className="btn btn-outline-success"
-                                          to={`/employes/document/modifier/${item.id}`}
-                                          style={{ height: "45px" }}
-                                        >
-                                          <img src={edit} alt="" width="24px" title="modifier" />
-                                        </Link>
-                                        &nbsp;&nbsp;&nbsp;&nbsp;
-                                        <a className="btn btn-outline-danger p-2" onClick={() => handleShow(item.id)}>
-                                          <img src={deletee} alt="" width="27px" title="Supprimer" />
-                                        </a>
+                                    ) : roles.some(role => ["Admin", "AdminPrincipal", "Employé"].includes(role)) && item.Ecole?.nomecole ? (
+                                         <td style={{maxWidth:"25px"}}>
+                                        <div className="d-flex gap-2">
+                                          <Link
+                                            className="btn btn-outline-success action-btn"
+                                            to={`/employes/document/modifier/${item.id}`}
+                                          >
+                                            <img src={edit} alt="" width="24px" title="Modifier" className="action-icon" />
+                                          </Link>
+                                          <button
+                                            className="btn btn-outline-danger action-btn"
+                                            onClick={() => handleShow(item.id)}>
+                                            <img src={deletee} alt="" width="27px" title="Supprimer" className="action-icon" />
+                                          </button>
+                                        </div>
                                       </td>
                                     ) : null
                                   )}

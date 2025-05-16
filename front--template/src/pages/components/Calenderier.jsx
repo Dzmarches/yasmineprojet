@@ -16,60 +16,68 @@ const Calenderie = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/events'); // Remplacez par votre URL
+        const token = localStorage.getItem("token");
+        const response = await axios.get('http://localhost:5000/events', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setEvents(response.data);
       } catch (error) {
         console.error("Erreur lors de la récupération des événements :", error);
       }
     };
-
+  
     fetchEvents();
   }, []);
+  
 
   const handleEventDrop = async (info) => {
-    const title = info.draggedEl.innerText; // Récupérer le titre de l'événement
+    const title = info.draggedEl.innerText;
     const newEvent = {
       title: title,
-      start: info.date, // La date où l'événement est déposé
+      start: info.date,
       allDay: true
     };
-
-    // Ajouter l'événement à l'état et à la base de données
+  
     try {
-      await axios.post('http://localhost:8800/events', newEvent);
+      const token = localStorage.getItem("token");
+      await axios.post('http://localhost:5000/events', newEvent, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setEvents((prevEvents) => [...prevEvents, newEvent]);
     } catch (error) {
       console.error("Erreur lors de l'ajout de l'événement :", error);
     }
-
-    // Si la case "remove after drop" est cochée, supprimer l'élément de la liste d'événements
+  
     const checkbox = document.getElementById('drop-remove');
-    if (checkbox.checked) {
+    if (checkbox?.checked) {
       info.draggedEl.parentNode.removeChild(info.draggedEl);
     }
   };
+  
 
   const handleAddEvent = async () => {
     const newEvent = {
       title: eventTitle,
-      start: selectedDate.toISOString(), // Convertir la date au format ISO
+      start: selectedDate.toISOString(),
       allDay: true,
-      backgroundColor: eventColor // Utiliser la couleur choisie pour l'événement
+      backgroundColor: eventColor
     };
   
-    // Ajouter l'événement à l'état et à la base de données
     try {
-      const response = await axios.post('http://localhost:5000/events', newEvent);
+      const token = localStorage.getItem("token");
+      const response = await axios.post('http://localhost:5000/events', newEvent, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setEvents((prevEvents) => [...prevEvents, response.data]);
     } catch (error) {
       console.error("Erreur lors de l'ajout de l'événement :", error);
     }
   
-    // Réinitialiser l'état
     setEventTitle("");
     setEventColor("#ff0000");
-    setIsModalOpen(false); // Fermer la modal après ajout de l'événement
+    setIsModalOpen(false);
   };
+  
 
   const handleDateClick = (arg) => {
     setSelectedDate(arg.date); // Sauvegarder la date sélectionnée
@@ -77,19 +85,19 @@ const Calenderie = () => {
   };
 
   const handleDeleteEvent = async (eventId) => {
-    console.log("Suppression de l'événement avec ID :", eventId); // Log pour débogage
-    console.log("Événements avant suppression :", events); // Log pour débogage
     try {
-      await axios.delete(`http://localhost:5000/events/${eventId}`);
+      const token = localStorage.getItem("token");
+      await axios.delete(`http://localhost:5000/events/${eventId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setEvents((prevEvents) => {
-        const updatedEvents = prevEvents.filter(event => event.id !== eventId);
-        console.log("Événements après suppression :", updatedEvents); // Log pour débogage
-        return updatedEvents;
+        return prevEvents.filter(event => event.id !== eventId);
       });
     } catch (error) {
       console.error("Erreur lors de la suppression de l'événement :", error);
     }
   };
+  
 
   return (
     <section className="content">

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import conge from '../../../assets/imgs/leave.png';
 import edit from '../../../assets/imgs/edit.png';
-import archive from '../../../assets/imgs/archive.png';
+import archive from '../../../assets/imgs/delete.png';
 
 const CongeAnnuel = () => {
     const [errorMessage, setErrorMessage] = useState("");
@@ -20,7 +20,7 @@ const CongeAnnuel = () => {
     const [editingId, setEditingId] = useState(null);
     const [editValues, setEditValues] = useState({ dateDebut: '', dateFin: '' });
 
-    
+
     const handleChange = (e) => {
         setValues({ ...values, [e.target.name]: e.target.value });
     };
@@ -40,8 +40,8 @@ const CongeAnnuel = () => {
             const itemDateFin = new Date(item.dateFin);
             const startDate = new Date(filterDateDebut);
             const endDate = new Date(filterDateFin);
-            return (!filterDateDebut || itemDateDebut >= startDate) && 
-                   (!filterDateFin || itemDateFin <= endDate);
+            return (!filterDateDebut || itemDateDebut >= startDate) &&
+                (!filterDateFin || itemDateFin <= endDate);
         });
         setFilteredData(filtered);
     };
@@ -59,7 +59,7 @@ const CongeAnnuel = () => {
 
     const AjouterCA = async () => {
         try {
-            
+
             if (!validateDates(values.dateDebut, values.dateFin)) return;
 
             const token = localStorage.getItem("token");
@@ -79,8 +79,8 @@ const CongeAnnuel = () => {
                     dateDebut: '',
                     dateFin: '',
                 });
-                ListeCA(); 
-                
+                ListeCA();
+
             }
         } catch (error) {
             console.error("Erreur lors de l'ajout des congés annuels par défaut:", error);
@@ -96,22 +96,26 @@ const CongeAnnuel = () => {
 
     const ListeCA = async () => {
         try {
-               
+
             const token = localStorage.getItem("token");
             if (!token) {
                 alert("Vous devez être connecté ");
                 return;
             }
             const response = await axios.get('http://localhost:5000/congeAbsence/ListeCAnnuel',
-               { 
-                headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
 
-            },}
+                    },
+                }
             );
             setData(response.data);
-            setFilteredData(response.data); 
+            setFilteredData(response.data);
+            setCurrentPage(1);
+
+
         } catch (error) {
             console.error("Erreur lors de la récupération", error);
         }
@@ -131,12 +135,13 @@ const CongeAnnuel = () => {
             }
             if (!validateDates(editValues.dateDebut, editValues.dateFin)) return;
             const response = await axios.put(`http://localhost:5000/congeAbsence/ModifierCAnnuel/${id}`, editValues,
-                { 
+                {
                     headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                    
-                },}
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+
+                    },
+                }
             );
             if (response.status === 200) {
                 alert("Congé annuel modifié avec succès!");
@@ -156,33 +161,30 @@ const CongeAnnuel = () => {
     };
 
     const ArchiverCAnnuel = async (id) => {
-      try {
-        const token = localStorage.getItem("token");
+        try {
+            const token = localStorage.getItem("token");
             if (!token) {
                 alert("Vous devez être connecté ");
                 return;
             }
             const response = await axios.patch(
                 `http://localhost:5000/congeAbsence/ArchiverCAnnuel/${id}`,
-                {}, 
+                {},
                 {
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                  },
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
                 }
-              );
-        console.log(response.data)
-        if(response.status===200){
-
-           ListeCA();
+            );
+            if (response.status === 200) {
+                await ListeCA();
+            }
+            // setdata(response.data)
+            // setFilteredData(response.data);
+        } catch (error) {
+            console.log("Erreur", error)
         }
-        // setdata(response.data)
-        // setFilteredData(response.data);
-      } catch (error) {
-        console.log("Erreur", error)
-      }
-  
     }
 
     useEffect(() => {
@@ -190,7 +192,7 @@ const CongeAnnuel = () => {
     }, []);
 
     useEffect(() => {
-        filterData(); 
+        filterData();
     }, [data, filterValues]);
 
 
@@ -237,7 +239,7 @@ const CongeAnnuel = () => {
                                         type="date"
                                         id="dateDebut"
                                         name="dateDebut"
-                                        value={values.dateDebut} 
+                                        value={values.dateDebut}
                                         className="form-control"
                                         onChange={handleChange}
                                     />
@@ -337,15 +339,15 @@ const CongeAnnuel = () => {
                                                 <>
                                                     <td>{item.dateDebut}</td>
                                                     <td>{item.dateFin}</td>
-                                                    <td>{item.EcolePrincipal? item.EcolePrincipal?.nomecole:'' }</td>
-                                                    <td>{item.Ecole? item.Ecole?.nomecole:''}</td>
+                                                    <td>{item.EcolePrincipal ? item.EcolePrincipal?.nomecole : ''}</td>
+                                                    <td>{item.Ecole ? item.Ecole?.nomecole : ''}</td>
                                                     <td>
                                                         <button className="btn btn-outline-success" onClick={() => handleEdit(item)}>
                                                             <img src={edit} alt="" width="24px" title='modifier' />
                                                         </button>
                                                         &nbsp; &nbsp; &nbsp;
-                                                        <button className='btn btn-outline-warning' >
-                                                            <img src={archive} alt="" width="22px" title='Archiver' onClick={() => ArchiverCAnnuel(item.id)}  />
+                                                        <button className='btn btn-outline-danger' >
+                                                            <img src={archive} alt="" width="22px" title='Archiver' onClick={() => ArchiverCAnnuel(item.id)} />
                                                         </button>
                                                     </td>
                                                 </>
@@ -355,34 +357,34 @@ const CongeAnnuel = () => {
                                 </tbody>
                             </table>
                         </div>
-                         {/* Pagination */}
-                    <div className="pagination d-flex justify-content-end">
-                        <button
-                            className="btn btn-outline-primary"
-                            onClick={() => handlePageChange(currentPage - 1)}
-                            disabled={currentPage === 1}
-                        >
-                            Previous
-                        </button>
-                        {pageNumbers.map((number) => (
+                        {/* Pagination */}
+                        <div className="pagination d-flex justify-content-end">
                             <button
-                                key={number}
-                                className={`btn ${currentPage === number ? 'btn-outline-primary' : 'btn-light'}`}
-                                onClick={() => handlePageChange(number)}
+                                className="btn btn-outline-primary"
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage === 1}
                             >
-                                {number}
+                                Previous
                             </button>
-                        ))}
-                        <button
-                            className="btn btn-outline-primary"
-                            onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={currentPage === totalPages}
-                        >
-                            Next
-                        </button>
+                            {pageNumbers.map((number) => (
+                                <button
+                                    key={number}
+                                    className={`btn ${currentPage === number ? 'btn-outline-primary' : 'btn-light'}`}
+                                    onClick={() => handlePageChange(number)}
+                                >
+                                    {number}
+                                </button>
+                            ))}
+                            <button
+                                className="btn btn-outline-primary"
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                            >
+                                Next
+                            </button>
+                        </div>
                     </div>
-                    </div>
-                   
+
                 </div>
             </div>
         </div>

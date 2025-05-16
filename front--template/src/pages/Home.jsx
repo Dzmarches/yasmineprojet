@@ -44,11 +44,19 @@ import Salle from '../assets/imgs/classe.png';
 import privilege from '../assets/imgs/permission (1).png';
 import paiement from '../assets/imgs/paiement.png';
 import emploi from '../assets/imgs/emploi.png';
-import exam from '../assets/imgs/exam.png'
+import exam from '../assets/imgs/exam.png';
+// import stock from '../assets/imgs/monitoring.png'
+import fournisseurIcon from '../assets/imgs/supplier.png';
+import achatIcon from '../assets/imgs/add-to-cart.png';
+import articleIcon from '../assets/imgs/checklist.png';
+import categorieIcon from '../assets/imgs/categories.png';
 
 import note from '../assets/imgs/note.png';
-import disponibility from '../assets/imgs/availability.png';
+
 import absencee from '../assets/imgs/absence.png';
+import jf from '../assets/imgs/jf.png';
+import paieEtudiant from '../assets/imgs/paieEtudiant.png';
+import archives from '../assets/imgs/archive.png';
 import Can from '../can';
 import axios from 'axios';
 
@@ -59,14 +67,14 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
 
   const CanPoste = ({ poste, requiredPoste, permission, children }) => {
-    const hasPermission = roles.some(role => 
+    const hasPermission = roles.some(role =>
       role.permissions && Array.isArray(role.permissions) && role.permissions.includes(permission)
     );
     const hasRightPoste = poste === requiredPoste;
-  
+
     // Allow access if the user has the AdminPrincipal or Admin role
     const isAdmin = roles.includes("AdminPrincipal") || roles.includes("Admin");
-  
+
     return (hasRightPoste || hasPermission || isAdmin) ? children : null;
   };
 
@@ -198,11 +206,23 @@ const Home = () => {
                       </div>
                       <div className="row">
                         <div className="team-icon">
-                          <span className="info-box-icon elevation-1">
-                            <Link to="/disponibilites-enseignants"><img src={disponibility} alt="" title='Disbonibilté des enseignant' /></Link>
-                          </span>
+                          <Can permission="Parametre-Voir">
+                            <span className="info-box-icon elevation-1">
+                              <Link to="/gestionabsence">
+                                <img src={absence} alt="" title="Gestion des Absences" />
+                              </Link>
+                            </span>
+                          </Can>
+                          <Can permission="Parametre-Voir">
+                            <span className="info-box-icon elevation-1">
+                              <Link to="/listeabsence">
+                                <img src={absence} alt="" title="Liste des Absences" />
+                              </Link>
+                            </span>
+                          </Can>
                         </div>
                       </div>
+
                     </div>
                   </div>
                 </div>
@@ -243,26 +263,25 @@ const Home = () => {
 
               {/* Comptabilité Section */}
               <Can permission="Comptabilité-Voir">
-                <div className="col-12 col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.8s">
+                <div className="col-12 col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.2s">
                   <div className="team-item">
                     <div className="team-img">
                       <img src={finance} className="img-fluid" alt="" />
                     </div>
                     <div className="team-title">
                       <p className="mb-0">Comptabilité</p>
-                      <div className="team-icon">
-                        <span className="info-box-icon elevation-1">
-                          <Link to="/"><img src={depense} alt="" title='Gestion Dépenses ' /></Link>
-                        </span>
-                        <span className="info-box-icon elevation-1">
-                          <Link to="/"><img src={depense} alt="" title='Gestion Dépenses ' /></Link>
-                        </span>
-                        <span className="info-box-icon elevation-1">
-                          <Link to="/"><img src={revenu} alt="" title='Gestion Revenus ' /></Link>
-                        </span>
-                        <span className="info-box-icon elevation-1">
-                          <Link to="/"><img src={report} alt="" title='Rapports ' /></Link>
-                        </span>
+                      <div className="row">
+                        <div className="team-icon">
+                          <span className="info-box-icon elevation-1">
+                            <Link to="/comptabilite"><img src={revenu} alt="" title='Gestion Revenus et Dépenses' /></Link>
+                          </span>
+                          <span className="info-box-icon elevation-1">
+                            <Link to="/paiementEleves"><img src={paieEtudiant} alt="" title='Gestion Dépenses ' /></Link>
+                          </span>
+                          <span className="info-box-icon elevation-1">
+                            <Link to="/rapportComptabilite"><img src={report} alt="" title='Rapport Comptabilité' /></Link>
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -279,39 +298,19 @@ const Home = () => {
                     <div className="team-title">
                       <p className="mb-0">Gestion Académique</p>
                       <div className="team-icon">
-                        <Can permission="Academique-Gestion Annee">
-                          <span className="info-box-icon elevation-1">
-                            <Link to="/annee"><img src={Annee} alt="Année scolaire" title="Année scolaire" /></Link>
-                          </span>
-                        </Can>
                         <span className="info-box-icon elevation-1">
-                          <Link to="/EmploiDuTemps"><img src={emploi} alt="" title='Emploie du temps ' /></Link>
+                          <Link to="/PlanificationAcadémique"><img src={Annee} alt="Année scolaire" title="Planification Academique" /></Link>
                         </span>
-                        <Can permission="Academique-Trimestre-Voir">
-                          <span className="info-box-icon elevation-1">
-                            <Link to="/Trimest"><img src={Semestre} alt="Semestre" title="Semestre" /></Link>
-                          </span>
-                        </Can>
-                        <Can permission="Academique-Sections-Voir">
-                          <span className="info-box-icon elevation-1">
-                            <Link to="/sections"><img src={Section} alt="Section" title="Section" /></Link>
-                          </span>
-                        </Can>
-                      </div>
-                      <div className='team-icon'>
                         <Can permission="Academique-Niveaux-Voir">
                           <span className="info-box-icon elevation-1">
-                            <Link to="/niveaux"><img src={Niveaux} alt="Niveaux" title="Niveaux" /></Link>
+                            <Link to="/ParametreEntiteeScolaire"><img src={Niveaux} alt="Niveaux" title="Paramatre Des Entités Scolaire" /></Link>
                           </span>
                         </Can>
-                        <Can permission="Academique-Matière-Voir">
+                        <Can permission="Parametre-Voir">
                           <span className="info-box-icon elevation-1">
-                            <Link to="/matiere"><img src={Matiere} alt="Matière" title="Matière" /></Link>
-                          </span>
-                        </Can>
-                        <Can permission="Academique-Salle-Voir">
-                          <span className="info-box-icon elevation-1">
-                            <Link to="/salle"><img src={Salle} alt="Salle" title="Salle de classe" /></Link>
+                            <Link to="/GestionDesNotes">
+                              <img src={note} alt="" title="Gestion des notes et bulletin" />
+                            </Link>
                           </span>
                         </Can>
                       </div>
@@ -335,7 +334,7 @@ const Home = () => {
                             <Link to="/"><img width="100px" src={menu} alt="" title='Cantine Scolaire ' /></Link>
                           </span>
                           <span className="info-box-icon elevation-1">
-                            <Link to="/"><img width="100px" src={stock} alt="" title='Gestion du stock ' /></Link>
+                            <Link to="/gestionstock"><img width="100px" src={stock} alt="" title='Gestion du stock ' /></Link>
                           </span>
                         </div>
                       </div>
@@ -427,26 +426,6 @@ const Home = () => {
                   </div>
                 </div>
               </Can>
-
-              {/* Statistiques Section */}
-              <Can permission="Statistique-Voir">
-                <div className="col-12 col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.8s">
-                  <div className="team-item">
-                    <div className="team-img">
-                      <img src={statistics} className="img-fluid" alt="" />
-                    </div>
-                    <div className="team-title">
-                      <p className="mb-0">Statistiques</p>
-                      <div className="team-icon">
-                        <span className="info-box-icon elevation-1">
-                          <Link to="/"><img src={chart} alt="" title='Gestion Parents ' /></Link>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Can>
-
               {/* Paramètre Section */}
               <Can permission="Parametre-Voir">
                 <div className="col-12 col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.8s">
@@ -469,7 +448,19 @@ const Home = () => {
                         <span className="info-box-icon elevation-1">
                           <Link to="/documents"><img src={attestation} alt="" title='Gestion Documents' /></Link>
                         </span>
-
+                      </div>
+                      <div className='row'>
+                        <div className="team-icon">
+                          <span className="info-box-icon elevation-1">
+                            <Link to="/"><img src={chart} alt="" title='Gestion Parents ' /></Link>
+                          </span>
+                          <span className="info-box-icon elevation-1">
+                            <Link to="/joursferies"><img src={jf} alt="" title='Jours Feriés' /></Link>
+                          </span>
+                          <span className="info-box-icon elevation-1">
+                            <Link to="/archives"><img src={archives} alt="" title='Archives' /></Link>
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -478,85 +469,100 @@ const Home = () => {
 
               {/* Section spécifique pour les enseignants */}
               <CanPoste poste={poste} requiredPoste="Enseignant" permission="Parametre-Voir">
-                <div className="col-12 col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.8s">
-                  <div className="team-item">
-                    <div className="team-img">
-                      <img src={absencee} className="img-fluid" alt="" />
-                    </div>
-                    <div className="team-title">
-                      <p className="mb-0">Gestion Des Absence</p>
-                      <div className="team-icon">
-                        {poste === "Enseignant" && (
-                          <span className="info-box-icon elevation-1">
-                            <Link to="/absenceeleve">
-                              <img src={absencee} alt="" title="Gestion absence" />
-                            </Link>
-                          </span>
-                        )}
-
-                        <Can permission="Parametre-Voir">
-                          <span className="info-box-icon elevation-1">
-                            <Link to="/gestionabsence">
-                              <img src={absence} alt="" title="Gestion des Absences" />
-                            </Link>
-                          </span>
-                        </Can>
-                        <Can permission="Parametre-Voir">
-                          <span className="info-box-icon elevation-1">
-                            <Link to="/listeabsence">
-                              <img src={absence} alt="" title="Liste des Absences" />
-                            </Link>
-                          </span>
-                        </Can>
+                {poste === "Enseignant" && (
+                  <div className="col-12 col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.8s">
+                    <div className="team-item">
+                      <div className="team-img">
+                        <img src={absencee} className="img-fluid" alt="" />
+                      </div>
+                      <div className="team-title">
+                        <p className="mb-0">Gestion Des Absence</p>
+                        <div className="team-icon">
+                          {poste === "Enseignant" && (
+                            <span className="info-box-icon elevation-1">
+                              <Link to="/absenceeleve">
+                                <img src={absencee} alt="" title="Gestion absence" />
+                              </Link>
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                )}
               </CanPoste>
-
               <CanPoste poste={poste} requiredPoste="Enseignant" permission="Parametre-Voir">
+                {poste === "Enseignant" && (
+                  <div className="col-12 col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.8s">
+                    <div className="team-item">
+                      <div className="team-img">
+                        <img src={absencee} className="img-fluid" alt="" />
+                      </div>
+                      <div className="team-title">
+                        <p className="mb-0">Gestion Des Absence</p>
+                        <div className="team-icon">
+                          {poste === "Enseignant" && (
+                            <span className="info-box-icon elevation-1">
+                              <Link to="/GestionDesNotesEnseignant">
+                                <img src={note} alt="" title="Gestion absence" />
+                              </Link>
+                            </span>
+                          )}
+                          {poste === "Enseignant" && (
+                            <span className="info-box-icon elevation-1">
+                              <Link to="/GestionDevoire">
+                                <img src={exam} alt="" title="Gestion absence" />
+                              </Link>
+                            </span>
+                          )}
+                          {poste === "Enseignant" && (
+                            <span className="info-box-icon elevation-1">
+                              <Link to="/EmploiDuTempsEnseignant">
+                                <img src={emploi} alt="" title="Gestion absence" />
+                              </Link>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CanPoste>
+              {/* fin de section de l'enseignant */}
+
+
+
+              {/* <Can permission="Parametre-Voir">
                 <div className="col-12 col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.8s">
                   <div className="team-item">
                     <div className="team-img">
-                      <img src={note} className="img-fluid" alt="" />
+                      <img src={stock} className="img-fluid" alt="" />
                     </div>
                     <div className="team-title">
-                      <p className="mb-0">Gestion Des notes</p>
+                      <p className="mb-0">Gestion Stocks</p>
                       <div className="team-icon">
-                        {poste === "Enseignant" && (
-                          <span className="info-box-icon elevation-1">
-                            <Link to="/GestionDesNotesEnseignant">
-                              <img src={note} alt="" title="Gestion absence" />
-                            </Link>
-                          </span>
-                        )}
-                        {poste === "Enseignant" && (
-                          <span className="info-box-icon elevation-1">
-                            <Link to="/GestionDevoire">
-                              <img src={exam} alt="" title="Gestion absence" />
-                            </Link>
-                          </span>
-                        )}
-                        {poste === "Enseignant" && (
-                          <span className="info-box-icon elevation-1">
-                            <Link to="/EmploiDuTempsEnseignant">
-                              <img src={emploi} alt="" title="Gestion absence" />
-                            </Link>
-                          </span>
-                        )}
+                        <span className="info-box-icon elevation-1">
+                          <Link to="/categorie"><img src={categorieIcon} alt="" title='Gestion catégorie ' /></Link>
+                        </span>
+                        <span className="info-box-icon elevation-1">
+                          <Link to="/article"><img src={articleIcon} alt="" title='Gesttion article ' /></Link>
+                        </span>
 
-                        <Can permission="Parametre-Voir">
-                          <span className="info-box-icon elevation-1">
-                            <Link to="/GestionDesNotes">
-                              <img src={note} alt="" title="Gestion utilisateurs & permission" />
-                            </Link>
-                          </span>
-                        </Can>
+                        <span className="info-box-icon elevation-1">
+                          <Link to="/achat"><img src={achatIcon} alt="" title='Gestion achat' /></Link>
+                        </span>
+
+                      </div>
+                      <div className="team-icon">
+                        <span className="info-box-icon elevation-1">
+                          <Link to="/categorie"><img src={fournisseurIcon} alt="" title='Gestion fournisseur ' /></Link>
+                        </span>
+
                       </div>
                     </div>
                   </div>
                 </div>
-              </CanPoste>
+              </Can> */}
 
               {/* <Can permission="Parametre-Voir">
                 <div className="col-12 col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.8s">

@@ -59,7 +59,7 @@ export const getNiveaux = async (req, res) => {
 
 // Ajouter un niveau
 export const createNiveau = async (req, res) => {
-    const { nomniveau, nomniveuarab, cycle, statutInscription, niveauMatiere, ecoleId, ecoleeId, matieresConfessions  } = req.body;
+    const { nomniveau, nomniveuarab, cycle,ordre, statutInscription, niveauMatiere, ecoleId, ecoleeId, matieresConfessions  } = req.body;
 
     console.log("Données reçues dans le backend :", req.body); // Afficher les données reçues
 
@@ -78,6 +78,7 @@ export const createNiveau = async (req, res) => {
             nomniveau,
             nomniveuarab,
             cycle,
+            ordre,
             statutInscription,
             matieresConfessions,
             archiver: 0
@@ -160,7 +161,7 @@ export const getNiveauById = async (req, res) => {
 // Modifier un niveau
 export const updateNiveau = async (req, res) => {
     const { id } = req.params;
-    const { nomniveau, nomniveuarab, cycle, statutInscription, niveauMatiere, ecoleId, ecoleeId, matieresConfessions } = req.body;
+    const { nomniveau, nomniveuarab, cycle,ordre, statutInscription, niveauMatiere, ecoleId, ecoleeId, matieresConfessions } = req.body;
 
     if (!nomniveau || !nomniveuarab || !cycle) {
         return res.status(400).json({ error: 'Le nom, le nom arabe et le cycle sont requis.' });
@@ -172,7 +173,7 @@ export const updateNiveau = async (req, res) => {
         if (!niveau) return res.status(404).json({ error: 'Niveau non trouvé' });
 
         // Mise à jour des informations du niveau
-        await niveau.update({ nomniveau, nomniveuarab, cycle, statutInscription });
+        await niveau.update({ nomniveau, nomniveuarab, cycle,ordre, statutInscription });
 
         // Mise à jour de la relation `EcoleNiveau`
         const ecoleNiveau = await EcoleNiveau.findOne({ where: { niveauId: id } });

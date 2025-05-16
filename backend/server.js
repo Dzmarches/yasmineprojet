@@ -1,3 +1,4 @@
+
 // server.js
 import express from "express";
 import dotenv from "dotenv";
@@ -7,6 +8,7 @@ import db from "./config/Database.js";
 import router from "./routes/index.js";
 import PeriodeNote from "./models/Admin/periodenote.js";
 import Note from "./models/Admin/Note.js";
+import Event from './models/Event.js';
 // import EcolePrincipal from "./models/EcolePrincipal.js";
 // import Ecole from "./models/Ecole.js";
 // import User from "./models/User.js";
@@ -43,8 +45,10 @@ import Typedepenses from './routes/comptabilite/TypeDepenseRoute.js'
 import depensesRoute from './routes/comptabilite/DepensesRoute.js'
 import revenusRoute from './routes/comptabilite/RevenusRoute.js'
 import ContratRoute from './routes/comptabilite/paimentEleve/ContratRoute.js'
-import './cron/absenceFinJournee.js';
-
+import ArchivesRoute from './routes/ArchivesRoute.js'
+import './cron/absenceFinJournee.js'
+import './cron/PlannigPaiementEmail.js'
+import moment from 'moment-timezone';
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -52,7 +56,6 @@ const __dirname = path.dirname(__filename)
 
 dotenv.config();
 const app = express();
-
 
 
 app.use(express.urlencoded({ extended: true }));
@@ -83,7 +86,6 @@ app.use((req, res, next) => {
 //   }
 //   res.sendFile(imagePath);
 // });
-
 app.use('/employes', employeRoute);
 app.use('/services', serviceRoute);
 app.use('/postes', posteRoute);
@@ -102,6 +104,9 @@ app.use('/Typedepenses',Typedepenses);
 app.use('/revenus',revenusRoute);
 app.use('/depenses',depensesRoute);
 app.use('/contrat',ContratRoute);
+app.use('/archives',ArchivesRoute);
+
+
 
 export const syncDatabase = async () => {
   try {

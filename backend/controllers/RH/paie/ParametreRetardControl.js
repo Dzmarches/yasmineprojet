@@ -1,6 +1,6 @@
 import EcolePrincipal from '../../../models/EcolePrincipal.js';
 import { Ecole, UserEcole } from '../../../models/relations.js';
-import ParametereRetard from '../../../models/RH/paie/parametereRetard.js';
+import ParametereRetard from '../../../models/RH/paie/ParametereRetard.js';
 import User from '../../../models/User.js';
 
 export const Liste=async (req, res) => {

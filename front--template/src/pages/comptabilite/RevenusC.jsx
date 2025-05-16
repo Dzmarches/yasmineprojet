@@ -8,7 +8,7 @@ import Select from 'react-select';
 import { Modal, Button } from 'react-bootstrap';
 import recherche from '../../assets/imgs/recherche.png';
 import excel from '../../assets/imgs/excel.png'
-import archive from '../../assets/imgs/archive.png';
+import archive from '../../assets/imgs/delete.png';
 import revenu from '../../assets/imgs/cost.png';
 import fichier from '../../assets/imgs/fichier.png';
 import * as XLSX from 'xlsx';
@@ -286,13 +286,15 @@ const RevenusC = () => {
                 <th>ID</th>
                 <th>Code</th>
                 <th>Type</th>
-                <th>Cause (AR)</th>
-                <th>Cause (FR)</th>
+                <th>Libellé du revenu(AR)</th>
+                <th>Libellé du revenu(FR)</th>
                 <th>Montant</th>
                 <th>Date</th>
-                <th>Par(AR)</th>
-                <th>Par(FR)</th>
+                <th>Source(AR)</th>
+                <th>Source(FR)</th>
                 <th>Mode Paiement</th>
+                <th>Ecole Principale</th>
+                <th>Ecole</th>
               </tr>
             </thead>
             <tbody>
@@ -308,6 +310,8 @@ const RevenusC = () => {
                   <td>${item.par_ar || ''}</td>
                   <td>${item.par_fr || ''}</td>
                   <td>${item.mode_paie || ''}</td>
+                  <td>${item.EcolePrincipal?.nomecole || ''}</td>
+                  <td>${item.Ecole?.nomecole || ''}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -324,13 +328,15 @@ const RevenusC = () => {
       "ID": item.id,
       "Code": item.code || '',
       "Type": item.TypeRevenue ? item.TypeRevenue.type : "",
-      "Cause (AR)": item.cause_ar || '',
-      "Cause (FR)": item.cause_fr || '',
+      "Libellé du revenu(AR)": item.cause_ar || '',
+      "Libellé du revenu(FR)": item.cause_fr || '',
       "Montant": item.montant || '',
       "Date": item.date ? moment(item.date).format('DD-MM-YYYY') : '',
-      "Par (AR)": item.par_ar || '',
-      "Par (FR)": item.par_fr || '',
+      "Source(AR)": item.par_ar || '',
+      "Source(FR)": item.par_fr || '',
       "Mode Paiement": item.mode_paie || '',
+      "Ecole Principale": item.EcolePrincipal?.nomecole || '',
+      "Ecole": item.Ecole?.nomecole || '',
     })));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Revenus");
@@ -484,12 +490,12 @@ const RevenusC = () => {
       { key: "id", label: "Id" },
       { key: "code", label: "Code" },
       { key: "type", label: "Type" },
-      { key: "cause_ar", label: "Cause en arabe" },
-      { key: "cause_fr", label: "Cause en Français" },
+      { key: "cause_ar", label: "Libellé du revenu(AB)" },
+      { key: "cause_fr", label: "Libellé du revenu(FR)" },
       { key: "montant", label: "Montant" },
       { key: "date", label: "Date" },
-      { key: "par_ar", label: "Par en Arabe" },
-      { key: "par_fr", label: "Par en Français" },
+      { key: "par_ar", label: "Source(AB)" },
+      { key: "par_fr", label: "Source(FR)" },
       { key: "mode_paie", label: "Mode de paiement" },
       { key: "remarque", label: "Remarque" },
       { key: "fichier", label: "Fichier" },
@@ -530,20 +536,6 @@ const RevenusC = () => {
 
   return (
     <>
-      {/* <nav className="mb-2">
-        <Link to="/dashboard">Dashboard</Link>
-        <span> / </span>
-        <span>Gestion des Revenus</span>
-      </nav> */}
-
-      {/* <div className="card card-primary card-outline"> */}
-      {/* <div className="card-header d-flex">
-          <img src={revenu} className='mt-2' width="60px" height="80px" />
-          <p className="card-title mt-5 ml-2 p-2 text-center" style={{ width: '350px', borderRadius: '50px', border: '1px solid rgb(215, 214, 216)' }}>
-            Gestion des Revenus
-          </p>
-        </div> */}
-
       <div className="card-body">
         <div className="tab-content" id="custom-content-below-tabContent">
           <div className="tab-pane fade show active" id="listes" role="tabpanel" aria-labelledby="custom-content-below-home-tab">
@@ -578,10 +570,9 @@ const RevenusC = () => {
                                   style={{ height: "40px" }}
                                 />
                                 {errors.code && <span className="text-danger">{errors.code}</span>}
-
                               </div>
                               <div className="col-md-4">
-                                <label>Cause en Arabe</label>
+                                <label>Libellé du revenu (Arabe)</label>
                                 <input
                                   type="text"
                                   className="form-control"
@@ -592,7 +583,7 @@ const RevenusC = () => {
                                 />
                               </div>
                               <div className="col-md-4">
-                                <label>Cause en Français</label>
+                                <label>Libellé du revenu (Français)</label>
                                 <input
                                   type="text"
                                   className="form-control"
@@ -626,7 +617,7 @@ const RevenusC = () => {
                                 />
                               </div>
                               <div className="col-md-4">
-                                <label>Par en arabe</label>
+                                <label>Source (arabe)</label>
                                 <input
                                   type="text"
                                   className="form-control"
@@ -637,7 +628,7 @@ const RevenusC = () => {
                                 />
                               </div>
                               <div className="col-md-4">
-                                <label>Par en Français</label>
+                                <label>Source (Français)</label>
                                 <input
                                   type="text"
                                   className="form-control"
@@ -675,11 +666,11 @@ const RevenusC = () => {
                                 />
                               </div>
                               <div className="col-md-12 mb-3 mt-3" style={{ border: "1px solid rgb(192, 193, 194)", height: "40px", display: "flex", alignItems: "center", justifyContent: "center", padding: "5px", borderRadius: "5px", cursor: "pointer" }}>
-                                <label htmlFor="file" style={{ marginRight: "10px", fontWeight: "bold", cursor: "pointer", color: 'rgb(65, 105, 238)' }}>
+                                <label htmlFor="file3" style={{ marginRight: "10px", fontWeight: "bold", cursor: "pointer", color: 'rgb(65, 105, 238)' }}>
                                   {!fileName ? "Ajouter une pièce jointe" : <span style={{ marginLeft: "10px", fontSize: "14px" }}>{fileName}</span>}
                                 </label>
                                 <input
-                                  id="file"
+                                  id="file3"
                                   type="file"
                                   name="fichier"
                                   style={{
@@ -693,7 +684,6 @@ const RevenusC = () => {
                                 />
                               </div>
                               {errors.fichier && <span className="text-danger">{errors.fichier}</span>}
-
                               <div className="col-md-12 mt-3">
                                 <button type="button" className="btn btn-outline-primary" onClick={AjouterRevenu}>
                                   {isEditMode ? "Modifier" : "Ajouter"}
@@ -718,7 +708,7 @@ const RevenusC = () => {
                                         remarque: "",
                                         fichier: null,
                                       });
-                                      setFileName("");
+                                      setFileName(null);
                                       setSelectedTR(null);
                                     }}
                                   >
@@ -740,7 +730,7 @@ const RevenusC = () => {
                               <img src={excel} alt="" width="25px" /><br />Exporter
                             </button>
                           </div>
-                          <div className="col-md-4 ml-auto ">
+                          <div className="col-md-3 ml-auto ">
                             <div className="input-group mr-2">
                               <div className="form-outline">
                                 <input
@@ -758,12 +748,12 @@ const RevenusC = () => {
                               </div>
                             </div>
                           </div>
-                          <div className="col-md-4" style={{ flex: '1', marginRight: '10px' }}>
+                          <div className="col-md-3" style={{ flex: '1', marginRight: '10px' }}>
                             <select
                               name="ecole"
                               className="form-control"
                               required
-                              style={{ height: '50px', borderRadius: '8px', backgroundColor: '#F8F8F8' }}
+                              style={{ height: '44px', }}
                               onChange={(e) => setSelectedEcole(e.target.value)}
                               value={selectedEcole || ''}
                             >
@@ -781,83 +771,85 @@ const RevenusC = () => {
                         <p>Liste des Revenus</p>
                         {/* Filtre de visibilité des colonnes */}
                         <ColumnVisibilityFilter columnVisibility={columnVisibility} setColumnVisibility={setColumnVisibility} />
+                        <div style={{ overflowX: 'auto', overflowY: 'hidden', scrollBehavior: 'smooth', }}>
 
-                        <table id="example2" className="table table-bordered table-sm">
-                          <thead>
-                            <tr>
-                              {columnVisibility.id && <th>Id</th>}
-                              {columnVisibility.code && <th>Code</th>}
-                              {columnVisibility.type && <th>Type</th>}
-                              {columnVisibility.cause_ar && <th>Cause (AR)</th>}
-                              {columnVisibility.cause_fr && <th>Cause (FR)</th>}
-                              {columnVisibility.montant && <th>Montant</th>}
-                              {columnVisibility.date && <th>Date</th>}
-                              {columnVisibility.par_ar && <th>Par (AR)</th>}
-                              {columnVisibility.par_fr && <th>Par (FR)</th>}
-                              {columnVisibility.mode_paie && <th>Mode Paiement</th>}
-                              {columnVisibility.remarque && <th>Remarque</th>}
-                              {columnVisibility.fichier && <th>Pièce jointe</th>}
-                              <th>Ecole</th>
-                              <th>Action</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {currentItems.map((item, index) => (
-                              <tr key={index}>
-                                {columnVisibility.id && <td>{indexOfFirstItem + index + 1}</td>}
-                                {columnVisibility.code && <td>{item.code || '-'}</td>}
-                                {columnVisibility.type && <td>{item.TypeRevenue?.type || '-'}</td>}
-                                {columnVisibility.cause_ar && <td>{item.cause_ar || '-'}</td>}
-                                {columnVisibility.cause_fr && <td>{item.cause_fr || '-'}</td>}
-                                {columnVisibility.montant && <td>{item.montant || '-'}DZD</td>}
-                                {columnVisibility.date && <td>{item.date ? moment(item.date).format("DD-MM-YYYY") : "" || '-'}</td>}
-                                {columnVisibility.par_ar && <td>{item.par_ar || '-'}</td>}
-                                {columnVisibility.par_fr && <td>{item.par_fr || '-'}</td>}
-                                {columnVisibility.mode_paie && <td>{item.mode_paie || '-'}</td>}
-                                {columnVisibility.remarque && <td>{item.remarque || '-'}</td>}
-                                {columnVisibility.fichier && (
-                                  <td width="100px" className="text-center">
-                                    <div style={{
-                                      width: "40px", height: "40px", border: "2px solid gray", display: "flex",
-                                      alignItems: "center", justifyContent: "center", overflow: "hidden",
-                                      cursor: "pointer", padding: "5px", marginLeft: '10px',
-                                    }}
-                                      onClick={() => {
-                                        if (item) {
-                                          console.log('itemfichier', item.fihcier);
-                                          window.open(url + item.fichier, "_blank");
-                                        }
-                                      }}
-                                    >
-                                      {item && item.fichier ? (
-                                        isImage(item.fichier) ? (
-                                          <img src={url + item.fichier}
-                                            alt="image" style={{ width: "100%", height: "100%", objectFit: "cover", }}
-                                          />
-                                        ) : (
-                                          <img src={fichier} alt="Document"
-                                            style={{ width: "30px", height: "30px", }}
-                                          />
-                                        )
-                                      ) : null}
-                                    </div>
-                                  </td>
-                                )}
-                                <td>{item.Ecole?.nomecole}</td>
-                                <td className="text-center" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                  <a className="btn btn-outline-success" style={{ maxWidth: '40px', maxHeight: '40px', display: 'flex', justifyContent: 'center', alignItems: 'center' }} onClick={() => handleEdit(item)}>
-                                    <img src={edit} alt="" style={{ maxWidth: '30px', maxHeight: '30px' }} title="Modifier" />
-                                  </a>
-                                  &nbsp;&nbsp;&nbsp;&nbsp;
-                                  <a className="btn btn-outline-warning" style={{ maxWidth: '40px', maxHeight: '40px', display: 'flex', justifyContent: 'center', alignItems: 'center' }} onClick={() => handleShow(item.id)}>
-                                    <img src={archive} alt="" style={{ maxWidth: '35px', maxHeight: '35px' }} width="20px" title="Archiver" />
-                                  </a>
-                                </td>
+                          <table id="example2" className="table table-bordered table-sm">
+                            <thead>
+                              <tr>
+                                {columnVisibility.id && <th>Id</th>}
+                                {columnVisibility.code && <th>Code</th>}
+                                {columnVisibility.type && <th>Type</th>}
+                                {columnVisibility.cause_ar && <th>Libellé du revenu(AR)</th>}
+                                {columnVisibility.cause_fr && <th>Libellé du revenu(FR)</th>}
+                                {columnVisibility.montant && <th>Montant</th>}
+                                {columnVisibility.date && <th>Date</th>}
+                                {columnVisibility.par_ar && <th>Source(AR)</th>}
+                                {columnVisibility.par_fr && <th>Source(FR)</th>}
+                                {columnVisibility.mode_paie && <th>Mode Paiement</th>}
+                                {columnVisibility.remarque && <th>Remarque</th>}
+                                {columnVisibility.fichier && <th>Pièce jointe</th>}
+                                <th>Ecole</th>
+                                <th>Action</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody>
+                              {currentItems.map((item, index) => (
+                                <tr key={index}>
+                                  {columnVisibility.id && <td>{indexOfFirstItem + index + 1}</td>}
+                                  {columnVisibility.code && <td>{item.code || '-'}</td>}
+                                  {columnVisibility.type && <td>{item.TypeRevenue?.type || '-'}</td>}
+                                  {columnVisibility.cause_ar && <td>{item.cause_ar || '-'}</td>}
+                                  {columnVisibility.cause_fr && <td>{item.cause_fr || '-'}</td>}
+                                  {columnVisibility.montant && <td>{item.montant || '-'}DZD</td>}
+                                  {columnVisibility.date && <td>{item.date ? moment(item.date).format("DD-MM-YYYY") : "" || '-'}</td>}
+                                  {columnVisibility.par_ar && <td>{item.par_ar || '-'}</td>}
+                                  {columnVisibility.par_fr && <td>{item.par_fr || '-'}</td>}
+                                  {columnVisibility.mode_paie && <td>{item.mode_paie || '-'}</td>}
+                                  {columnVisibility.remarque && <td>{item.remarque || '-'}</td>}
+                                  {columnVisibility.fichier && (
+                                    <td width="100px" className="text-center">
+                                      <div style={{
+                                        width: "40px", height: "40px", border: "2px solid gray", display: "flex",
+                                        alignItems: "center", justifyContent: "center", overflow: "hidden",
+                                        cursor: "pointer", padding: "5px", marginLeft: '10px',
+                                      }}
+                                        onClick={() => {
+                                          if (item) {
+                                            console.log('itemfichier', item.fihcier);
+                                            window.open(url + item.fichier, "_blank");
+                                          }
+                                        }}
+                                      >
+                                        {item && item.fichier ? (
+                                          isImage(item.fichier) ? (
+                                            <img src={url + item.fichier}
+                                              alt="image" style={{ width: "100%", height: "100%", objectFit: "cover", }}
+                                            />
+                                          ) : (
+                                            <img src={fichier} alt="Document"
+                                              style={{ width: "30px", height: "30px", }}
+                                            />
+                                          )
+                                        ) : null}
+                                      </div>
+                                    </td>
+                                  )}
+                                  <td>{item.Ecole?.nomecole}</td>
+                                  <td className="text-center" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                    <a className="btn btn-outline-success" style={{ maxWidth: '40px', maxHeight: '40px', display: 'flex', justifyContent: 'center', alignItems: 'center' }} onClick={() => handleEdit(item)}>
+                                      <img src={edit} alt="" style={{ maxWidth: '30px', maxHeight: '30px' }} title="Modifier" />
+                                    </a>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;
+                                    <a className="btn btn-outline-danger" style={{ maxWidth: '40px', maxHeight: '40px', display: 'flex', justifyContent: 'center', alignItems: 'center' }} onClick={() => handleShow(item.id)}>
+                                      <img src={archive} alt="" style={{ maxWidth: '35px', maxHeight: '35px' }} width="20px" title="Supprimer" />
+                                    </a>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
 
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -894,10 +886,10 @@ const RevenusC = () => {
           </div>
           <Modal show={showDeleteModal} onHide={handleClose}>
             <Modal.Header closeButton>
-              <Modal.Title>Confirmer l'archivage</Modal.Title>
+              <Modal.Title>Confirmer la suppression</Modal.Title>
             </Modal.Header>
             <Modal.Body>
-              <p>Êtes-vous sûr de vouloir archiver ce revenu ?</p>
+              <p>Êtes-vous sûr de vouloir supprimer ce revenu ?</p>
             </Modal.Body>
             <Modal.Footer>
               <Button variant="secondary" onClick={handleClose}>
@@ -910,7 +902,7 @@ const RevenusC = () => {
                   handleClose();
                 }}
               >
-                Archiver
+                Supprimer
               </Button>
             </Modal.Footer>
           </Modal>

@@ -12,7 +12,6 @@ import Permission from '../models/Permission.js'; // Importez le modèle Permiss
 export const verifyToken = async (req, res, next) => {
     try {
         const token = req.headers['authorization']?.split(' ')[1];
-        //console.log('token recupere', token);
 
         if (!token) {
             return res.status(403).json({ message: "Token manquant ou invalide" });
@@ -30,10 +29,6 @@ export const verifyToken = async (req, res, next) => {
                     model: UserEcole,
                     include: [{ model: Ecole, attributes: ["id", "nomecole"] }],
                     attributes: ["ecoleeId"],
-                },
-                {
-                    model: Permission,
-                    through: { attributes: [] },
                 }
             ]
         });
@@ -44,21 +39,15 @@ export const verifyToken = async (req, res, next) => {
 
         const ecoleeId = user.UserEcoles?.length > 0 ? user.UserEcoles[0].dataValues.ecoleeId : null;
 
-        const userPermissions = user.Permissions.map(permission => permission.name);
-
-        //console.log("🔑 Permissions de l'utilisateur connecté :", userPermissions);
-
         req.user = {
             id: user.id,
             username: user.username,
             roles: user.Roles.map(role => role.name),
-            permissions: userPermissions,
             roleIds: decoded.roleIds,
             ecoleId: user.ecoleId || (user.EcolePrincipal ? user.EcolePrincipal.id : null),
             ecoleeId
         };
 
-        //console.log("✅ Utilisateur vérifié :", req.user);
         next();
     } catch (error) {
         console.error('❌ Erreur lors de la vérification du token:', error);

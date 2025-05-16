@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { Modal, Button, Form, Row, Col } from 'react-bootstrap';
 import moment from 'moment';
-import archive from '../../../assets/imgs/archive.png';
+import archive from '../../../assets/imgs/delete.png';
 import edit from '../../../assets/imgs/edit.png';
+import print from '../../../assets/imgs/printer.png';
 import axios from 'axios';
 
-const PlanningModal = ({ show, handleCloseP, planning, FindContrat }) => {
+const PlanningModal = ({ show, handleCloseP, planning, FindContrat}) => {
 
-
-    const [isEditMode, setIsEditMode] = useState(false);  // Mode édition
-    const [editPlan, setEditPlan] = useState(null); // Données du planning à modifier
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [editPlan, setEditPlan] = useState(null);
     const [formData, setFormData] = useState({
         code: '',
         montant_echeance: '',
@@ -23,8 +23,6 @@ const PlanningModal = ({ show, handleCloseP, planning, FindContrat }) => {
     //archivage 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [ppIdDelete, setppIdDelete] = useState(null);
-
-
     // Modifier un planning
     const ModifierP = (planId) => {
         const selectedPlan = planning.find(plan => plan.id === planId);
@@ -104,8 +102,10 @@ const PlanningModal = ({ show, handleCloseP, planning, FindContrat }) => {
         setppIdDelete(id);
         setShowDeleteModal(true);
     };
-    const handleClose = () => setShowDeleteModal(false);
-
+    const handleClose = () => {
+        setShowDeleteModal(false);
+        setCanEdit(false);
+    };
     const Archiver = async (id) => {
         try {
             const token = localStorage.getItem("token");
@@ -120,9 +120,168 @@ const PlanningModal = ({ show, handleCloseP, planning, FindContrat }) => {
                 },
             });
             setShowDeleteModal(false);
+            // Trouver le contrat associé au planning archivé
+            const archivedPlan = planning.find(plan => plan.id === id);
+            if (archivedPlan && archivedPlan.ContratId) {
+                await FindContrat(archivedPlan.ContratId);
+            }
+
         } catch (error) {
             console.log("Erreur", error);
         }
+    };
+
+    const handleListeDE = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                alert("Vous devez être connecté");
+                return;
+            }
+            const response = await axios.get('http://localhost:5000/attestation/liste',
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+            const filteredDocs = response.data.filter((doc) => doc.module === "eleve" && doc.code === "RPE");
+            const options = filteredDocs.map((doc) => ({
+                value: doc.id,
+                label: doc.nom,
+                modele: doc.modeleTexte
+            }));
+            return options
+        } catch (error) {
+            console.log("Erreur lors de la récupération des attestations", error);
+        }
+    };
+    //imprimer recu paiment:
+    const printrecu = async (id) => {
+        const selectedPlan = planning.find(plan => plan.id === id);
+        console.log('selectedPlan', selectedPlan);
+        const reponse = await handleListeDE();
+        const modeleText = reponse[0].modele;
+
+        const contrat = selectedPlan.Contrat;
+        const eleve = contrat?.Eleve;
+        const user = eleve?.User;
+        const ecolePrincipal = user?.EcolePrincipal;
+
+        let nomR = "", prenomR = "", emailR = "", telR = "", adresseR = "";
+        const pere = eleve?.Parents?.find(p => p.typerole === "Père");
+        const mere = eleve?.Parents?.find(p => p.typerole === "Mère");
+        const tuteur = eleve?.Parents?.find(p => p.typerole === "Tuteur");
+
+        let responsable = null;
+        if (tuteur) {
+            responsable = tuteur;
+        } else if (pere && mere) {
+            responsable = pere;
+        } else if (pere) {
+            responsable = pere;
+        } else if (mere) {
+            responsable = mere;
+        }
+        if (responsable?.User) {
+            nomR = responsable.User.nom || "";
+            prenomR = responsable.User.prenom || "";
+            emailR = responsable.User.email || "";
+            telR = responsable.User.telephone || "";
+            adresseR = responsable.User.adresse || "";
+        }
+
+        if (!selectedPlan || !modeleText) {
+            alert('plannig ou model du contrat non défini')
+            return;
+        }
+        const modeleTextupdate = modeleText
+            .replace(/\[nomecolePE\]/g, ecolePrincipal?.nomecole || "")
+            .replace(/\[logoecoleP\]/g,
+                `<img src="http://localhost:5000${ecolePrincipal?.logo}" alt="Logo de l'école" style="max-width: 70px; max-height: 70px;">`
+            )
+            .replace(/\[adressePE\]/g, ecolePrincipal?.adresse || "")
+            .replace(/\[nomE\]/g, user?.nom || "")
+            .replace(/\[nomAbE\]/g, user?.nom_ar || "")
+            .replace(/\[prenomE\]/g, user?.prenom || "")
+            .replace(/\[prenomAbE\]/g, user?.prenom_ar || "")
+            .replace(/\[LieunaisE\]/g, user?.lieuxnaiss || "")
+            .replace(/\[LieunaisAbE\]/g, user?.adresse || "")
+            .replace(/\[AdresseE\]/g, user?.prenom_ar || "")
+            .replace(/\[AdresseAbE\]/g, user?.adresse_ar || "")
+            .replace(/\[datenaissE\]/g, user?.datenaiss ? moment(user.datenaiss).format("DD/MM/YYYY") : "")
+            .replace(/\[numInscription\]/g, eleve?.numinscription || "")
+            .replace(/\[FraisInsc\]/g, eleve?.fraixinscription || "")
+            .replace(/\[NV\]/g, `${eleve?.Niveaux?.nomniveau} ${eleve?.Niveaux?.cycle} ` || "")
+            //responsable
+            .replace(/\[nomP\]/g, nomR || "")
+            .replace(/\[prenomP\]/g, prenomR || "")
+            .replace(/\[EmailP\]/g, emailR || "")
+            .replace(/\[TelP\]/g, telR || "")
+            .replace(/\[AdresseP\]/g, adresseR || "")
+            .replace(/\[dateToday\]/g, moment().format("DD/MM/YYYY"))
+            //contrat
+            .replace(/\[AS\]/g, `${moment(contrat.Anneescolaire?.datedebut).format("YYYY")}/${moment(contrat.Anneescolaire?.datefin).format("YYYY")}` || "")
+            .replace(/\[codeC\]/g, contrat?.code || "")
+            .replace(/\[ddP\]/g, `${moment(contrat.date_debut_paiement).format("DD-MM-YYYY")}` || "")
+            .replace(/\[dfP\]/g, `${moment(contrat.date_sortie).format("DD-MM-YYYY")}` || "")
+            .replace(/\[dcC\]/g, `${moment(contrat.date_creation).format("DD-MM-YYYY")}` || "")
+
+            .replace(/\[totalC\]/g, selectedPlan.montant_echeance || "")
+            .replace(/\[TypeP\]/g, contrat?.typePaiment || "")
+            .replace(/\[ModeP\]/g, selectedPlan?.mode_paiement || "")
+            .replace(/\[detail\]/g,
+                ` Frais de scolarité pour l'échéance :<br><br>
+                &nbsp;&nbsp; 
+                <small>
+                Code :${selectedPlan?.codePP}<br>
+                 &nbsp;&nbsp; Date : ${selectedPlan?.date_echeance ? moment(selectedPlan?.date_echeance).format('DD/MM/YYYY') : ''}
+                </small>` || ""
+            )
+        //plannig
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+        const iframeDocument = iframe.contentWindow.document;
+        iframeDocument.open();
+        // @page{ margin: 0;}
+        iframeDocument.write(`
+                <html>
+                  <head>
+                    <title>${user?.nom}.${user?.prenom}</title>
+                    <style>
+                      @media print {
+                        body { margin: 0 !important ; padding: 40px !important ; }
+                        table {
+                          border-collapse: collapse;
+                          width: 100%;
+                        }
+                        table, th, td {
+                          border: 1px solid #EBEBEB;
+                        }
+                      }
+                    </style>
+                  </head>
+                  <body>
+                  <body>
+                    <div class="containerEditor">
+                      <div class="ql-editor">
+                        ${modeleTextupdate}
+                      </div>
+                    </div>
+                  </body>
+                </html>
+              `);
+        iframeDocument.close();
+        const originalTitle = document.title;
+        document.title = `${user?.nom}.${user?.prenom}`;
+        setTimeout(() => {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+            document.title = originalTitle;
+            document.body.removeChild(iframe);
+        }, 1000);
     };
 
     return (
@@ -265,27 +424,19 @@ const PlanningModal = ({ show, handleCloseP, planning, FindContrat }) => {
                             <tbody>
                                 {planning.map((plan, index) => {
                                     // calcul de la classe de la ligne
-                                    const due = moment(plan.date_echeance);
-                                    const now = moment();
+                                    const now = moment().startOf('day'); 
+                                    const due = moment(plan.date_echeance).startOf('day'); 
                                     const daysDiff = due.diff(now, 'days');
                                     let rowClass = '';
                                     if (plan.etat_paiement === 'payé') {
-                                        rowClass = 'row-paid ';           // vert
-                                    } else if (due.isBefore(now, 'day') && plan.etat_paiement !== 'payé') {
-                                        rowClass = 'row-overdue';             // rouge
+                                        rowClass = 'row-paid';
+                                    } else if (daysDiff < -7) {
+                                        rowClass = 'row-overdue';
+                                    } else if (daysDiff < 0) {
+                                        rowClass = 'row-orange';
                                     } else if (daysDiff <= 7) {
-                                        rowClass = 'row-soon';            // jaune
+                                        rowClass = 'row-soon';
                                     }
-
-                                    let style = {};
-                                    if (plan.etat_paiement === 'payé') {
-                                        style = { backgroundColor: '#e6f4ea' };
-                                    } else if (due.isBefore(now)) {
-                                        style = { backgroundColor: '#ffe5e5' };
-                                    } else if (daysDiff <= 7) {
-                                        style = { backgroundColor: '#fff4cc' };
-                                    }
-
                                     return (
                                         <tr key={plan.id} className={rowClass}>
                                             <td>{index + 1}</td>
@@ -310,12 +461,23 @@ const PlanningModal = ({ show, handleCloseP, planning, FindContrat }) => {
                                                     <img src={edit} alt="Modifier" className="action-icon" />
                                                 </button>
                                                 <button
-                                                    className="btn btn-outline-warning action-btn"
+                                                    className="btn btn-outline-danger action-btn"
                                                     onClick={() => handleShow(plan.id)}
-                                                    title="Archiver"
+                                                    title="Supprimer"
                                                 >
-                                                    <img src={archive} alt="Archiver" className="action-icon" />
+                                                    <img src={archive} alt="Supprimer" className="action-icon" />
                                                 </button>
+                                                {plan.etat_paiement === 'payé' &&
+                                                    (
+                                                        <button
+                                                            className="btn btn-outline-info action-btn"
+                                                            onClick={() => printrecu(plan.id)}
+                                                            title="Imprimer"
+                                                        >
+                                                            <img src={print} alt="Imprimer" className="action-icon" />
+                                                        </button>
+                                                    )}
+
                                             </td>
                                         </tr>
                                     );
@@ -334,10 +496,10 @@ const PlanningModal = ({ show, handleCloseP, planning, FindContrat }) => {
 
             <Modal show={showDeleteModal} onHide={handleClose}>
                 <Modal.Header closeButton>
-                    <Modal.Title>Confirmer l'archivage</Modal.Title>
+                    <Modal.Title>Confirmer la suppression</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    <p>Êtes-vous sûr de vouloir archiver  ?</p>
+                    <p>Êtes-vous sûr de vouloir supprimer  ?</p>
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={handleClose}>
@@ -350,7 +512,7 @@ const PlanningModal = ({ show, handleCloseP, planning, FindContrat }) => {
                             handleClose();
                         }}
                     >
-                        Archiver
+                        Supprimer
                     </Button>
                 </Modal.Footer>
             </Modal>

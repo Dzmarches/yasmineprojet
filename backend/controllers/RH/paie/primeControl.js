@@ -19,7 +19,6 @@ export const ListePrime=async (req, res) => {
        { model:EcolePrincipal,attributes:['nomecole']}
     ]}
     );
-  
     res.status(200).json(primes);
   } catch (error) {
     console.error("Erreur lors de la recuperation:", error);

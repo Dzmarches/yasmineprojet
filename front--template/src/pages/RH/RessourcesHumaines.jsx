@@ -66,7 +66,7 @@ const RessourcesHumaines = () => {
         const employeretard = pointagesData.filter((item) => item.statut === "retard");
         setretard(employeretard.length);
       } catch (error) {
-        console.error("Erreur lors de la récupération des pointages :", error);
+        // console.error("Erreur lors de la récupération des pointages :", error);
       }
     };
 
@@ -74,9 +74,7 @@ const RessourcesHumaines = () => {
     fetchPointages();
   }, []);
  
-
   const styles = {
-
     mainContainer: {
       padding: "20px",
       maxWidth: "1200px",
@@ -188,7 +186,6 @@ const RessourcesHumaines = () => {
     }
 
   ];
-
   return (
     <div style={styles.mainContainer}>
       <nav>
@@ -217,15 +214,9 @@ const RessourcesHumaines = () => {
               </div>
             ))}
           </div>
-
-        
-
         </div>
       </section>
-
-
       <h2 style={styles.sectionTitle}>Gestion des Ressources Humaines</h2>
-
       {/* Conteneur Flex pour les cartes */}
       <div style={styles.cardContainer}>
         {cards.map((card) => (

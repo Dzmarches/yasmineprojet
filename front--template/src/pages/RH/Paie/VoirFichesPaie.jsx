@@ -37,25 +37,6 @@ const VoirFichesPaie = () => {
     setPeriodeSelectionnee(selectedOption.value);
   }
 
-  
-
-  // const filteredData = data.filter(item => {
-  //   if (periodeSelectionnee) {
-  //     return item.PeriodePaie?.id === periodeSelectionnee;
-  //   }
-
-  //   const periodePaieString = item.PeriodePaie
-  //     ? `${new Date(item.PeriodePaie.dateDebut).toLocaleDateString('fr-FR', { month: 'long' }).toUpperCase()} - ${new Date(item.PeriodePaie.dateFin).toLocaleDateString('fr-FR', { month: 'long' }).toUpperCase()}`
-  //     : '';
-
-  //   return (item.nom_prenom && item.nom_prenom.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
-  //     (item?.Employe?.daterecru && item.Employe.daterecru.toString().includes(searchTerm.toLowerCase().trim())) ||
-  //     (item.salaireBase && item.salaireBase.toString().includes(searchTerm.toLowerCase().trim())) ||
-  //     (item?.salaireNet && item?.salaireNet.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
-  //     (item?.salaireNet && item?.salaireNet.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
-  //     (periodePaieString && periodePaieString.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
-  //     (item.Employe?.Poste?.poste && item.Employe?.Poste?.poste.toLowerCase().includes(searchTerm.toLowerCase().trim()));
-  // });
 
   const filteredData = data.filter(item => {
     const matchesPeriode = !periodeSelectionnee || item.PeriodePaie?.id === periodeSelectionnee;

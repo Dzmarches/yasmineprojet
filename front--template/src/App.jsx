@@ -90,12 +90,22 @@ import Parameterpaie from "./pages/RH/Paie/Parameterpaie.jsx"
 import Comptabilite from "./pages/comptabilite/Comptabilite.jsx";
 import PaiementEtudiants from "./pages/comptabilite/paiementEtudiants/PaiementEtudiants.jsx";
 import RapportComptabilite from "./pages/comptabilite/RapportComptabilite.jsx";
+import { Archive } from "react-bootstrap-icons";
+import Archiver from "./pages/Archivage/Archiver.jsx";
+import ArchiverModule from "./pages/Archivage/ArchiverModule.jsx";
 
 import InterfaceEleve from "./pages/interface parent et Eleve/interfaceEleve.jsx";
 import ListeAbsences from "./pages/GestionAbsenceEleve/ListeAbsences.jsx";
 import GestionDevoir from "./pages/Academiques/PlaningDevoirs.jsx";
 import EmploiDuTempsV2 from "./pages/Academiques/EmploiDuTempsV2.jsx";
 import EmploiDuTempEnseignant from "./pages/Academiques/EmploiDuTempEnseignant.jsx";
+import GestionCategorie from "./pages/GestionStocks/GestionCategorie.jsx";
+import GestionArticle from "./pages/GestionStocks/GestionArticle.jsx";
+import Founisseur from './pages/GestionStocks/Fournisseur.jsx';
+import GestionAchat from "./pages/GestionStocks/GestionAchat.jsx";
+import PlanificationAcadémique from './pages/Academiques/PlanificationAcadémique.jsx';
+import ParamtreEntiteeScolaire from './pages/Academiques/ParametreEntiteeScolaire.jsx';
+import GestionStock from "./pages/GestionStocks/GestionStock.jsx";
 
 
 
@@ -168,6 +178,16 @@ function App() {
           <Route path="/planingdevoir" element={<PrivateRoute><Layoute><GestionDevoir /></Layoute></PrivateRoute>} />
           <Route path="/EmploiDuTempsEnseignant" element={<PrivateRoute><Layoute><EmploiDuTempEnseignant /></Layoute></PrivateRoute>} />
 
+          {/* Gestion stocks */}
+          <Route path="/categorie" element={<PrivateRoute><Layoute><GestionCategorie /></Layoute></PrivateRoute>} />
+          <Route path="/article" element={<PrivateRoute><Layoute><GestionArticle /></Layoute></PrivateRoute>} />
+          <Route path="/fournisseur" element={<PrivateRoute><Layoute><Founisseur /></Layoute></PrivateRoute>} />
+          <Route path="/achat" element={<PrivateRoute><Layoute><GestionAchat /></Layoute></PrivateRoute>} />
+          <Route path="/PlanificationAcadémique" element={<PrivateRoute><Layoute><PlanificationAcadémique /></Layoute></PrivateRoute>} />
+          <Route path="/ParametreEntiteeScolaire" element={<PrivateRoute><Layoute><ParamtreEntiteeScolaire /></Layoute></PrivateRoute>} />
+          <Route path="/gestionstock" element={<PrivateRoute><Layoute><GestionStock /></Layoute></PrivateRoute>} />
+
+
           <Route path="/RessourcesHumaines" element={<PrivateRoute><Layoute><RessourcesHumaines /></Layoute></PrivateRoute>} />
           <Route path="/Gpaiement" element={<PrivateRoute><Layoute><GestionPaiement /></Layoute></PrivateRoute>} />
           <Route path="/employes" element={<PrivateRoute><Layoute><Employes /></Layoute></PrivateRoute>} />
@@ -203,7 +223,7 @@ function App() {
           <Route path="/bulletins_paie/NonEmploye/:id" element={<PrivateRoute><Layoute><ListeNonEmploye/></Layoute></PrivateRoute>} />
           <Route path="/parameterepaie" element={<PrivateRoute><Layoute><Parameterpaie/></Layoute></PrivateRoute>} />
 
-          {/* comptabilite */}
+         {/* comptabilite */}
           {/* <Route path="/revenus" element={<PrivateRoute><Layoute><Typerevenue/></Layoute></PrivateRoute>} />
           <Route path="/depenses" element={<PrivateRoute><Layoute><Typedepense/></Layoute></PrivateRoute>} />
           <Route path="/revenusC" element={<PrivateRoute><Layoute><RevenusC/></Layoute></PrivateRoute>} />
@@ -212,6 +232,10 @@ function App() {
           <Route path="/paiementEleves" element={<PrivateRoute><Layoute><PaiementEtudiants/></Layoute></PrivateRoute>} />
           <Route path="/rapportComptabilite" element={<PrivateRoute><Layoute><RapportComptabilite/></Layoute></PrivateRoute>} />
           <Route path="/joursferies" element={<PrivateRoute><Layoute><JoursFeries/></Layoute></PrivateRoute>} />
+          <Route path="/archives" element={<PrivateRoute><Layoute><Archiver/></Layoute></PrivateRoute>} />
+          <Route path="/archivemodule/:module" element={<PrivateRoute><Layoute>
+            <ArchiverModule/></Layoute>
+            </PrivateRoute>} />
           
         </Routes>
       </BrowserRouter>

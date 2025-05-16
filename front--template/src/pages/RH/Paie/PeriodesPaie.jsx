@@ -340,21 +340,24 @@ const PeriodesPaie = () => {
                                                                 {/* Code */}
                                                                 <div className="col-md-3">
                                                                     <label>Code *</label>
-                                                                    <input type="text" className="form-control" name="code" value={formData.code} onChange={handleChange} />
+                                                                    <input type="text" className="form-control" name="code" style={{height:"40px"}}
+                                                                     value={formData.code} onChange={handleChange} />
                                                                     {errors.code && <span className="text-danger">{errors.code}</span>}
                                                                 </div>
 
                                                                 {/* Date Début */}
                                                                 <div className="col-md-3">
                                                                     <label>Date Début *</label>
-                                                                    <input type="date" className="form-control" name="dateDebut" value={formData.dateDebut} onChange={handleChange} />
+                                                                    <input type="date" className="form-control"  style={{height:"40px"}}
+                                                                    name="dateDebut" value={formData.dateDebut} onChange={handleChange} />
                                                                     {errors.dateDebut && <span className="text-danger">{errors.dateDebut}</span>}
                                                                 </div>
 
                                                                 {/* Date Fin */}
                                                                 <div className="col-md-3">
                                                                     <label>Date Fin *</label>
-                                                                    <input type="date" className="form-control" name="dateFin" value={formData.dateFin} onChange={handleChange} />
+                                                                    <input type="date" className="form-control" name="dateFin" value={formData.dateFin}
+                                                                     onChange={handleChange}  style={{height:"40px"}}/>
                                                                     {errors.dateFin && <span className="text-danger">{errors.dateFin}</span>}
                                                                 </div>
 
@@ -365,6 +368,7 @@ const PeriodesPaie = () => {
                                                                         value={selectedOption}
                                                                         onChange={handleChangeStatut}
                                                                         options={options}
+
                                                                     />
                                                                     {errors.statut && <span className="text-danger">{errors.statut}</span>}
                                                                 </div>
@@ -462,7 +466,7 @@ const PeriodesPaie = () => {
                                                                             <img src={edit} alt="" width="27px" title="Modifier" />
                                                                         </a>
                                                                         &nbsp;&nbsp;&nbsp;&nbsp;
-                                                                        <a className="btn btn-outline-warning p-2" onClick={() => handleShow(item.id)}>
+                                                                        <a className="btn btn-outline-danger p-2" onClick={() => handleShow(item.id)}>
                                                                             <img src={deletee} alt="" width="27px" title="Supprimer" />
                                                                         </a>
                                                                         &nbsp;&nbsp;&nbsp;&nbsp;

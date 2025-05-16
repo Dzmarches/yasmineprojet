@@ -8,7 +8,7 @@ import Select from 'react-select';
 import { Modal, Button, Spinner } from 'react-bootstrap';
 import recherche from '../../../assets/imgs/recherche.png';
 import excel from '../../../assets/imgs/excel.png'
-import archive from '../../../assets/imgs/archive.png';
+import archive from '../../../assets/imgs/delete.png';
 import fichier from '../../../assets/imgs/fichier.png';
 import PlanningModal from './ModalPlanning.jsx'
 import plan from '../../../assets/imgs/leave.png';
@@ -27,9 +27,7 @@ const ContratEleve = () => {
     const [SelectedNV, setSelectedNV] = useState(null);
 
     const [fileName, setFileName] = useState("");
-    const [loadingSelects, setLoadingSelects] = useState(false);
-    const [loadingModalPP, setLoadingModalPP] = useState(false);
-
+    const [loading, setLoading] = useState(null);
 
     const [formData, setFormData] = useState({
         code: "",
@@ -189,7 +187,6 @@ const ContratEleve = () => {
         }
     };
 
-
     //recupere les eleleves selon le niveaux
     useEffect(() => {
         const niveauId = formData.niveau;
@@ -233,7 +230,6 @@ const ContratEleve = () => {
         setEditItem(item); // On sauvegarde l'item pour remplir plus tard
         setEditId(item.id);
         setIsEditMode(true);
-        setLoadingSelects(true);
         FindContrat(item.id);
         setFormData({
             code: item.code,
@@ -256,7 +252,6 @@ const ContratEleve = () => {
             setSelectedE(OptionsE.find(tr => tr.value === editItem.Eleve?.id) || null);
             setSelectedAS(OptionsAS.find(tr => tr.value === editItem.Anneescolaire?.id) || null);
             setSelectedNV(OptionsNV.find(tr => tr.value === editItem.Eleve?.Niveaux?.id) || null);
-            setLoadingSelects(false);
             // Facultatif : une fois que tout est rempli tu peux vider editItem
             // setEditItem(null);
         }
@@ -300,7 +295,6 @@ const ContratEleve = () => {
     const handleClose = () => setShowDeleteModal(false);
     const handleCloseP = () => setIsPlanningModalOpen(false);
 
-
     const handleShow = (id) => {
         setContratIdDelete(id);
         setShowDeleteModal(true);
@@ -333,17 +327,11 @@ const ContratEleve = () => {
                 item.Eleve?.User?.nom && item.Eleve?.User?.prenom &&
                 (`${item.Eleve?.User?.nom} ${item.Eleve?.User?.prenom}`).includes(searchTerm)
             )
-
-
-
         );
         // Filtre par école
         const matchesEcole = !selectedEcole ||
-            (Array.isArray(item.Ecole) && item.Ecole.some(ecole => ecole.id === parseInt(selectedEcole))) ||
-            (item.Ecole?.id === parseInt(selectedEcole));
-
-
-        // Les deux conditions doivent être vraies
+            (Array.isArray(item?.Eleve?.User?.Ecoles[0]) && item?.Eleve?.User?.Ecoles[0].some(ecole => ecole.id === parseInt(selectedEcole))) ||
+            (item?.Eleve?.User?.Ecoles[0]?.id === parseInt(selectedEcole));
         return matchesSearchTerm && matchesEcole;
     });
 
@@ -454,7 +442,6 @@ const ContratEleve = () => {
                   <td>${item.totalApayer}</td>
                   <td>${item.Eleve?.fraixinscription}</td>
                   <td>${item.date_creation ? moment(item.date_creation).format("DD-MM-YYYY") : ""}</td>
-                
                 </tr>
               `).join('')}
             </tbody>
@@ -468,7 +455,6 @@ const ContratEleve = () => {
 
     const handleExport = () => {
         const ws = XLSX.utils.json_to_sheet(currentItems.map(item => ({
-
             "ID": item.id,
             "Code": item.code || '',
             "Année Scolaire": `${moment(item.Anneescolaire?.datedebut).format('YYYY')} / ${moment(item.Anneescolaire?.datefin).format('YYYY')}`,
@@ -478,7 +464,7 @@ const ContratEleve = () => {
             "Debut paiement": item.date_debut_paiement ? moment(item.date_debut_paiement).format('DD-MM-YYYY') : '',
             "Date de fin de paiement": item.date_sortie ? moment(item.date_sortie).format('DD-MM-YYYY') : '',
             "Type Paiement": item.typePaiment || '',
-            "Total à payer": item.totalApaye || '',
+            "Total à payer": item.totalApayer || '',
             "Frais d'inscription": item.Eleve?.fraixinscription || '',
             "Date création": item.date_creation ? moment(item.date_creation).format("DD-MM-YYYY") : ''
 
@@ -525,14 +511,21 @@ const ContratEleve = () => {
     };
 
     const showModalPP = async (id) => {
-        await FindContrat(id);
-        setIsPlanningModalOpen(true);
+        setLoading('planning');
+        try {
+            await FindContrat(id);
+            setIsPlanningModalOpen(true);
+        } catch (error) {
+            console.error("Erreur lors du chargement du planning:", error);
+            alert("Une erreur est survenue lors du chargement du planning");
+        } finally {
+            setLoading(false);
+        }
     }
 
     const [canEdit, setCanEdit] = useState(false);
     const FindContrat = async (id) => {
         try {
-            setLoadingSelects(true);
             const token = localStorage.getItem("token");
             if (!token) {
                 alert("Vous devez être connecté");
@@ -657,7 +650,6 @@ const ContratEleve = () => {
                 });
                 alert('Contrat modifié avec succès');
             } else {
-                console.log('formDataToSend', formData)
                 response = await axios.post('http://localhost:5000/contrat/ajouter', formData, {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -729,8 +721,6 @@ const ContratEleve = () => {
         // ... autres initialisations
     }, []);
 
-
-
     const handleListeDE = async () => {
         try {
             const token = localStorage.getItem("token");
@@ -746,10 +736,10 @@ const ContratEleve = () => {
                     },
                 }
             );
-            const filteredDocs = response.data.filter((doc) => doc.module === "eleve" && doc.nom === "Contrat Paiment Eléve");
+            const filteredDocs = response.data.filter((doc) => doc.module === "eleve" && doc.code === "CPE");
             const options = filteredDocs.map((doc) => ({
-                value: doc.id, // Utilisez l'ID ou un autre champ unique comme valeur
-                label: doc.nom, // Utilisez le nom du document comme libellé
+                value: doc.id,
+                label: doc.nom,
                 modele: doc.modeleTexte
             }));
             return options
@@ -760,26 +750,48 @@ const ContratEleve = () => {
 
     //imprimer Contrat:
     const Printcontrat = async (id) => {
-        const data = await FindContrat(id);
-        console.log('data is', data)
-        const planning = data[0];
-        const contrat = planning.Contrat;
-        const eleve = contrat?.Eleve;
-        const user = eleve?.User;
-        const ecolePrincipal = user?.EcolePrincipal;
-        const pere = eleve?.Parents?.find(p => p.typerole === "Père");
-        const mere = eleve?.Parents?.find(p => p.typerole === "Mère");
+        setLoading('print');
+        try {
+            const data = await FindContrat(id);
+            const planning = data[0];
+       
+            const contrat = planning.Contrat;
+            const eleve = contrat?.Eleve;
+            const user = eleve?.User;
+            const ecolePrincipal = user?.EcolePrincipal;
 
-        const reponse = await handleListeDE();
-        const modeleText = reponse[0].modele;
+            let nomR = "", prenomR = "", emailR = "", telR = "", adresseR = "";
+            const pere = eleve?.Parents?.find(p => p.typerole === "Père");
+            const mere = eleve?.Parents?.find(p => p.typerole === "Mère");
+            const tuteur = eleve?.Parents?.find(p => p.typerole === "Tuteur");
+            let responsable = null;
 
-        if (!contrat || !modeleText) {
-            alert('Contrat ou model du contrat non défini')
-            return;
-        }
-        const dateToday = moment().format('DD/MM/YYYY');
-        //plannig 
-        const planningHtml = data.map((p, index) => `
+            if (tuteur) {
+                responsable = tuteur;
+
+            } else if (pere && mere) {
+                responsable = pere;
+            } else if (pere) {
+                responsable = pere;
+            } else if (mere) {
+                responsable = mere;
+            }
+            if (responsable?.User) {
+                nomR = responsable.User.nom || "";
+                prenomR = responsable.User.prenom || "";
+                emailR = responsable.User.email || "";
+                telR = responsable.User.telephone || "";
+                adresseR = responsable.User.adresse || "";
+            }
+            const reponse = await handleListeDE();
+            const modeleText = reponse[0].modele;
+            if (!contrat || !modeleText) {
+                alert('Contrat ou model du contrat non défini')
+                return;
+            }
+            const dateToday = moment().format('DD/MM/YYYY');
+            //plannig 
+            const planningHtml = data.map((p, index) => `
             <tr>
             <td>${index + 1}</td>
             <td>${moment(p.date_echeance).format("DD/MM/YYYY")}</td>
@@ -787,7 +799,7 @@ const ContratEleve = () => {
             <td>${p.montant_echeance} DA</td>
         </tr>
     `).join("");
-        const planningTable = `
+            const planningTable = `
     <table>
         <thead>
             <tr>
@@ -802,58 +814,54 @@ const ContratEleve = () => {
         </tbody>
     </table>
 `;
+            const modeleTextupdate = modeleText
+                .replace(/\[nomecolePE\]/g, ecolePrincipal?.nomecole || "")
+                .replace(/\[adressePE\]/g, ecolePrincipal?.adresse || "")
+                .replace(/\[nomE\]/g, user?.nom || "")
+                .replace(/\[nomAbE\]/g, user?.nom_ar || "")
+                .replace(/\[prenomE\]/g, user?.prenom || "")
+                .replace(/\[prenomAbE\]/g, user?.prenom_ar || "")
+                .replace(/\[LieunaisE\]/g, user?.lieuxnaiss || "")
+                .replace(/\[LieunaisAbE\]/g, user?.adresse || "")
+                .replace(/\[AdresseE\]/g, user?.prenom_ar || "")
+                .replace(/\[AdresseAbE\]/g, user?.adresse_ar || "")
+                .replace(/\[datenaissE\]/g, user?.datenaiss ? moment(user.datenaiss).format("DD/MM/YYYY") : "")
+                .replace(/\[numInscription\]/g, eleve?.numinscription || "")
+                .replace(/\[FraisInsc\]/g, eleve?.fraixinscription || "")
+                .replace(/\[NV\]/g, `${eleve?.Niveaux?.nomniveau} ${eleve?.Niveaux?.cycle} ` || "")
+                .replace(/\[nomP\]/g, nomR || "")
+                .replace(/\[prenomP\]/g, prenomR || "")
+                .replace(/\[EmailP\]/g, emailR || "")
+                .replace(/\[TelP\]/g, telR || "")
+                .replace(/\[AdresseP\]/g, adresseR || "")
+                .replace(/\[dateToday\]/g, moment().format("DD/MM/YYYY"))
+                //responsable
+                .replace(/\[nomP\]/g, nomR || "")
+                .replace(/\[prenomP\]/g, prenomR || "")
+                .replace(/\[EmailP\]/g, emailR || "")
+                .replace(/\[TelP\]/g, telR || "")
+                .replace(/\[AdresseP\]/g, adresseR || "")
+                //contrat
+                .replace(/\[AS\]/g, `${moment(contrat.Anneescolaire?.datedebut).format("YYYY")}/${moment(contrat.Anneescolaire?.datefin).format("YYYY")}` || "")
+                .replace(/\[codeC\]/g, contrat?.code || "")
+                .replace(/\[ddP\]/g, `${moment(contrat.date_debut_paiement).format("DD-MM-YYYY")}` || "")
+                .replace(/\[dfP\]/g, `${moment(contrat.date_sortie).format("DD-MM-YYYY")}` || "")
+                .replace(/\[dcC\]/g, `${moment(contrat.date_creation).format("DD-MM-YYYY")}` || "")
+                .replace(/\[totalC\]/g, contrat?.totalApayer || "")
+                .replace(/\[TypeP\]/g, contrat?.typePaiment || "")
+                .replace(/\[planning\]/g, planningTable)
+            //plannig
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
 
-        const modeleTextupdate = modeleText
-            .replace(/\[nomecolePE\]/g, ecolePrincipal?.nomecole || "")
-            .replace(/\[adressePE\]/g, ecolePrincipal?.adresse || "")
-            .replace(/\[nomE\]/g, user?.nom || "")
-            .replace(/\[nomAbE\]/g, user?.nom_ar || "")
-            .replace(/\[prenomE\]/g, user?.prenom || "")
-            .replace(/\[prenomAbE\]/g, user?.prenom_ar || "")
-            .replace(/\[LieunaisE\]/g, user?.lieuxnaiss || "")
-            .replace(/\[LieunaisAbE\]/g, user?.adresse || "")
-            .replace(/\[AdresseE\]/g, user?.prenom_ar || "")
-            .replace(/\[AdresseAbE\]/g, user?.adresse_ar || "")
-            .replace(/\[datenaissE\]/g, user?.datenaiss ? moment(user.datenaiss).format("DD/MM/YYYY") : "")
-            .replace(/\[numInscription\]/g, eleve?.numinscription || "")
-            .replace(/\[FraisInsc\]/g, eleve?.fraixinscription || "")
-            .replace(/\[NV\]/g, `${eleve?.Niveaux?.nomniveau} ${eleve?.Niveaux?.cycle} ` || "")
-            .replace(/\[nomP\]/g, pere?.User?.nom || "")
-            .replace(/\[prenomP\]/g, pere?.User?.prenom || "")
-            .replace(/\[EmailP\]/g, pere?.User?.email || "")
-            .replace(/\[TelP\]/g, pere?.User?.telephone || "")
-            .replace(/\[AdresseP\]/g, pere?.User?.adresse || "")
-            .replace(/\[dateToday\]/g, moment().format("DD/MM/YYYY"))
-
-            //contrat
-            .replace(/\[AS\]/g, `${moment(contrat.Anneescolaire?.datedebut).format("YYYY")}/${moment(contrat.Anneescolaire?.datefin).format("YYYY")}` || "")
-            .replace(/\[codeC\]/g, contrat?.code || "")
-            .replace(/\[ddP\]/g, `${moment(contrat.date_debut_paiement).format("DD-MM-YYYY")}` || "")
-            .replace(/\[dfP\]/g, `${moment(contrat.date_sortie).format("DD-MM-YYYY")}` || "")
-            .replace(/\[dcC\]/g, `${moment(contrat.date_creation).format("DD-MM-YYYY")}` || "")
-            .replace(/\[totalC\]/g, contrat?.totalApayer || "")
-            .replace(/\[TypeP\]/g, contrat?.typePaiment || "")
-            .replace(/\[planning\]/g, planningTable)
-
-        //plannig
-
-
-
-
-
-
-
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        document.body.appendChild(iframe);
-
-        const iframeDocument = iframe.contentWindow.document;
-        iframeDocument.open();
-        // @page{ margin: 0;}
-        iframeDocument.write(`
+            const iframeDocument = iframe.contentWindow.document;
+            iframeDocument.open();
+            // @page{ margin: 0;}
+            iframeDocument.write(`
             <html>
               <head>
-                <title>${contrat.Contrat?.Eleve?.User?.nom}.${contrat.Contrat?.Eleve?.User?.prenom}</title>
+                <title>${user?.nom}.${user?.prenom}</title>
                 <style>
                   @media print {
                     body { margin: 0 !important ; padding: 40px !important ; }
@@ -877,17 +885,19 @@ const ContratEleve = () => {
               </body>
             </html>
           `);
-        iframeDocument.close();
-        const originalTitle = document.title;
-        document.title = `${contrat.Contrat?.Eleve?.User?.nom}.${contrat.Contrat?.Eleve?.User?.prenom}`;
-        setTimeout(() => {
-            iframe.contentWindow.focus();
-            iframe.contentWindow.print();
-            document.title = originalTitle;
-            document.body.removeChild(iframe);
-        }, 1000);
-    };
-
+            iframeDocument.close();
+            const originalTitle = document.title;
+            document.title = `${user?.nom}.${user?.prenom}`;
+            setTimeout(() => {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+                document.title = originalTitle;
+                document.body.removeChild(iframe);
+            }, 1000);
+        } finally {
+            setLoading(null);
+        }
+    }
     return (
         <>
             <div className="card-body">
@@ -1092,7 +1102,7 @@ const ContratEleve = () => {
                                                             <img src={excel} alt="" width="25px" /><br />Exporter
                                                         </button>
                                                     </div>
-                                                    <div className="col-md-4 ml-auto ">
+                                                    <div className="col-md-3 ml-auto ">
                                                         <div className="input-group mr-2">
                                                             <div className="form-outline">
                                                                 <input
@@ -1105,17 +1115,19 @@ const ContratEleve = () => {
                                                                     onChange={handleSearchChange}
                                                                 />
                                                             </div>
-                                                            <div style={{ background: "rgb(202, 200, 200)", padding: "3px", height: "37px", borderRadius: "2px" }}>
-                                                                <img src={recherche} alt="" height="30px" width="30px" />
-                                                            </div>
+                                                            <div className="input-group-append">
+                                                                    <span className="input-group-text bg-white">
+                                                                        <img src={recherche} alt="Rechercher" style={{ height: "20px", width: "20px", opacity: 0.7 }} />
+                                                                    </span>
+                                                                </div>
                                                         </div>
                                                     </div>
-                                                    <div className="col-md-4" style={{ flex: '1', marginRight: '10px' }}>
+                                                    <div className="col-md-3" style={{ flex: '1', marginRight: '10px' }}>
                                                         <select
                                                             name="ecole"
                                                             className="form-control"
                                                             required
-                                                            style={{ height: '50px', borderRadius: '8px', backgroundColor: '#F8F8F8' }}
+                                                            style={{ height: '40px'}}
                                                             onChange={(e) => setSelectedEcole(e.target.value)}
                                                             value={selectedEcole || ''}
                                                         >
@@ -1132,6 +1144,7 @@ const ContratEleve = () => {
                                                 {/* Filtre de visibilité des colonnes */}
                                                 <ColumnVisibilityFilter columnVisibility={columnVisibility} setColumnVisibility={setColumnVisibility} />
                                                 <p>Liste des Contrats</p>
+                                                 <div  style={{ overflowX: 'auto', overflowY: 'hidden', scrollBehavior: 'smooth', }}>
                                                 <table id="example2" className="table table-bordered table-sm">
                                                     <thead>
                                                         <tr>
@@ -1150,7 +1163,6 @@ const ContratEleve = () => {
                                                             {columnVisibility.remarque && <th>Remarque</th>}
                                                             {columnVisibility.ecole && <th>Ecole</th>}
                                                             {columnVisibility.action && <th style={{ width: "180px" }}>Action</th>}
-
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -1171,7 +1183,7 @@ const ContratEleve = () => {
                                                                 {columnVisibility.eleve && (
                                                                     <td>  {item.Eleve?.User ? (
                                                                         <>
-                                                                            <div>{item.Eleve.User.nom} {item.Eleve.User.prenom}</div>
+                                                                            <div>{item.Eleve?.User?.nom} {item.Eleve?.User?.prenom}</div>
                                                                             {/* <div style={{ fontSize: '0.85em', color: '#666' }}>
                                                                                 {item.Eleve.numinscription
                                                                                     ? item.Eleve.numinscription
@@ -1183,7 +1195,7 @@ const ContratEleve = () => {
                                                                     )}
                                                                     </td>
                                                                 )}
-                                                                {columnVisibility.numInsc && <td> {item.Contrat?.Eleve?.numinscription}</td>}
+                                                                {columnVisibility.numInsc && <td> {item.Eleve?.numinscription}</td>}
                                                                 {columnVisibility.date_debut_paiement && <td>{item.date_debut_paiement ? moment(item.date_debut_paiement).format("DD-MM-YYYY") : ""}</td>}
                                                                 {columnVisibility.date_creation && <td>{item.date_creation ? moment(item.date_creation).format("DD-MM-YYYY") : ""}</td>}
                                                                 {columnVisibility.date_sortie && <td>{item.date_sortie ? moment(item.date_sortie).format("DD-MM-YYYY") : '-'}</td>}
@@ -1191,15 +1203,15 @@ const ContratEleve = () => {
                                                                 {columnVisibility.totalApayer && <td>{item.totalApayer || '-'}</td>}
                                                                 {columnVisibility.frais_insc && <td>{item.Eleve?.fraixinscription || '-'}</td>}
                                                                 {columnVisibility.remarque && <td>{item.remarque || '-'}</td>}
-                                                                {columnVisibility.ecole && <td>{item.Eleve?.User?.Ecole?.nomecole}</td>}
+                                                                {columnVisibility.ecole && <td>{item?.Eleve?.User?.Ecoles[0]?.nomecole}</td>}
                                                                 {columnVisibility.action &&
                                                                     <td style={{ display: 'flex', justifyContent: '', width: "180px", alignItems: 'center', textAlign: 'center' }}>
                                                                         <button
-                                                                            className="btn btn-outline-info action-btn"
+                                                                            className="btn btn-outline-secondary action-btn"
                                                                             onClick={() => Printcontrat(item.id)}
-                                                                            title="Imprimer"
+                                                                            disabled={loading === 'print'}
                                                                         >
-                                                                            <img src={print} alt="Imprimer" className="action-icon" />
+                                                                            {loading === 'print' ? <Spinner size="sm" /> : <img className="action-icon" src={print} />}
                                                                         </button>
                                                                         <button
                                                                             className="btn btn-outline-success action-btn"
@@ -1209,20 +1221,18 @@ const ContratEleve = () => {
                                                                             <img src={edit} alt="Modifier" className="action-icon" />
                                                                         </button>
                                                                         <button
-                                                                            className="btn btn-outline-warning action-btn"
+                                                                            className="btn btn-outline-danger action-btn"
                                                                             onClick={() => handleShow(item.id)}
-                                                                            title="Archiver"
-                                                                        >
-                                                                            <img src={archive} alt="Archiver" className="action-icon" />
+                                                                            title="Supprimer">
+                                                                            <img src={archive} alt="Supprimer" className="action-icon" />
                                                                         </button>
                                                                         <button
                                                                             className="btn btn-outline-info action-btn"
                                                                             onClick={() => showModalPP(item.id)}
-                                                                            title="Planning"
-                                                                        >
-                                                                            <img src={plan} alt="Planning" className="action-icon" />
+                                                                            disabled={loading === 'planning'}
+                                                                            title="Planning">
+                                                                            {loading === 'planning' ? <Spinner size="sm" /> : <img className="action-icon" src={plan} />}
                                                                         </button>
-
                                                                     </td>
                                                                 }
 
@@ -1232,6 +1242,7 @@ const ContratEleve = () => {
                                                     </tbody>
                                                 </table>
 
+                                            </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1267,10 +1278,10 @@ const ContratEleve = () => {
                     </div>
                     <Modal show={showDeleteModal} onHide={handleClose}>
                         <Modal.Header closeButton>
-                            <Modal.Title>Confirmer l'archivage</Modal.Title>
+                            <Modal.Title>Confirmer la suppression</Modal.Title>
                         </Modal.Header>
                         <Modal.Body>
-                            <p>Êtes-vous sûr de vouloir archiver  ?</p>
+                            <p>Êtes-vous sûr de vouloir supprimer  ?</p>
                         </Modal.Body>
                         <Modal.Footer>
                             <Button variant="secondary" onClick={handleClose}>
@@ -1283,7 +1294,7 @@ const ContratEleve = () => {
                                     handleClose();
                                 }}
                             >
-                                Archiver
+                                Supprimer
                             </Button>
                         </Modal.Footer>
                     </Modal>
@@ -1294,7 +1305,6 @@ const ContratEleve = () => {
                         planning={planning}
                         FindContrat={FindContrat}
                     />
-
                 </div >
             </div >
 

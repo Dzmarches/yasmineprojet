@@ -271,11 +271,12 @@ const EmployeCA = () => {
                           <ColumnVisibilityFilter columnVisibility={columnVisibility} setColumnVisibility={setColumnVisibility} />
 
                           <p>Mes demandes de congés et absences</p>
-                          <table id="example2" className="table table-bordered">
+                          <div  style={{ overflowX: 'auto', overflowY: 'hidden', scrollBehavior: 'smooth', }}>
+                            <table id="example2" className="table table-bordered">
                             <thead>
                               <tr>
                                 {columnVisibility.id && <th>Id</th>}
-                                {columnVisibility.type_demande && <th>Type de demande</th>}
+                                {columnVisibility.type_demande && <th>Demande type</th>}
                                 {columnVisibility.dateDebut && <th>Date début</th>}
                                 {columnVisibility.dateFin && <th>Date fin</th>}
                                 {columnVisibility.duree && <th>Durée</th>}
@@ -318,6 +319,7 @@ const EmployeCA = () => {
                               ))}
                             </tbody>
                           </table>
+                          </div>
                         </div>
                       </div>
                     </div>

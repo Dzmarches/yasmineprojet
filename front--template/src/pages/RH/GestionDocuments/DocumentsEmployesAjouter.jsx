@@ -11,6 +11,7 @@ import "./document.css";
 const DocumentsEmployesAjouter = () => {
   const [nom, setNom] = useState("");
   const [description, setDescription] = useState("");
+  const [code, setCode] = useState("");
   const [selectedModule, setSelectedModule] = useState(null);
   const editor = useRef(null);
   const [content, setContent] = useState("");
@@ -20,7 +21,6 @@ const DocumentsEmployesAjouter = () => {
     { value: "employe", label: "Employé" },
     { value: "eleve", label: "Élève" },
   ];
-
   const [ModeleDoc, setModeleDoc] = useState("");
   // Liste des champs disponibles
   const availableFields = [
@@ -46,7 +46,6 @@ const DocumentsEmployesAjouter = () => {
     { field: "[LieunaisAbE]", description: "Lieu de naissance de l'élève en AB" },
     { field: "[AdresseE]", description: "Adresse de l'élève en FR" },
     { field: "[AdresseAbE]", description: "Adresse de l'élève en AB" },
-    { field: "[dateTodayE]", description: "Date du jour" },
     { field: "[nomecoleE]", description: "Nom de l'école" },
     { field: "[nomecolePE]", description: "Nom de l'école principale" },
     { field: "[adresseE]", description: "adresse de l'école " },
@@ -186,8 +185,8 @@ const DocumentsEmployesAjouter = () => {
   };
   // Sauvegarder le document
   const handleSave = async () => {
-    if (!nom || !selectedModule || !content) {
-      toast.error('Veuillez remplir tous les champs obligatoires');
+    if (!nom || !selectedModule || !content ||!code) {
+      alert('Veuillez remplir tous les champs obligatoires');
       return;
     }
     try {
@@ -199,6 +198,7 @@ const DocumentsEmployesAjouter = () => {
       const response = await axios.post("http://localhost:5000/attestation/ajouter", {
         nom,
         description,
+        code,
         modeleTexte: content,
         module: selectedModule.value,
       },
@@ -267,6 +267,8 @@ const DocumentsEmployesAjouter = () => {
     setTimeout(() => document.body.removeChild(iframe), 1000);
   };
 
+
+
   const config = useMemo(
     () => ({
       readonly: false,
@@ -301,7 +303,6 @@ const DocumentsEmployesAjouter = () => {
       },
       removeButtons: ['speechRecognize', 'video', 'print', 'upload'],
       disablePlugins: ["speechRecognize", "video", "print"],
-
       extraButtons: [
         {
           name: "imprimer",
@@ -329,7 +330,6 @@ const DocumentsEmployesAjouter = () => {
             openFieldModal(availableFieldsEleve);
           }
         }
-
         , {
           name: 'insertField',
           iconURL: 'https://icon-library.com/images/insert-icon/insert-icon-15.jpg',
@@ -344,12 +344,15 @@ const DocumentsEmployesAjouter = () => {
     }),
     []
   );
+
   return (
     <>
       <nav>
         <Link to="/dashboard" className="text-primary">Accueil</Link>
         <span> / </span>
-        <span>Gestion des ressources humaines</span>
+        <Link to="/documents" className="text-primary">Liste doucments</Link>
+        <span> / </span>
+        <span> Ajouter</span>
       </nav>
       <div className="card card-primary card-outline">
         <div className="card-header d-flex">
@@ -368,9 +371,21 @@ const DocumentsEmployesAjouter = () => {
                   <div className="row">
                     <div className="col-12">
                       <div className="card">
-                        <div className="card-header p-2" style={{ backgroundColor: "#f8f8f8" }}>
-                          <div className="row ">
-                            <div className="col-3">
+                        <div className="card-header p-1" style={{ backgroundColor: "#f8f8f8" }}>
+                          <div className="row p-5">
+                          <div className="col-4">
+                              <label htmlFor="code">Code*</label>
+                              <input
+                                style={{ height: '35px' }}
+                                type="text"
+                                id="code"
+                                name="code"
+                                className="form-control"
+                                value={code}
+                                onChange={(e) => setCode(e.target.value)}
+                              />
+                            </div>
+                            <div className="col-4">
                               <label htmlFor="nomdoc">Nom*</label>
                               <input
                                 style={{ height: '35px' }}
@@ -382,7 +397,7 @@ const DocumentsEmployesAjouter = () => {
                                 onChange={(e) => setNom(e.target.value)}
                               />
                             </div>
-                            <div className="col-3">
+                            <div className="col-4">
                               <label htmlFor="module">Module*</label>
                               <Select
                                 options={moduleOptions}
@@ -391,7 +406,7 @@ const DocumentsEmployesAjouter = () => {
                                 placeholder="Sélectionnez un module"
                               />
                             </div>
-                            <div className="col-6">
+                            <div className="col-4">
                               <label htmlFor="desc">Description</label>
                               <textarea
                                 maxLength="150"
@@ -431,7 +446,6 @@ const DocumentsEmployesAjouter = () => {
               </section>
             </div>
           </div>
-          <ToastContainer />
         </div>
       </div>
     </>

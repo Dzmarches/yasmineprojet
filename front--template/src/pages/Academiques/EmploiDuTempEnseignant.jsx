@@ -17,6 +17,9 @@ const EmploiDuTempEnseignant = () => {
     const [cycles, setCycles] = useState([]);
     const [selectedCycle, setSelectedCycle] = useState("");
     const [emploiDuTempsData, setEmploiDuTempsData] = useState({});
+    const [allNiveauxEnseignant, setAllNiveauxEnseignant] = useState([]);
+    const [allSectionsEnseignant, setAllSectionsEnseignant] = useState([]);
+
     const jours = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi'];
     const [periodes, setPeriodes] = useState({
         matin: { debut: '08:00', fin: '12:00', sousPeriodes: [] },
@@ -160,7 +163,7 @@ const EmploiDuTempEnseignant = () => {
 
     useEffect(() => {
         const fetchEmploiDuTemps = async () => {
-            if (enseignantId && selectedAnneeScolaire && selectedNiveau && selectedSection) {
+            if (enseignantId && selectedAnneeScolaire && selectedCycle) {
                 try {
                     const token = localStorage.getItem("token");
                     const response = await axios.get(
@@ -168,25 +171,28 @@ const EmploiDuTempEnseignant = () => {
                         {
                             headers: { Authorization: `Bearer ${token}` },
                             params: {
-                                anneeScolaireId: selectedAnneeScolaire,
-                                niveauId: selectedNiveau,
-                                sectionId: selectedSection
+                                anneeScolaireId: selectedAnneeScolaire
                             }
                         }
                     );
 
+                    // Mettre à jour les données
+                    setAllNiveauxEnseignant(response.data.niveaux || []);
+                    setAllSectionsEnseignant(response.data.sections || []);
+                    
+                    // Formater les données pour l'affichage
                     const formattedData = {};
-                    Object.keys(response.data).forEach(jour => {
+                    Object.keys(response.data.emploiDuTemps).forEach(jour => {
                         formattedData[jour] = {};
-                        response.data[jour].forEach(cours => {
-                            formattedData[jour][cours.heure] = {
-                                matiere: cours.matiere,
-                                section: cours.section,
-                                niveau: cours.niveau,
-                                duree: cours.duree
-                            };
+                        Object.keys(response.data.emploiDuTemps[jour]).forEach(heure => {
+                            formattedData[jour][heure] = 
+                                response.data.emploiDuTemps[jour][heure].map(cours => ({
+                                    ...cours,
+                                    key: `${jour}-${heure}-${cours.section.id}-${cours.matiere.id}`
+                                }));
                         });
                     });
+                    
                     setEmploiDuTempsData(formattedData);
                 } catch (error) {
                     console.error("Erreur lors du chargement de l'emploi du temps:", error);
@@ -195,7 +201,24 @@ const EmploiDuTempEnseignant = () => {
         };
 
         fetchEmploiDuTemps();
-    }, [enseignantId, selectedAnneeScolaire, selectedNiveau, selectedSection]);
+    }, [enseignantId, selectedAnneeScolaire, selectedCycle]);
+
+    const isFormComplete = selectedAnneeScolaire && selectedCycle;
+
+    // Fonction pour regrouper les cours par section
+    const groupBySection = (coursList) => {
+        const grouped = {};
+        coursList.forEach(cours => {
+            if (!grouped[cours.section.id]) {
+                grouped[cours.section.id] = {
+                    section: cours.section,
+                    cours: []
+                };
+            }
+            grouped[cours.section.id].cours.push(cours);
+        });
+        return Object.values(grouped);
+    };
 
     useEffect(() => {
         const fetchCycle = async () => {
@@ -278,8 +301,6 @@ const EmploiDuTempEnseignant = () => {
         fetchPeriodes();
     }, [selectedCycle, cycles]);
 
-    const isFormComplete = selectedAnneeScolaire && selectedNiveau && selectedSection;
-
     return (
         <div className="container-fluid py-3">
             <nav aria-label="breadcrumb">
@@ -336,41 +357,6 @@ const EmploiDuTempEnseignant = () => {
                                 </select>
                             </div>
 
-                            {/* Niveau */}
-                            <div className="form-group" style={{ minWidth: '150px' }}>
-                                <select
-                                    className="form-control input"
-                                    style={{ height: '40px' }}
-                                    value={selectedNiveau || ''}
-                                    onChange={(e) => setSelectedNiveau(parseInt(e.target.value) || '')}
-                                >
-                                    <option value="">Niveau</option>
-                                    {niveaux.map((niveau) => (
-                                        <option key={niveau.id} value={niveau.id}>
-                                            {niveau.nomniveau}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Section */}
-                            {selectedNiveau && (
-                                <div className="form-group" style={{ minWidth: '150px' }}>
-                                    <select
-                                        className="form-control input"
-                                        style={{ height: '40px' }}
-                                        value={selectedSection || ''}
-                                        onChange={(e) => setSelectedSection(e.target.value)}
-                                    >
-                                        <option value="">Section</option>
-                                        {sections.map((section) => (
-                                            <option key={section.id} value={section.id}>
-                                                {section.classe} {section.classearab && `(${section.classearab})`}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            )}
                         </div>
                     </div>
 
@@ -403,22 +389,30 @@ const EmploiDuTempEnseignant = () => {
                                                     );
                                                 }
 
-                                                const cours = emploiDuTempsData[jour]?.[heure.plage];
+                                                const coursList = emploiDuTempsData[jour]?.[heure.plage] || [];
+                                                const coursParSection = groupBySection(coursList);
 
                                                 return (
                                                     <td key={`${jour}-${idx}`} className="align-middle">
-                                                        {cours ? (
-                                                            <div className="text-center p-2 bg-light rounded">
-                                                                <strong className="d-block">
-                                                                    {cours.matiere.nom} ({cours.matiere.code})
-                                                                </strong>
-                                                                <span className="text-muted">
-                                                                    {cours.section.classe} - {cours.niveau.nom}
-                                                                </span>
-                                                                <div className="small text-muted">
-                                                                    Durée: {cours.duree} min
+                                                        {coursParSection.length > 0 ? (
+                                                            coursParSection.map((groupe, i) => (
+                                                                <div key={i} className="mb-2 p-2 bg-light rounded">
+                                                                    <div className="font-weight-bold">
+                                                                        {groupe.section.classe} 
+                                                                        {groupe.section.classeArab && ` (${groupe.section.classeArab})`}
+                                                                    </div>
+                                                                    {groupe.cours.map((cours, j) => (
+                                                                        <div key={j} className="small">
+                                                                            <span className="text-primary">
+                                                                                {cours.matiere.nom} ({cours.matiere.code})
+                                                                            </span>
+                                                                            <div className="text-muted">
+                                                                                Durée: {cours.duree} min
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
                                                                 </div>
-                                                            </div>
+                                                            ))
                                                         ) : (
                                                             <div className="text-center text-muted">-</div>
                                                         )}
@@ -432,7 +426,7 @@ const EmploiDuTempEnseignant = () => {
                         </div>
                     ) : (
                         <div className="alert alert-info">
-                            Veuillez sélectionner un cycle, une année scolaire, un niveau et une section pour afficher l'emploi du temps.
+                            Veuillez sélectionner un cycle et une année scolaire pour afficher l'emploi du temps.
                         </div>
                     )}
                 </div>

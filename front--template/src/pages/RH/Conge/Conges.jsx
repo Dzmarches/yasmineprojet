@@ -48,8 +48,6 @@ const Conges = () => {
         poste: true,
     });
 
-
-
     const [selectedEcole, setSelectedEcole] = useState(null);
     const [filteredEcoles, setFilteredEcoles] = useState([]);
     const [ecole, setEcoles] = useState([]);
@@ -184,6 +182,7 @@ const Conges = () => {
             (item.Employe.User&& item.Employe?.User.prenom.toLowerCase().includes(searchTerm.toLowerCase())) ||
             (item.type_demande && item.type_demande.toLowerCase().includes(searchTerm.toLowerCase())) ||
             (item.Employe.Poste?.poste && item.Employe.Poste.poste.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
+            (item.Employe?.CE && item.Employe?.CE.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
             (item.statut && item.statut.toLowerCase().includes(searchTerm.toLowerCase()));
 
         const matchesDateRange =
@@ -471,14 +470,15 @@ const Conges = () => {
 
 
 
-                <div className="card-body ">
+                <div className="card-body " style={{ overflowX: 'auto', overflowY: 'hidden', scrollBehavior: 'smooth', }}>
                     <table id="example2" className="table table-bordered table-sm ">
                         <thead>
                             <tr>
                                 {columnVisibility.id && <th>Id</th>}
+                                <th>Code Employé</th>
                                 {columnVisibility.nom_prenom && <th>Nom et prénom</th>}
                                 {columnVisibility.poste && <th>Poste</th>}
-                                {columnVisibility.type_demande && <th>Type de demande</th>}
+                                {columnVisibility.type_demande && <th>Demande type</th>}
                                 {columnVisibility.dateDebut && <th>Date début</th>}
                                 {columnVisibility.dateFin && <th>Date fin</th>}
                                 {columnVisibility.duree && <th>Durée</th>}
@@ -493,6 +493,7 @@ const Conges = () => {
                             {currentItems.map((item, index) => (
                                 <tr key={index}>
                                     {columnVisibility.id && <td>{indexOfFirstItem + index + 1}</td>}
+                                    <td>{item.Employe?.CE}</td>
                                     {columnVisibility.nom_prenom && <td>{item.Employe ? item.Employe?.User?.nom : ''} {item.Employe ? item.Employe?.User?.prenom : ''}</td>}
                                     {columnVisibility.poste && <td>{item.Employe ? item.Employe?.Poste?.poste : ''}</td>}
                                     {columnVisibility.type_demande && <td>{item.type_demande}</td>}
@@ -513,7 +514,7 @@ const Conges = () => {
                                                     style={{ width: "35px", height: "35px" }}
                                                 >
                                                     <img src={edit} alt="Modifier" width="20px" title="Modifier" />
-                                                </button>
+                                                </button>&nbsp;&nbsp;&nbsp;&nbsp;
 
                                                 {/* Bouton Supprimer */}
                                                 <button

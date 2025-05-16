@@ -30,6 +30,13 @@ import RemarqueRoute from './Admin/RemarqueRoute.js';
 import communicationRoutes from './CommunicationRoute/communicationRoutes.js';
 import ParentEleveRoutes from './Admin/ParentEleveRoutes.js';
 import DevoireRoute from './Admin/DevoireRoute.js';
+import CategorieRoute from './Stocks/CategorieRoute.js';
+import articleRoutes from './Stocks/ArticleRoute.js';
+import FourniteurRoute from './Stocks/FourniteurRoute.js';
+import AchatRoute from './Stocks/AchatRoute.js';
+import eventRoutes from './EventRoutes.js';
+
+import permissionRoutes from "./PermissionRoutes.js";
 
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -94,5 +101,13 @@ app.use('/remarques', RemarqueRoute);
 app.use('/communication', communicationRoutes);
 app.use('/parent', ParentEleveRoutes);
 app.use('/devoir', DevoireRoute);
+app.use('/categorie',CategorieRoute);
+app.use('/article', articleRoutes);
+app.use('/fournisseur',FourniteurRoute);
+app.use('/achat',AchatRoute);
+app.use('/events', eventRoutes);
+
+
+app.use("/permissions", permissionRoutes);
 
 export default app;

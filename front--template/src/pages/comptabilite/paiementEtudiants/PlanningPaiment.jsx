@@ -4,13 +4,14 @@ import printIcon from '../../../assets/imgs/printer.png';
 import { Link } from 'react-router-dom';
 import Select from 'react-select';
 import axios from 'axios';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import * as XLSX from 'xlsx';
 import { Modal, Button, Form, Row, Col, CardBody, Card, Container, CardTitle } from 'react-bootstrap';
 import recherche from '../../../assets/imgs/recherche.png';
 import edit from '../../../assets/imgs/edit.png';
-import archive from '../../../assets/imgs/archive.png';
-import { StatsComptabilite } from './StatsComptabilite';
+import archive from '../../../assets/imgs/delete.png';
+import print from '../../../assets/imgs/printer.png';
+// import { StatsComptabilite } from './StatsComptabilite';
 
 
 
@@ -28,12 +29,13 @@ const PlanningPaiement = () => {
     const [OptionsAS, setOptionsAS] = useState([]);
     const [OptionsNV, setOptionsNV] = useState([]);
     const [OptionsE, setOptionsE] = useState([]);
+    const [SelectedRappel, setSelectedRappel] = useState();
 
     const [SelectedAS, setSelectedAS] = useState(null);
     const [SelectedE, setSelectedE] = useState(null);
     const [SelectedNV, setSelectedNV] = useState(null);
     const [isPlanningModalOpen, setIsPlanningModalOpen] = useState(false);
-
+    const [Today, setToday] = useState('');
 
     const [formData, setFormData] = useState({
         annee_scolaire: '',
@@ -42,14 +44,10 @@ const PlanningPaiement = () => {
         code: '',
         totalApayer: '',
         frais_insc: '0',
-        etat_paiement: 'retard',
+        etat_paiement: 'retardplus7',
     });
-
-
     const handleCloseP = () => setIsPlanningModalOpen(false);
     const handleShow = () => setIsPlanningModalOpen(true);
-
-
     useEffect(() => {
         const fetchEcoles = async () => {
             try {
@@ -58,7 +56,6 @@ const PlanningPaiement = () => {
                     console.error('Aucun token trouvé. Veuillez vous connecter.');
                     return;
                 }
-
                 const response = await axios.get('http://localhost:5000/ecoles', {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -104,7 +101,6 @@ const PlanningPaiement = () => {
             alert('Une erreur est survenue lors de la récupération des années');
         }
     };
-
     const handleListeNiveaux = async () => {
         try {
             const token = localStorage.getItem("token");
@@ -134,7 +130,6 @@ const PlanningPaiement = () => {
             alert('Une erreur est survenue lors de la récupération des niveaux');
         }
     };
-
     useEffect(() => {
         const fetchElevesByNiveau = async () => {
             const niveauId = formData.niveau;
@@ -183,19 +178,123 @@ const PlanningPaiement = () => {
                     "Content-Type": "application/json",
                 },
             });
-            console.log("Données reçues:", response.data); // Vérifiez les données
-            setData(response.data);
-            setFilteredData(response.data); // Initialise filteredData avec toutes les données
+            console.log("Données reçues:", response.data);
+            const { hps, today } = response.data;
+            // Vérifie que hps est bien un tableau
+            if (Array.isArray(hps)) {
+                const filteredData = hps.slice(0, 10);
+                console.log(filteredData);
+            } else {
+                console.error('hps n\'est pas un tableau:', hps);
+            }
+            setData(hps);
+            setToday(today);
+            setFilteredData(hps);
         } catch (error) {
             console.error("Erreur lors du chargement des données:", error);
         }
     };
-
-
+    const handlePrint = () => {
+        const printWindow = window.open("", "", "width=800,height=600");
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Planning des paiement</title>
+              <style>
+                @page { margin: 0; }
+                body {
+                  font-family: Arial, sans-serif;
+                  padding: 20px;
+                  background-color: #f9f9f9;
+                }
+                h5 {
+                  text-align: center;
+                  font-size: 18px;
+                  color: #333;
+                  margin-bottom: 20px;
+                }
+                table {
+                  margin:15px;
+                  width: 100%;
+                  border-collapse: collapse;
+                  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                  background-color: #fff;
+                  margin-bottom: 20px;
+                }
+                th, td {
+                  border: 1px solid #ddd;
+                  padding: 12px;
+                  text-align: left;
+                }
+                th {
+                  background-color: #f4f4f4;
+                  font-weight: bold;
+                  color: #333;
+                  text-transform: uppercase;
+                  font-size: 14px;
+                }
+                td {
+                  color: #555;
+                  font-size: 14px;
+                }
+                tr:nth-child(even) {
+                  background-color: #f9f9f9;
+                }
+                tr:hover {
+                  background-color: #f1f1f1;
+                }
+              </style>
+            </head>
+            <body>
+              <h5>Planning des paiement</h5>
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Code Contrat</th>
+                    <th>Code</th>
+                    <th>Nom et Prénom </th>
+                    <th>Num Inscription</th>
+                    <th>Niveau</th>
+                    <th>Date Échéance</th>
+                    <th>Montant Échéance</th>
+                    <th>Montant Restant</th>
+                    <th>État Paiement</th>
+                    <th>Date Paiement</th>
+                    <th>Mode Paiement</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${filteredData.map(item => `
+                    <tr>
+                      <td>${item.id || ''}</td>
+                      <td>${item.Contrat?.code || ''}</td>
+                      <td> ${item.codePP || ''} </td>
+                      <td>${item.Contrat?.Eleve?.User?.nom || ''} ${item.Contrat?.Eleve?.User?.prenom || ''}</td>
+                      <td>${item.Contrat?.Eleve?.numinscription || ''}</td>
+                      <td>${item.Contrat?.Niveaux?.nomniveau || ''}</td>
+                      <td>${item.date_echeance ? moment(item.date_echeance).format('DD-MM-YYYY') : ''}</td>
+                      <td>${item.montant_echeance || ''}</td>
+                      <td>${item.montant_restant || ''}</td>
+                      <td>${item.etat_paiement || ''}</td>
+                      <td>${item.date_paiement ? moment(item.date_paiement).format('DD-MM-YYYY') : ''}</td>
+                      <td>${item.mode_paiement || ''}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+    };
     const handleExport = () => {
         const ws = XLSX.utils.json_to_sheet(filteredData.map(item => ({
+            "Code Contrat": item.Contrat?.code,
             "Code": item.codePP,
             "Nom et Prénom": `${item.Contrat?.Eleve?.User.nom} ${item.Contrat?.Eleve?.User.prenom}`,
+            "Num Inscription": `${item.Contrat?.Eleve?.numinscription}`,
             "Niveau": item.Contrat?.Niveaux?.nomniveau,
             "Date Échéance": item.date_echeance ? moment(item.date_echeance).format('DD-MM-YYYY') : '',
             "Montant Échéance": item.montant_echeance,
@@ -209,7 +308,6 @@ const PlanningPaiement = () => {
         XLSX.utils.book_append_sheet(wb, ws, "PlanningPaiement");
         XLSX.writeFile(wb, "planning_paiement.xlsx");
     };
-
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({
@@ -217,7 +315,6 @@ const PlanningPaiement = () => {
             [name]: value
         }));
     };
-
     const handleSelectChange = (selectedOption, name) => {
         switch (name) {
             case 'annee_scolaire':
@@ -233,6 +330,9 @@ const PlanningPaiement = () => {
                     ...prev,
                     niveau: selectedOption.value
                 }));
+                break;
+            case 'rappel':
+                setSelectedRappel(selectedOption);
                 break;
             case 'eleve':
                 setSelectedE(selectedOption);
@@ -251,7 +351,6 @@ const PlanningPaiement = () => {
                 break;
         }
     };
-
     const [columnVisibility, setColumnVisibility] = useState({
         code: true,
         date_echeance: true,
@@ -274,6 +373,8 @@ const PlanningPaiement = () => {
             { key: "mode_paiement", label: "Mode Paiment" },
             { key: "numInsc", label: "Num Insciption" },
             { key: "ecole", label: "Ecole" },
+            { key: "dateRappel", label: "Date de rappel" },
+            { key: "dureRappel", label: "Durée de rappel" },
             { key: "action", label: "Action" },
         ];
 
@@ -320,14 +421,11 @@ const PlanningPaiement = () => {
             setCurrentPage(page);
         }
     };
-
     const pageNumbers = [];
     for (let i = Math.max(1, currentPage - 2); i <= Math.min(currentPage + 2, totalPages); i++) {
         pageNumbers.push(i);
     }
-
     const [searchTerm, setSearchTerm] = useState('');
-
     const applyFilters = () => {
         const filtersActive =
             formData.eleve ||
@@ -346,15 +444,14 @@ const PlanningPaiement = () => {
 
         const filtered = data.filter(item => {
             try {
-
-                console.log('etat', formData.etat_paiement)
                 const contrat = item.Contrat || {};
                 const eleve = contrat.Eleve || {};
                 const user = eleve.User || {};
                 const niveaux = contrat.Niveaux || {};
                 const anneescolaire = contrat.Anneescolaire || {};
-
-
+                const today = moment().startOf('day');
+                const dueDate = moment(item.date_echeance).startOf('day');
+                const daysDiff = today.diff(dueDate, 'days');
 
                 // Appliquez chaque filtre un par un
                 if (formData.eleve && eleve.id != formData.eleve) return false;
@@ -365,7 +462,7 @@ const PlanningPaiement = () => {
                 if (startDate && !moment(item.date_echeance).isSameOrAfter(startDate, 'day')) return false;
                 if (endDate && !moment(item.date_echeance).isSameOrBefore(endDate, 'day')) return false;
 
-                if (selectedEcole && user.ecoleId != selectedEcole) return false;
+                if (selectedEcole && user.Ecoles[0]?.id != selectedEcole) return false;
 
                 if (searchTerm) {
                     const term = searchTerm.toLowerCase();
@@ -376,29 +473,30 @@ const PlanningPaiement = () => {
                             user?.nom && user?.prenom &&
                             (`${user?.nom} ${user?.prenom}`).includes(searchTerm)
                         ) ||
-                        (item.codePP?.toLowerCase().includes(term));
+                        (item.codePP?.toLowerCase().includes(term)) ||
+                        (item.montant_echeance?.toLowerCase().includes(term)) ||
+                        (item.montant_restant?.toLowerCase().includes(term)) ||
+                        (item.Contrat?.code?.toLowerCase().includes(term)) ||
+                        (item.Contrat?.Eleve?.numinscription.toLowerCase().includes(term)) ||
+                        (item.mode_paiement.toLowerCase().includes(term))
                     if (!matches) return false;
+
                 }
 
+                // Filtre par état de paiement
                 if (formData.etat_paiement) {
-                    if (formData.etat_paiement === "non payé" && item.etat_paiement !== "non payé") {
-                        console.log('non payé mais item différent', item);
-                        return false;
-                    }
+                    // Cas "payé" et "non payé"
+                    if (formData.etat_paiement === "payé" && item.etat_paiement !== "payé") return false;
+                    if (formData.etat_paiement === "non payé" && item.etat_paiement !== "non payé") return false;
 
-                    if (formData.etat_paiement === "payé" && item.etat_paiement !== "payé") {
-                        console.log('payé mais item différent', item);
-                        return false;
-                    }
-
+                    // Cas "retard" (1-7 jours de retard)
                     if (formData.etat_paiement === "retard") {
-                        const today = moment();
-                        const dueDate = moment(item.date_echeance);
-                        const isOverdue = dueDate.isBefore(today, 'day') && item.etat_paiement === "non payé";
+                        if (item.etat_paiement !== "non payé" || daysDiff <= 0 || daysDiff > 7) return false;
+                    }
 
-                        if (!isOverdue) {
-                            return false;
-                        }
+                    // Cas "retardplus7" (>7 jours de retard)
+                    if (formData.etat_paiement === "retardplus7") {
+                        if (item.etat_paiement !== "non payé" || daysDiff <= 7) return false;
                     }
                 }
 
@@ -408,7 +506,6 @@ const PlanningPaiement = () => {
                 return false;
             }
         });
-
         setFilteredData(filtered);
         setCurrentPage(1);
     };
@@ -417,8 +514,6 @@ const PlanningPaiement = () => {
         applyFilters();
     }, [formData.eleve, formData.niveau, formData.annee_scolaire, formData.etat_paiement,
         startDate, endDate, selectedEcole, searchTerm, data]);
-
-
 
     const [editFormData, setEditFormData] = useState({
         code: '',
@@ -435,6 +530,7 @@ const PlanningPaiement = () => {
         const selectedPlan = currentItems.find(plan => plan.id === planId);
         setEditPlan(selectedPlan); // Conservez une référence à l'élément en cours de modification
         setIsPlanningModalOpen(true);
+
         setEditFormData({
             code: selectedPlan.codePP,
             montant_echeance: selectedPlan.montant_echeance,
@@ -445,6 +541,7 @@ const PlanningPaiement = () => {
             mode_paiement: selectedPlan.mode_paiement
         });
     };
+
     //modifier plannig 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -486,22 +583,19 @@ const PlanningPaiement = () => {
                 },
                 body: JSON.stringify(updatedData),
             });
-
             if (response.ok) {
                 const result = await response.json();
                 setIsPlanningModalOpen(false);
-                fetchplanning(); // Rafraîchir les données
+                fetchplanning();
             }
         } catch (error) {
             console.error('Erreur de réseau', error);
         }
     };
 
-
     //archivage 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [ppIdDelete, setppIdDelete] = useState(null);
-
     const Archiver = async (id) => {
         try {
             const token = localStorage.getItem("token");
@@ -528,11 +622,228 @@ const PlanningPaiement = () => {
     };
     const handleClose = () => setShowDeleteModal(false);
 
+    const handleListeDE = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                alert("Vous devez être connecté");
+                return;
+            }
+            const response = await axios.get('http://localhost:5000/attestation/liste',
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+            const filteredDocs = response.data.filter((doc) => doc.module === "eleve" && doc.code === "RPE");
+            const options = filteredDocs.map((doc) => ({
+                value: doc.id,
+                label: doc.nom,
+                modele: doc.modeleTexte
+            }));
+            return options
+        } catch (error) {
+            console.log("Erreur lors de la récupération des attestations", error);
+        }
+    };
+    const printrecu = async (id) => {
+        const selectedPlan = currentItems.find(plan => plan.id === id);
+        const reponse = await handleListeDE();
+        const modeleText = reponse[0].modele;
+
+        const contrat = selectedPlan.Contrat;
+        const eleve = contrat?.Eleve;
+        const user = eleve?.User;
+        const ecolePrincipal = user?.EcolePrincipal;
+
+        let nomR = "", prenomR = "", emailR = "", telR = "", adresseR = "";
+        const pere = eleve?.Parents?.find(p => p.typerole === "Père");
+        const mere = eleve?.Parents?.find(p => p.typerole === "Mère");
+        const tuteur = eleve?.Parents?.find(p => p.typerole === "Tuteur");
+
+        let responsable = null;
+        if (tuteur) {
+            responsable = tuteur;
+        } else if (pere && mere) {
+            responsable = pere;
+        } else if (pere) {
+            responsable = pere;
+        } else if (mere) {
+            responsable = mere;
+        }
+        if (responsable?.User) {
+            nomR = responsable.User.nom || "";
+            prenomR = responsable.User.prenom || "";
+            emailR = responsable.User.email || "";
+            telR = responsable.User.telephone || "";
+            adresseR = responsable.User.adresse || "";
+        }
+
+        if (!selectedPlan || !modeleText) {
+            alert('plannig ou model du contrat non défini')
+            return;
+        }
+        const modeleTextupdate = modeleText
+            .replace(/\[nomecolePE\]/g, ecolePrincipal?.nomecole || "")
+            .replace(/\[logoecoleP\]/g,
+                `<img src="http://localhost:5000${ecolePrincipal?.logo}" alt="Logo de l'école" style="max-width: 70px; max-height: 70px;">`
+            )
+            .replace(/\[adressePE\]/g, ecolePrincipal?.adresse || "")
+            .replace(/\[nomE\]/g, user?.nom || "")
+            .replace(/\[nomAbE\]/g, user?.nom_ar || "")
+            .replace(/\[prenomE\]/g, user?.prenom || "")
+            .replace(/\[prenomAbE\]/g, user?.prenom_ar || "")
+            .replace(/\[LieunaisE\]/g, user?.lieuxnaiss || "")
+            .replace(/\[LieunaisAbE\]/g, user?.adresse || "")
+            .replace(/\[AdresseE\]/g, user?.prenom_ar || "")
+            .replace(/\[AdresseAbE\]/g, user?.adresse_ar || "")
+            .replace(/\[datenaissE\]/g, user?.datenaiss ? moment(user.datenaiss).format("DD/MM/YYYY") : "")
+            .replace(/\[numInscription\]/g, eleve?.numinscription || "")
+            .replace(/\[FraisInsc\]/g, eleve?.fraixinscription || "")
+            .replace(/\[NV\]/g, `${eleve?.Niveaux?.nomniveau} ${eleve?.Niveaux?.cycle} ` || "")
+            //responsable
+            .replace(/\[nomP\]/g, nomR || "")
+            .replace(/\[prenomP\]/g, prenomR || "")
+            .replace(/\[EmailP\]/g, emailR || "")
+            .replace(/\[TelP\]/g, telR || "")
+            .replace(/\[AdresseP\]/g, adresseR || "")
+            .replace(/\[dateToday\]/g, moment().format("DD/MM/YYYY"))
+            //contrat
+            .replace(/\[AS\]/g, `${moment(contrat.Anneescolaire?.datedebut).format("YYYY")}/${moment(contrat.Anneescolaire?.datefin).format("YYYY")}` || "")
+            .replace(/\[codeC\]/g, contrat?.code || "")
+            .replace(/\[ddP\]/g, `${moment(contrat.date_debut_paiement).format("DD-MM-YYYY")}` || "")
+            .replace(/\[dfP\]/g, `${moment(contrat.date_sortie).format("DD-MM-YYYY")}` || "")
+            .replace(/\[dcC\]/g, `${moment(contrat.date_creation).format("DD-MM-YYYY")}` || "")
+
+            .replace(/\[totalC\]/g, selectedPlan.montant_echeance || "")
+            .replace(/\[TypeP\]/g, contrat?.typePaiment || "")
+            .replace(/\[ModeP\]/g, selectedPlan?.mode_paiement || "")
+            .replace(/\[detail\]/g,
+                ` Frais de scolarité pour l'échéance :<br><br>
+                    &nbsp;&nbsp; 
+                    <small>
+                    Code :${selectedPlan?.codePP}<br>
+                     &nbsp;&nbsp; Date : ${selectedPlan?.date_echeance ? moment(selectedPlan?.date_echeance).format('DD/MM/YYYY') : ''}
+                    </small>` || ""
+            )
+        //plannig
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+        const iframeDocument = iframe.contentWindow.document;
+        iframeDocument.open();
+        // @page{ margin: 0;}
+        iframeDocument.write(`
+                    <html>
+                      <head>
+                        <title>${user?.nom}.${user?.prenom}</title>
+                        <style>
+                          @media print {
+                            body { margin: 0 !important ; padding: 40px !important ; }
+                            table {
+                              border-collapse: collapse;
+                              width: 100%;
+                            }
+                            table, th, td {
+                              border: 1px solid #EBEBEB;
+                            }
+                          }
+                        </style>
+                      </head>
+                      <body>
+                      <body>
+                        <div class="containerEditor">
+                          <div class="ql-editor">
+                            ${modeleTextupdate}
+                          </div>
+                        </div>
+                      </body>
+                    </html>
+                  `);
+        iframeDocument.close();
+        const originalTitle = document.title;
+        document.title = `${user?.nom}.${user?.prenom}`;
+        setTimeout(() => {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+            document.title = originalTitle;
+            document.body.removeChild(iframe);
+        }, 1000);
+    };
+
+    const [selectedItems, setSelectedItems] = useState([]);
+    const handleSelectAll = (event) => {
+        if (event.target.checked) {
+            setSelectedItems(currentItems.map(item => item.id));
+        } else {
+            setSelectedItems([]);
+        }
+    };
+
+    const handleSelectItem = (id) => {
+        setSelectedItems((prevSelectedItems) =>
+            prevSelectedItems.includes(id)
+                ? prevSelectedItems.filter(itemId => itemId !== id)
+                : [...prevSelectedItems, id]
+        );
+    };
+    const rappelOptions = [
+        { value: '2', label: 'chaque  2 jours' },
+        { value: '3', label: 'chaque 3 jours' },
+        { value: '4', label: 'chaque 4 jours' },
+        { value: '5', label: 'chaque 5 jours' },
+        { value: '6', label: 'chaque 6 jours' },
+        { value: '7', label: 'chaque 7 jours' },
+        { value: null, label: 'Aucun Rappel' },
+    ];
+    useEffect(() => {
+        if (SelectedRappel) {
+            AppliquerRappel();
+        }
+    }, [SelectedRappel]);
+
+    const AppliquerRappel = async () => {
+        if (selectedItems.length === 0) {
+            alert("Veuillez sélectionner au moins un paiement");
+            return;
+        }
+        // if (!SelectedRappel) {
+        //     alert("Veuillez sélectionner un délai de rappel");
+        //     return;
+        // }
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.post(
+                'http://localhost:5000/contrat/ajouterRappel',
+                {
+                    planningIds: selectedItems,
+                    delai: SelectedRappel.value // en jours
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+
+            if (response.status === 200) {
+                alert("Rappels programmés avec succès");
+                setSelectedItems([]);
+                setSelectedRappel(null);
+                await fetchplanning();
+            }
+        } catch (error) {
+            console.error('Erreur lors de l\'envoi des rappels', error);
+            alert("Une erreur est survenue lors de l'envoi des rappels");
+        }
+    };
     return (
         <>
             <div className="card-body">
-                {<StatsComptabilite />}
-
+                {/* {<StatsComptabilite />} */}
                 <div className="filters-section mb-4 p-4 bg-light rounded">
                     <div className="row">
                         {/* Bloc Dates */}
@@ -557,16 +868,12 @@ const PlanningPaiement = () => {
                                 />
                                 {errors.niveau && <span className="text-danger">{errors.niveau}</span>}
                             </div>
-
-                            {/* <button className="btn btn-primary mr-2" onClick={applyFilters}>
-                                        Appliquer les Filtres
-                                    </button> */}
                             <button className="btn btn-outline-primary" onClick={() => {
                                 setFormData({
                                     annee_scolaire: '',
                                     niveau: '',
                                     eleve: '',
-                                    etat_paiement: 'retard',
+                                    etat_paiement: 'retardplus7',
                                 });
                                 setSelectedAS(null);
                                 setSelectedNV(null);
@@ -626,7 +933,7 @@ const PlanningPaiement = () => {
                                     <input
                                         type="search"
                                         className="form-control"
-                                        placeholder="Nom, code..."
+                                        placeholder="nom,code,montant,mode"
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                         aria-label="Recherche"
@@ -639,7 +946,6 @@ const PlanningPaiement = () => {
                                     </div>
                                 </div>
                             </div>
-
                         </div>
 
                         {/* Bloc École */}
@@ -648,9 +954,9 @@ const PlanningPaiement = () => {
                                 <label className="font-weight-bold">École</label>
                                 <select
                                     name="ecole"
-                                    className="form-control"
+                                    className="form-control "
                                     required
-                                    style={{ height: "40px", borderRadius: "8px", backgroundColor: "#F8F8F8" }}
+                                    style={{ height: "40px" }}
                                     onChange={(e) => setSelectedEcole(e.target.value)}
                                     value={selectedEcole || ''}
                                 >
@@ -669,14 +975,15 @@ const PlanningPaiement = () => {
                                     name="etat_paiement"
                                     className="form-control"
                                     required
-                                    style={{ height: "40px", borderRadius: "8px", backgroundColor: "#F8F8F8" }}
+                                    style={{ height: "40px" }}
                                     onChange={(e) => setFormData({ ...formData, etat_paiement: e.target.value })}
                                     value={formData.etat_paiement || ''}
                                 >
                                     <option value="">Sélectionner un Etat</option>
                                     <option value="payé">Payé</option>
                                     <option value="non payé">Non Payé</option>
-                                    <option value="retard">Retard de paiement</option>
+                                    <option value="retard">Retard (1-7 jours)</option>
+                                    <option value="retardplus7">Retard (plus 7 jours)</option>
                                 </select>
                             </div>
 
@@ -686,21 +993,57 @@ const PlanningPaiement = () => {
                 </div>
 
                 <div className="row ">
-                    <div className="col-md-4">
-                        <button className='btn btn-app p-1' onClick={() => window.print()}>
-                            <img src={printIcon} alt="" width="20px" /><br />Imprimer
-                        </button>
-                        <button className='btn btn-app p-1' onClick={handleExport}>
-                            <img src={exportIcon} alt="" width="25px" /><br />Exporter
-                        </button>
+                    {/* <div className="col-md-12"> */}
+                    <button className='btn btn-app p-1' onClick={() => handlePrint()}>
+                        <img src={printIcon} alt="" width="20px" /><br />Imprimer
+                    </button>
+                    <button className='btn btn-app p-1' onClick={handleExport}>
+                        <img src={exportIcon} alt="" width="25px" /><br />Exporter
+                    </button>
+
+                    <div className="form-group " style={{ marginLeft: 'auto' }}>
+                        <div
+                            className="d-flex align-items-center gap-2 p-2 rounded"
+                            style={{ border: "1px solid #ced4da", backgroundColor: "#f8f9fa" }}
+                        >
+                            <div className="flex-grow-1">
+                                <Select
+                                    value={SelectedRappel}
+                                    onChange={selectedOption => handleSelectChange(selectedOption, 'rappel')}
+                                    options={rappelOptions}
+                                    placeholder="Sélectionner un délai de rappel en jours"
+                                    classNamePrefix="select"
+                                    styles={{
+                                        control: (base) => ({
+                                            ...base,
+                                            minWidth: '400px',
+                                            border: "none",
+                                            boxShadow: "none",
+                                            backgroundColor: "transparent"
+                                        }),
+                                    }}
+                                />
+                            </div>
+                            {/* <button
+                                    className="btn btn-outline-secondary d-flex align-items-center justify-content-center px-3"
+                                    onClick={AppliquerRappel}
+                                    style={{ height: '38px' }}
+                                >
+                                    <small>Ajouter</small>
+                                </button> */}
+                        </div>
                     </div>
+
+
+                    {/* </div> */}
                 </div>
 
                 <ColumnVisibilityFilter />
                 <div style={{ overflowX: 'auto', overflowY: 'hidden', scrollBehavior: 'smooth' }}>
-                    <table className="table table-bordered ">
+                    <table className="table table-bordered  table-hover">
                         <thead>
                             <tr>
+                                <th> <input type="checkbox" onChange={(e) => handleSelectAll(e)} /></th>
                                 <th>ID</th>
                                 <th>Code Contrat</th>
                                 <th>Niveau</th>
@@ -713,35 +1056,34 @@ const PlanningPaiement = () => {
                                 {columnVisibility.etat_paiement && <th>Etat paiement</th>}
                                 {columnVisibility.date_paiement && <th>Date Paiement</th>}
                                 {columnVisibility.mode_paiement && <th>Mode Paiment</th>}
-                                {columnVisibility.ecole &&<th>Ecole</th>}
+                                {columnVisibility.ecole && <th>Ecole</th>}
+                                {columnVisibility.dateRappel && <th>Date Rappel</th>}
+                                {columnVisibility.dureRappel && <th>Durée Rappel</th>}
                                 {columnVisibility.action && <th>Actions</th>}
                             </tr>
                         </thead>
                         <tbody>
                             {currentItems.map((item, index) => {
-
-                                const due = moment(item.date_echeance);
-                                const now = moment();
-                                const daysDiff = due.diff(now, 'days');
+                                { console.log('rappel day ', Today); }
+                                const due = moment(item.date_echeance).startOf('day');
+                                const daysDiff = due.diff(Today, 'days');
                                 let rowClass = '';
                                 if (item.etat_paiement === 'payé') {
-                                    rowClass = 'row-paid ';           // vert
-                                } else if (due.isBefore(now, 'day') && item.etat_paiement !== 'payé') {
-                                    rowClass = 'row-overdue';             // rouge
+                                    rowClass = 'row-paid';
+                                } else if (daysDiff < -7) {
+                                    rowClass = 'row-overdue';
+                                } else if (daysDiff < 0) {
+                                    rowClass = 'row-orange';
                                 } else if (daysDiff <= 7) {
-                                    rowClass = 'row-soon';            // jaune
-                                }
-
-                                let style = {};
-                                if (item.etat_paiement === 'payé') {
-                                    style = { backgroundColor: '#e6f4ea' };
-                                } else if (due.isBefore(now)) {
-                                    style = { backgroundColor: '#ffe5e5' };
-                                } else if (daysDiff <= 7) {
-                                    style = { backgroundColor: '#fff4cc' };
+                                    rowClass = 'row-soon';
                                 }
                                 return (
                                     <tr key={item.id} className={rowClass}>
+                                        <td>
+                                            <input type="checkbox" onChange={() => handleSelectItem(item.id)}
+                                                checked={selectedItems.includes(item.id)}
+                                            />
+                                        </td>
                                         <td>{index + 1}</td>
                                         <td>
                                             {item.Contrat?.code}
@@ -753,14 +1095,12 @@ const PlanningPaiement = () => {
                                                 </>
                                             )}
                                         </td>
-                                        <td>
-                                            {item.Contrat?.Niveaux?.nomniveau}<br />
-                                            {item.Contrat?.Niveaux?.cycle}
+                                        <td> {item.Contrat?.Niveaux?.nomniveau}<br />{item.Contrat?.Niveaux?.cycle}
                                         </td>
                                         <td>
                                             {item.Contrat?.Eleve?.User?.nom} <br />
                                             {item.Contrat?.Eleve?.User?.prenom}<br />
-                                           
+
                                         </td>
                                         {columnVisibility.numInsc && <td> {item.Contrat?.Eleve?.numinscription}</td>}
                                         {columnVisibility.code && <td>{item.codePP}</td>}
@@ -770,10 +1110,19 @@ const PlanningPaiement = () => {
                                         {columnVisibility.etat_paiement && <td>{item.etat_paiement}</td>}
                                         {columnVisibility.date_paiement && <td>{item.date_paiement ? moment(item.date_paiement).format('DD-MM-YYYY') : ''}</td>}
                                         {columnVisibility.mode_paiement && <td>{item.mode_paiement}</td>}
-                                        {columnVisibility.ecole &&<td>{item.Contrat?.Eleve?.User?.Ecoles?.[0]?.nomecole || ''}</td>}
+                                        {columnVisibility.dateRappel && <td>{item?.dateRappel ? moment(item?.dateRappel).format('DD-MM-YYYY') : ''}</td>}
+                                        {columnVisibility.ecole && <td>{item?.Contrat?.Eleve?.User?.Ecoles[0]?.nomecole}</td>}
+                                        {columnVisibility.dureRappel && <td>{item?.dureRappel}</td>}
                                         <td style={{ display: columnVisibility.action ? 'flex' : 'none', justifyContent: 'space-around', alignItems: 'center' }}>
                                             {columnVisibility.action && (
                                                 <>
+                                                    {item.etat_paiement === 'payé' && (
+                                                        <button
+                                                            className="btn btn-outline-info action-btn"
+                                                            onClick={() => printrecu(item.id)}
+                                                            title="Imprimer">
+                                                            <img src={print} alt="Imprimer" className="action-icon" />
+                                                        </button>)}
                                                     <button
                                                         className="btn btn-outline-success action-btn"
                                                         onClick={() => ModifierP(item.id)}
@@ -782,12 +1131,13 @@ const PlanningPaiement = () => {
                                                         <img src={edit} alt="Modifier" className="action-icon" />
                                                     </button>
                                                     <button
-                                                        className="btn btn-outline-warning action-btn"
+                                                        className="btn btn-outline-danger action-btn"
                                                         onClick={() => handleShowP(item.id)}
                                                         title="Archiver"
                                                     >
                                                         <img src={archive} alt="Archiver" className="action-icon" />
                                                     </button>
+
                                                 </>
                                             )}
                                         </td>
@@ -922,10 +1272,10 @@ const PlanningPaiement = () => {
                 {/* arhcivage model  */}
                 <Modal show={showDeleteModal} onHide={handleClose}>
                     <Modal.Header closeButton>
-                        <Modal.Title>Confirmer l'archivage</Modal.Title>
+                        <Modal.Title>Confirmer la suppression</Modal.Title>
                     </Modal.Header>
                     <Modal.Body>
-                        <p>Êtes-vous sûr de vouloir archiver  ?</p>
+                        <p>Êtes-vous sûr de vouloir supprimer  ?</p>
                     </Modal.Body>
                     <Modal.Footer>
                         <Button variant="secondary" onClick={handleClose}>
@@ -938,7 +1288,7 @@ const PlanningPaiement = () => {
                                 handleClose();
                             }}
                         >
-                            Archiver
+                            Supprimer
                         </Button>
                     </Modal.Footer>
                 </Modal>
@@ -969,7 +1319,6 @@ const PlanningPaiement = () => {
                     </button>
                 </div>
             </div>
-
         </>
     );
 };

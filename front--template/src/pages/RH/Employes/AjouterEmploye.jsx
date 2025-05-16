@@ -288,7 +288,6 @@ const AjouterModifierEmploye = () => {
 
     return `${'employe'}@${firstLetterNom}${firstLetterPrenom}${randomDigits}`;
   };
-
   // Fonction pour générer le mot de passe
   const generatePassword = (datenaiss) => {
     if (!datenaiss) return '';
@@ -300,7 +299,6 @@ const AjouterModifierEmploye = () => {
     const randomDigits = Math.floor(1000 + Math.random() * 9000); // 4 chiffres aléatoires
     return `${firstDigitDay}${firstDigitMonth}${lastTwoDigitsYear}${randomDigits}`;
   };
-
   // Effet pour générer le username et le password lorsque les champs sont remplis
   useEffect(() => {
     if (values.nom && values.prenom && values.datenaiss) {

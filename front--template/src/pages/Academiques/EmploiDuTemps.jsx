@@ -373,7 +373,6 @@ const EmploiDuTemps = () => {
                 console.error("❌ Aucun token trouvé !");
                 return;
             }
-
             try {
                 if (ecoleeId && ecoleeId !== "null" && ecoleeId !== "undefined") {
                     // Récupérer le cycle spécifique à ecoleeId
@@ -389,7 +388,7 @@ const EmploiDuTemps = () => {
                     setCycles([{ id: ecoleeId, nomCycle: response.data.cycle }]); // Ajouter le cycle spécifique à la liste des cycles
                 } else {
                     // Récupérer tous les cycles disponibles
-                    console.log("🔍 Récupération de tous les cycles");
+                    console.log("🔍 Récupération des cycles");
                     const response = await axios.get('http://localhost:5000/cyclescolaires', {
                         headers: {
                             Authorization: `Bearer ${token}`,

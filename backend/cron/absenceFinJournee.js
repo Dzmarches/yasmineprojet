@@ -10,7 +10,7 @@ import { Op } from 'sequelize';
 
 // Planification de la tâche à 17h00 chaque jour
 
-  cron.schedule('46 11 * * *', async () => {
+  cron.schedule('00 16 * * *', async () => {
     const date = moment().tz('Africa/Algiers').format('YYYY-MM-DD');
     console.log("Tâche lancée pour la date :", date);
 

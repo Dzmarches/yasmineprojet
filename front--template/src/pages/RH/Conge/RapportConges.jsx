@@ -104,7 +104,6 @@ const RapportConges = () => {
         dateFin: true,
         duree: true,
         statut: true,
-        actions: true,
         nom_prenom: true,
         poste: true,
         justifictaion: false,
@@ -199,6 +198,7 @@ const RapportConges = () => {
                 (item.HeureEAMP && item.HeureEAMP.includes(searchTerm)) ||
                 (item.HeureEMP && item.HeureEMP.includes(searchTerm)) ||
                 (item.HeureSAMP && item.HeureSAMP.includes(searchTerm)) ||
+                (item.Employe?.CE && item.Employe?.CE.includes(searchTerm)) ||
                 (item.statut && item.statut.includes(searchTerm));
 
             // Filtre par école
@@ -231,7 +231,6 @@ const RapportConges = () => {
             { key: "dateFin", label: "Date fin" },
             { key: "duree", label: "Durée" },
             { key: "statut", label: "Statut" },
-            { key: "actions", label: "Actions" },
             { key: "justifictaion", label: "justifictaion" },
             { key: "jourR", label: "Jour restant" },
             { key: "jourP", label: "Jour consommé" },
@@ -408,53 +407,7 @@ const RapportConges = () => {
                             </a>
                         </div>
                     </div>
-                    {/* <div className="row">
-                        <div className="select-search col-12">
-                            <div className="col-6">
-
-                            </div>
-                            <div className="col-6">
-                                <div className="input-group mr-2">
-                                    <div className="form-outline">
-                                        <input
-                                            type="search"
-                                            id="form1"
-                                            className="form-control"
-                                            placeholder="Recherche par type et statut"
-                                            style={{ height: "38px", width: "250px" }}
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                        />
-                                    </div>
-                                    <div style={{ background: "rgb(202, 200, 200)", padding: "3px", height: "37px", borderRadius: "2px" }}>
-                                        <img src={recherche} alt="" height="30px" width="30px" />
-                                    </div>
-                                </div>
-                            </div>
-                        </div> */}
-                    {/* </div> */}
-
-                    {/* Filtres par date */}
-                    {/* <div className="row mt-3">
-                        <div className="col-6">
-                            <label htmlFor="">Date debut</label>
-                            <input
-                                type="date"
-                                className="form-control"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                            />
-                        </div>
-                        <div className="col-6">
-                            <label htmlFor="">Date fin</label>
-                            <input
-                                type="date"
-                                className="form-control"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                            />
-                        </div>
-                    </div> */}
+                   
                 </div>
                 {/* Section Filtres */}
                 <div className="filters-section mb-4 p-3 bg-light rounded">
@@ -551,11 +504,12 @@ const RapportConges = () => {
 
 
 
-                <div className="card-body ">
+                <div className="card-body "style={{ overflowX: 'auto', overflowY: 'hidden', scrollBehavior: 'smooth', }}>
                     <table id="example2" className="table table-bordered ">
                         <thead>
                             <tr>
                                 {columnVisibility.id && <th>Id</th>}
+                                <th>Code Employé</th>
                                 {columnVisibility.nom_prenom && <th>Nom et prénom</th>}
                                 {columnVisibility.poste && <th>Poste</th>}
                                 <th>Période Congé Annuel</th>
@@ -563,8 +517,9 @@ const RapportConges = () => {
                                 {columnVisibility.dateDebut && <th>Date début</th>}
                                 {columnVisibility.dateFin && <th>Date fin</th>}
                                 {/* {columnVisibility.jourP && <th>Jours de Congé</th>} */}
-                                {columnVisibility.jourP && <th>Jours pris</th>}
-                                {columnVisibility.jourR && <th>Jours restants</th>}
+                                <th>Jours pris de la demande</th>
+                                {columnVisibility.jourP && <th>Jours pris du congé</th>}
+                                {columnVisibility.jourR && <th>Jours restants du congé</th>}
                                 {/* {columnVisibility.duree && <th>Durée</th>} */}
                                 {columnVisibility.justifictaion && <th>Justifictaion</th>}
                                 {columnVisibility.statut && (
@@ -578,6 +533,7 @@ const RapportConges = () => {
                                 <tr key={index}>
 
                                     {columnVisibility.id && <td>{indexOfFirstItem + index + 1}</td>}
+                                    <td>{item.Employe?.CE}</td>
                                     {columnVisibility.nom_prenom && <td>{item.Employe ? item.Employe?.User?.nom : ''} {item.Employe ? item.Employe?.User?.prenom : ''}</td>}
                                     {columnVisibility.poste && <td>{item.Employe ? item.Employe?.Poste?.poste : ''}</td>}
                                     <td>
@@ -588,7 +544,7 @@ const RapportConges = () => {
                                     {columnVisibility.type_demande && <td> {item.type_demande}</td>}
                                     {columnVisibility.dateDebut && <td>{moment(item.dateDebut).format('YYYY-MM-DD')}</td>}
                                     {columnVisibility.dateFin && <td>{moment(item.dateFin).format('YYYY-MM-DD')}</td>}
-                                    {/* <td>{item.jour_congeMois}</td> */}
+                                     <td>{moment(item.dateFin).diff(moment(item.dateDebut), 'days')+1} jours</td>
                                     {columnVisibility.jourP && <td>{item.jour_consomme}</td>}
                                     {columnVisibility.jourR && <td>{item.jour_restant}</td>}
                                     {/* {columnVisibility.duree && (<td>{moment(item.dateFin).diff(moment(item.dateDebut), 'days') + 1} jours</td>)} */}

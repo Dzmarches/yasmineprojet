@@ -25,7 +25,7 @@ const CycleScolaire = () => {
     useEffect(() => {
         const fetchCycles = async () => {
             try {
-                const response = await axios.get('http://localhost:8800/cyclescolaires');
+                const response = await axios.get('http://localhost:5000/cyclescolaires');
                 setCycles(response.data);
             } catch (error) {
                 console.error('Erreur lors de la récupération des cycles scolaires', error);
@@ -92,7 +92,7 @@ const CycleScolaire = () => {
         try {
             let updatedCycles;
             if (selectedCycle) {
-                const response = await axios.put(`http://localhost:8800/cyclescolaires/${selectedCycle.id}`, {
+                const response = await axios.put(`http://localhost:5000/cyclescolaires/${selectedCycle.id}`, {
                     classement,
                     nomCycle,
                     nomCycleArabe,
@@ -102,7 +102,7 @@ const CycleScolaire = () => {
                 );
                 setSuccess('Cycle modifié avec succès!');
             } else {
-                const response = await axios.post('http://localhost:8800/cyclescolaires', {
+                const response = await axios.post('http://localhost:5000/cyclescolaires', {
                     classement,
                     nomCycle,
                     nomCycleArabe,
@@ -119,7 +119,7 @@ const CycleScolaire = () => {
 
     const handleDelete = async (id) => {
         try {
-            await axios.delete(`http://localhost:8800/cyclescolaires/${id}`);
+            await axios.delete(`http://localhost:5000/cyclescolaires/${id}`);
             setCycles((prevCycles) => prevCycles.filter((cycle) => cycle.id !== id));
             setSuccess('Cycle supprimé avec succès!');
         } catch (error) {

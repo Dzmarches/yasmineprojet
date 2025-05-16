@@ -30,6 +30,8 @@ const Niveaux = () => {
     const [ecoleId, setEcoleId] = useState(null);
     const [ecoleeId, setEcoleeId] = useState(null);
     const [matieresConfessions, setMatieresConfessions] = useState({});
+    const [ordre, setOrdre] = useState('');
+    const [showInfoModal, setShowInfoModal] = useState(false);
 
     const fetchMatieres = async () => {
         try {
@@ -109,6 +111,7 @@ const Niveaux = () => {
         setNomNiveau('');
         setNomNiveauArabe('');
         setCycle('');
+        setOrdre('');
         setStatutInscription('');
         setSelectedMatiere([]);
         setError('');
@@ -149,6 +152,7 @@ const Niveaux = () => {
         setNomNiveauArabe(niveau.nomniveuarab);
         setCycle(niveau.cycle);
         setStatutInscription(niveau.statutInscription);
+        setOrdre(niveau.ordre || '');
 
         try {
             const token = localStorage.getItem('token');
@@ -203,6 +207,7 @@ const Niveaux = () => {
                 nomniveau: nomNiveau,
                 nomniveuarab: nomNiveauArabe,
                 cycle: cycle,
+                ordre: parseInt(ordre, 10),
                 statutInscription: statutInscription,
                 ecoleId: ecoleId,
                 ecoleeId: ecoleeId === 'null' ? null : parseInt(ecoleeId, 10),
@@ -512,6 +517,32 @@ const Niveaux = () => {
                                     </select>
                                 </div>
                                 <div className="form-group">
+                                    <div style={{ position: "relative" }}>
+                                        <input
+                                            type="number"
+                                            className="form-control input"
+                                            value={ordre}
+                                            onChange={(e) => setOrdre(e.target.value)}
+                                            placeholder="Numéro d'ordre"
+                                            min="0"
+                                            style={{ paddingRight: "35px" }} // laisse de l'espace pour l'icône
+                                        />
+                                        <i
+                                            className="fas fa-info-circle"
+                                            style={{
+                                                position: "absolute",
+                                                right: "10px",
+                                                top: "50%",
+                                                transform: "translateY(-50%)",
+                                                cursor: "pointer",
+                                                color: "#6c757d"
+                                            }}
+                                            onClick={() => setShowInfoModal(true)}
+                                        ></i>
+                                    </div>
+                                </div>
+
+                                <div className="form-group">
                                     <select
                                         className="form-control input"
                                         value={statutInscription}
@@ -529,7 +560,7 @@ const Niveaux = () => {
                                         classNamePrefix="react-select"
                                         options={matieres.map(matiere => ({
                                             value: matiere.id,
-                                            label: matiere.nom,
+                                            label: `${matiere.nom} - ${matiere.nomarabe}`,
                                         }))}
                                         value={selectedMatiere}
                                         onChange={setSelectedMatiere}
@@ -643,6 +674,105 @@ const Niveaux = () => {
                             </form>
                         </div>
 
+                    </div>
+                </div>
+
+                {/* Modal d'information */}
+                <div className={`modal fade ${showInfoModal ? 'show' : ''}`} style={{ display: showInfoModal ? 'block' : 'none' }}>
+                    <div className="modal-dialog">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">Valeurs d'ordre par cycle</h5>
+                                <button type="button" className="close" onClick={() => setShowInfoModal(false)}>
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div className="modal-body">
+                                {cycle === 'Primaire' && (
+                                    <table className="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Ordre</th>
+                                                <th>Nom</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {[
+                                                { ordre: 0, nom: 'تحضيري' },
+                                                { ordre: 1, nom: 'أولى ابتدائي' },
+                                                { ordre: 2, nom: 'ثانية ابتدائي' },
+                                                { ordre: 3, nom: 'ثالثة ابتدائي' },
+                                                { ordre: 4, nom: 'رابعة ابتدائي' },
+                                                { ordre: 5, nom: 'خامسة ابتدائي' }
+                                            ].map((item) => (
+                                                <tr key={item.ordre}>
+                                                    <td>{item.ordre}</td>
+                                                    <td>{item.nom}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+
+                                {cycle === 'Cem' && (
+                                    <table className="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Ordre</th>
+                                                <th>Nom</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {[
+                                                { ordre: 1, nom: 'أولى متوسط' },
+                                                { ordre: 2, nom: 'ثانية متوسط' },
+                                                { ordre: 3, nom: 'ثالثة متوسط' },
+                                                { ordre: 4, nom: 'رابعة متوسط' }
+                                            ].map((item) => (
+                                                <tr key={item.ordre}>
+                                                    <td>{item.ordre}</td>
+                                                    <td>{item.nom}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+
+                                {cycle === 'Lycée' && (
+                                    <table className="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Ordre</th>
+                                                <th>Nom</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {[
+                                                { ordre: 1, nom: 'أولى ثانوي جدع مشترك علوم وتكنولوجيا' },
+                                                { ordre: 1, nom: 'أولى ثانوي جدع مشترك آداب' },
+                                                { ordre: 2, nom: 'ثانية ثانوي تسيير واقتصاد' },
+                                                { ordre: 2, nom: 'ثانية ثانوي علوم تجريبية' },
+                                                { ordre: 2, nom: 'ثانية ثانوي لغات أجنبية' },
+                                                { ordre: 2, nom: 'ثانية ثانوي تقني رياضي' },
+                                                { ordre: 2, nom: 'ثانية ثانوي رياضيات' },
+                                                { ordre: 2, nom: 'ثانية ثانوي آداب وفلسفة' },
+                                                { ordre: 3, nom: 'ثالثة ثانوي تسيير واقتصاد' },
+                                                { ordre: 3, nom: 'ثالثة ثانوي علوم تجريبية' },
+                                                { ordre: 3, nom: 'ثالثة ثانوي لغات أجنبية' },
+                                                { ordre: 3, nom: 'ثالثة ثانوي تقني رياضي' },
+                                                { ordre: 3, nom: 'ثالثة ثانوي رياضيات' },
+                                                { ordre: 3, nom: 'ثالثة ثانوي آداب وفلسفة' }
+                                            ].map((item, index) => (
+                                                <tr key={index}>
+                                                    <td>{item.ordre}</td>
+                                                    <td>{item.nom}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

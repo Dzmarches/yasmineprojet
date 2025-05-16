@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect,useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import Select from "react-select";
 import axios from "axios";
@@ -11,6 +11,7 @@ import "./document.css";
 
 const DocumentsEmployesModifier = () => {
   const [nom, setNom] = useState("");
+  const [code, setCode] = useState("");
   const [description, setDescription] = useState("");
   const [selectedModule, setSelectedModule] = useState(null);
   const [content, setContent] = useState("");
@@ -33,20 +34,20 @@ const DocumentsEmployesModifier = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-          alert("Vous devez être connecté");
-          return;
+        alert("Vous devez être connecté");
+        return;
       }
       const response = await axios.get(`http://localhost:5000/attestation/info/${id}`,
         {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-      },
-      }
-    );
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
       const data = response.data;
-
       setNom(data.nom);
+      setCode(data.code);
       setDescription(data.description);
       setSelectedModule(moduleOptions.find(option => option.value === data.module));
       setContent(data.modeleTexte); // Set le contenu de Jodit
@@ -96,130 +97,133 @@ const DocumentsEmployesModifier = () => {
 
   // Sauvegarder le document
   const handleSave = async () => {
-    if (!nom || !selectedModule || !content) {
-      console.log('content is',content)
-      toast.error('Veuillez remplir tous les champs obligatoires');
+    if (!nom || !selectedModule || !content || !code) {
+      alert('Veuillez remplir tous les champs obligatoires');
       return;
     }
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-          alert("Vous devez être connecté");
-          return;
+        alert("Vous devez être connecté");
+        return;
       }
       const response = await axios.put(`http://localhost:5000/attestation/modifier/${id}`, {
         nom,
+        code,
         description,
         modeleTexte: content,
         module: selectedModule.value,
       },
-      { headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-    },}
-  );
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       alert(response.data.message);
     } catch (error) {
-      console.error("Erreur lors de la mise à jour de l'attestation", error);
-      alert("Échec de la mise à jour de l'attestation.");
+      console.error("Erreur lors de la sauvegarde", error);
+      if (error.response && error.response.status === 409) {
+        alert(error.response.data.message);
+      } else {
+        alert("❌ Échec de la sauvegarde.");
+      }
     }
   };
 
- 
-  
-    const [ModeleDoc, setModeleDoc] = useState("");
-      // Liste des champs disponibles
-      const availableFields = [
-        { field: "[nom]", description: "Nom de l'employé" },
-        { field: "[prenom]", description: "Prénom de l'employé" },
-        { field: "[datenaiss]", description: "Date de naissance de l'employé" },
-        { field: "[Lieunais]", description: "Lieu de naissance de l'employé" },
-        { field: "[poste]", description: "Poste de l'employé" },
-        { field: "[daterecru]", description: "Date de recrutement de l'employé" },
-        { field: "[dateCesT]", description: "Date de cessation de travail" },
-        { field: "[dateToday]", description: "Date du jour" },
-        { field: "[N°AS]", description: "Numéro de sécurité sociale de l'employé" },
-        { field: "[nomecole]", description: "Nom de l'école" },
-        { field: "[nomecoleP]", description: "Nom de l'école principale" },
-      ];
-      const availableFieldsEleve = [
-        { field: "[nomE]", description: "Nom de l'élève en FR" },
-        { field: "[nomAbE]", description: "Nom de l'élève en AB" },
-        { field: "[prenomE]", description: "Prénom de l'élève en FR" },
-        { field: "[prenomAbE]", description: "Prénom de l'élève en AB" },
-        { field: "[datenaissE]", description: "Date de naissance de l'élève" },
-        { field: "[LieunaisE]", description: "Lieu de naissance de l'élève en FR" },
-        { field: "[LieunaisAbE]", description: "Lieu de naissance de l'élève en AB" },
-        { field: "[AdresseE]", description: "Adresse de l'élève en FR" },
-        { field: "[AdresseAbE]", description: "Adresse de l'élève en AB" },
-        { field: "[LieunaisAbE]", description: "Lieu de naissance de l'élève en AB" },
-        { field: "[dateTodayE]", description: "Date du jour" },
-        { field: "[nomecoleE]", description: "Nom de l'école" },
-        { field: "[nomecolePE]", description: "Nom de l'école principale" },
-        { field: "[adresseE]", description: "adresse de l'école " },
-        { field: "[adressePE]", description: "adresse de l'école principale" },
-        { field: "[NV]", description: "Niveau de l'élève  " },
-        { field: "[nomP]", description: "Nom du responsable de  l'élève" },
-        { field: "[prenomP]", description: "Prenom du responsable de  l'élève" },
-        { field: "[EmailP]", description: "Email du responsable de  l'élève" },
-        { field: "[TelP]", description: "Num Telephone du responsable de  l'élève" },
-        { field: "[AdresseP]", description: "Adresse du responsable de  l'élève" },
-      ];
-      const availableFieldsElevePaiment = [
-        { field: "[codeC]", description: "Code du Contrat Eleve" },
-        { field: "[AS]", description: "Année Scolaire" },
-        { field: "[ddP]", description: "Date Début Paiment Eleve" },
-        { field: "[dfP]", description: "Date Fin Paiment Eleve" },
-        { field: "[dcC]", description: "Date Création Contrat Eleve" },
-        { field: "[totalC]", description: "Total Paiment  Contrat Eleve" },
-        { field: "[FraisInsc]", description: "Frais Inscription de l'élève Eleve" },
-        { field: "[TypeP]", description: "Type de Paiment Eleve" },
-        { field: "[ModeP]", description: "Mode de Paiment Eleve" },
-        { field: "[planning]", description: "Planning de Paiment Eleve" },
-        { field: "[detail]", description: "Details paiment Eleve" },
-        { field: "[dateToday]", description: "Date du jour" },
-       
-      ];
-    
-      // Fonction pour insérer un champ dans l'éditeur
-      const insertField = (field) => {
-        if (editor.current) {
-          editor.current.selection.insertHTML(field);
-        }
-      };
 
-     // Fonction pour ouvrir une modale avec les champs disponibles
-     const openFieldModal = (fields) => {
+  const [ModeleDoc, setModeleDoc] = useState("");
+  // Liste des champs disponibles
+  const availableFields = [
+    { field: "[nom]", description: "Nom de l'employé" },
+    { field: "[prenom]", description: "Prénom de l'employé" },
+    { field: "[datenaiss]", description: "Date de naissance de l'employé" },
+    { field: "[Lieunais]", description: "Lieu de naissance de l'employé" },
+    { field: "[poste]", description: "Poste de l'employé" },
+    { field: "[daterecru]", description: "Date de recrutement de l'employé" },
+    { field: "[dateCesT]", description: "Date de cessation de travail" },
+    { field: "[dateToday]", description: "Date du jour" },
+    { field: "[N°AS]", description: "Numéro de sécurité sociale de l'employé" },
+    { field: "[nomecole]", description: "Nom de l'école" },
+    { field: "[nomecoleP]", description: "Nom de l'école principale" },
+  ];
+  const availableFieldsEleve = [
+    { field: "[nomE]", description: "Nom de l'élève en FR" },
+    { field: "[nomAbE]", description: "Nom de l'élève en AB" },
+    { field: "[prenomE]", description: "Prénom de l'élève en FR" },
+    { field: "[prenomAbE]", description: "Prénom de l'élève en AB" },
+    { field: "[datenaissE]", description: "Date de naissance de l'élève" },
+    { field: "[LieunaisE]", description: "Lieu de naissance de l'élève en FR" },
+    { field: "[LieunaisAbE]", description: "Lieu de naissance de l'élève en AB" },
+    { field: "[AdresseE]", description: "Adresse de l'élève en FR" },
+    { field: "[AdresseAbE]", description: "Adresse de l'élève en AB" },
+    { field: "[LieunaisAbE]", description: "Lieu de naissance de l'élève en AB" },
+    { field: "[nomecoleE]", description: "Nom de l'école" },
+    { field: "[nomecolePE]", description: "Nom de l'école principale" },
+    { field: "[adresseE]", description: "adresse de l'école " },
+    { field: "[adressePE]", description: "adresse de l'école principale" },
+    { field: "[NV]", description: "Niveau de l'élève  " },
+    { field: "[nomP]", description: "Nom du responsable de  l'élève" },
+    { field: "[prenomP]", description: "Prenom du responsable de  l'élève" },
+    { field: "[EmailP]", description: "Email du responsable de  l'élève" },
+    { field: "[TelP]", description: "Num Telephone du responsable de  l'élève" },
+    { field: "[AdresseP]", description: "Adresse du responsable de  l'élève" },
+  ];
+  const availableFieldsElevePaiment = [
+    { field: "[codeC]", description: "Code du Contrat Eleve" },
+    { field: "[AS]", description: "Année Scolaire" },
+    { field: "[ddP]", description: "Date Début Paiment Eleve" },
+    { field: "[dfP]", description: "Date Fin Paiment Eleve" },
+    { field: "[dcC]", description: "Date Création Contrat Eleve" },
+    { field: "[totalC]", description: "Total Paiment  Contrat Eleve" },
+    { field: "[FraisInsc]", description: "Frais Inscription de l'élève Eleve" },
+    { field: "[TypeP]", description: "Type de Paiment Eleve" },
+    { field: "[ModeP]", description: "Mode de Paiment Eleve" },
+    { field: "[planning]", description: "Planning de Paiment Eleve" },
+    { field: "[detail]", description: "Details paiment Eleve" },
+    { field: "[dateToday]", description: "Date du jour" },
+  ];
 
-      // Fermer toute ancienne modale si elle existe
-      const existingModal = document.getElementById('custom-field-modal');
-      if (existingModal) {
-        document.body.removeChild(existingModal);
+  // Fonction pour insérer un champ dans l'éditeur
+  const insertField = (field) => {
+    if (editor.current) {
+      editor.current.selection.insertHTML(field);
+    }
+  };
+
+  // Fonction pour ouvrir une modale avec les champs disponibles
+  const openFieldModal = (fields) => {
+
+    // Fermer toute ancienne modale si elle existe
+    const existingModal = document.getElementById('custom-field-modal');
+    if (existingModal) {
+      document.body.removeChild(existingModal);
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'custom-field-modal'; // ID pour gestion unique
+    modal.style.position = 'fixed';
+    modal.style.top = '50%';
+    modal.style.left = '50%';
+    modal.style.transform = 'translate(-50%, -50%)';
+    modal.style.backgroundColor = 'white';
+    modal.style.padding = '20px';
+    modal.style.border = '1px solid #ccc';
+    modal.style.zIndex = '1000';
+    modal.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+    modal.style.maxHeight = '70vh';
+    modal.style.overflowY = 'auto';
+
+    const closeModal = () => {
+      const modalToRemove = document.getElementById('custom-field-modal');
+      if (modalToRemove) {
+        document.body.removeChild(modalToRemove);
       }
-    
-      const modal = document.createElement('div');
-      modal.id = 'custom-field-modal'; // ID pour gestion unique
-      modal.style.position = 'fixed';
-      modal.style.top = '50%';
-      modal.style.left = '50%';
-      modal.style.transform = 'translate(-50%, -50%)';
-      modal.style.backgroundColor = 'white';
-      modal.style.padding = '20px';
-      modal.style.border = '1px solid #ccc';
-      modal.style.zIndex = '1000';
-      modal.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
-      modal.style.maxHeight = '70vh'; 
-      modal.style.overflowY = 'auto'; 
-    
-      const closeModal = () => {
-        const modalToRemove = document.getElementById('custom-field-modal');
-        if (modalToRemove) {
-          document.body.removeChild(modalToRemove);
-        }
-      };
-    
-      modal.innerHTML = `
+    };
+
+    modal.innerHTML = `
         <div>
           <h3>Champs disponibles</h3>
           <ul style="list-style: none; padding: 0;">
@@ -232,53 +236,53 @@ const DocumentsEmployesModifier = () => {
           <button onclick="window.closeModal()" style="margin-top: 10px;">Fermer</button>
         </div>
       `;
-    
-      document.body.appendChild(modal);
-    
-      window.insertFieldIntoEditor = (field) => {
-        insertField(field);
-        closeModal();
-      };
-      window.closeModal = closeModal;
-    };
 
-    useEffect(()=>{
-      document.addEventListener("input", function () {
+    document.body.appendChild(modal);
+
+    window.insertFieldIntoEditor = (field) => {
+      insertField(field);
+      closeModal();
+    };
+    window.closeModal = closeModal;
+  };
+
+  useEffect(() => {
+    document.addEventListener("input", function () {
       const table = document.querySelector("table");
       if (!table) return;
-  
+
       // Récupère toutes les lignes du tableau (sauf l'en-tête)
       const rows = table.querySelectorAll("tr:not(:first-child)");
-  
+
       rows.forEach(row => {
-          const cells = row.querySelectorAll("td");
-          if (cells.length >= 3) {
-              let a = parseFloat(cells[0].innerText) || 0;
-              let b = parseFloat(cells[1].innerText) || 0;
-              cells[2].innerText = a + b; // Met à jour la colonne résultat
-          }
+        const cells = row.querySelectorAll("td");
+        if (cells.length >= 3) {
+          let a = parseFloat(cells[0].innerText) || 0;
+          let b = parseFloat(cells[1].innerText) || 0;
+          cells[2].innerText = a + b; // Met à jour la colonne résultat
+        }
       });
-  });
-  
+    });
 
-    },[])
 
-      const handlePrint = () => {
-        // console.log('employe',employeDetails)
-        console.log('NomDoc',nom)
-        const originalTitle = document.title; 
-        document.title = "Documents"; 
-        const contentToPrint = editor.current.value; 
-        // Créer un iframe pour l'impression
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        document.body.appendChild(iframe);
-        const iframeDocument = iframe.contentWindow.document;
-    
-        // Ajouter les styles pour l'impression
-        const style = iframeDocument.createElement('style');
-        // @page { margin: 0 !important; padding: 40px !important; }
-        style.innerHTML = `
+  }, [])
+
+  const handlePrint = () => {
+    // console.log('employe',employeDetails)
+    console.log('NomDoc', nom)
+    const originalTitle = document.title;
+    document.title = "Documents";
+    const contentToPrint = editor.current.value;
+    // Créer un iframe pour l'impression
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    const iframeDocument = iframe.contentWindow.document;
+
+    // Ajouter les styles pour l'impression
+    const style = iframeDocument.createElement('style');
+    // @page { margin: 0 !important; padding: 40px !important; }
+    style.innerHTML = `
         @page{margin:0;}
          @media print {
         body { margin: 0 !important; padding: 40px !important; }
@@ -292,111 +296,112 @@ const DocumentsEmployesModifier = () => {
         }
       }
     `;
-        iframeDocument.head.appendChild(style);
-        // Ajouter le contenu de l'éditeur Jodit
-        iframeDocument.body.innerHTML = contentToPrint;
-      
-        // Imprimer le document
-        iframe.contentWindow.focus();
-        // iframe.contentWindow.print();
-        setTimeout(() => {
-          iframe.contentWindow.print();
-          document.title = originalTitle; 
-        }, 500);
-      
-        // Nettoyer l'iframe après l'impression
-        // document.body.removeChild(iframe);
-        setTimeout(() => document.body.removeChild(iframe), 1000);
-      };
+    iframeDocument.head.appendChild(style);
+    // Ajouter le contenu de l'éditeur Jodit
+    iframeDocument.body.innerHTML = contentToPrint;
 
-      const config = useMemo(
-        () => ({
-          readonly: false,
-          placeholder: "",
-          
-          uploader: {
-            url: 'http://localhost:5000/attestation/uploadImagemodele',
-            format: 'json',
-            method: 'POST',
-            headers: {
-              "X-Requested-With": "XMLHttpRequest",
-            },
-            filesVariableName: () => "image",
-            isSuccess: (resp) => resp.success,
-            getMessage: (resp) => resp.message || "Image uploaded successfully",
-            process: (resp) => {
-              console.log('Server response:', resp);
-              return {
-                files: resp.files,
-                error: resp.error,
-                message: resp.message,
-              };
-            },
-            defaultHandlerSuccess: function (data) {
-              if (data.files && data.files.length) {
-                this.selection.insertImage(data.files[0]);
-              }
-            },
-            error: function (e) {
-              console.error('Upload error:', e);
-            },
+    // Imprimer le document
+    iframe.contentWindow.focus();
+    // iframe.contentWindow.print();
+    setTimeout(() => {
+      iframe.contentWindow.print();
+      document.title = originalTitle;
+    }, 500);
+
+    // Nettoyer l'iframe après l'impression
+    // document.body.removeChild(iframe);
+    setTimeout(() => document.body.removeChild(iframe), 1000);
+  };
+
+  const config = useMemo(
+    () => ({
+      readonly: false,
+      placeholder: "",
+
+      uploader: {
+        url: 'http://localhost:5000/attestation/uploadImagemodele',
+        format: 'json',
+        method: 'POST',
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        filesVariableName: () => "image",
+        isSuccess: (resp) => resp.success,
+        getMessage: (resp) => resp.message || "Image uploaded successfully",
+        process: (resp) => {
+          console.log('Server response:', resp);
+          return {
+            files: resp.files,
+            error: resp.error,
+            message: resp.message,
+          };
+        },
+        defaultHandlerSuccess: function (data) {
+          if (data.files && data.files.length) {
+            this.selection.insertImage(data.files[0]);
+          }
+        },
+        error: function (e) {
+          console.error('Upload error:', e);
+        },
+      },
+      removeButtons: ['speechRecognize', 'video', 'print'],
+      disablePlugins: ["speechRecognize", "video", "print"],
+      extraButtons: [
+        {
+          name: "imprimer",
+          tooltip: "Imprimer",
+          title: "Documents à imprimer",
+          iconURL: "https://img.icons8.com/ios-filled/50/000000/print.png",
+          exec: () => {
+            handlePrint();
           },
-          removeButtons: ['speechRecognize', 'video','print'],
-          disablePlugins: ["speechRecognize", "video", "print"],
-          extraButtons: [
-            {
-              name: "imprimer",
-              tooltip: "Imprimer",
-              title: "Documents à imprimer",
-              iconURL: "https://img.icons8.com/ios-filled/50/000000/print.png",
-              exec: () => {
-                handlePrint(); 
-              },
-            },
-            {
-              name: 'insertField',
-              iconURL: 'https://icon-library.com/images/insert-icon/insert-icon-15.jpg',
-              tooltip: 'Insérer un champ',
-              exec: function (editor) {
-                openFieldModal(); 
-              }
-            },
-            ,  {
-              name: 'insertField',
-              iconURL: 'https://icon-library.com/images/insert-icon/insert-icon-15.jpg',
-              tooltip: 'Insérer les  champs pour Elève ',
-              exec: function (editor) {
-                openFieldModal(availableFieldsEleve);
-              }
-            }
-            ,  {
-              name: 'insertField',
-              iconURL: 'https://icon-library.com/images/insert-icon/insert-icon-15.jpg',
-              tooltip: 'les chmaps de paiment pour Elève ',
-              exec: function (editor) {
-                openFieldModal(availableFieldsElevePaiment);
-              }
-            }
-          ],
-          language: "fr",
-        }),
-        []
-      );
-    
+        },
+        {
+          name: 'insertField',
+          iconURL: 'https://icon-library.com/images/insert-icon/insert-icon-15.jpg',
+          tooltip: 'Insérer un champ',
+          exec: function (editor) {
+            openFieldModal();
+          }
+        },
+        , {
+          name: 'insertField',
+          iconURL: 'https://icon-library.com/images/insert-icon/insert-icon-15.jpg',
+          tooltip: 'Insérer les  champs pour Elève ',
+          exec: function (editor) {
+            openFieldModal(availableFieldsEleve);
+          }
+        }
+        , {
+          name: 'insertField',
+          iconURL: 'https://icon-library.com/images/insert-icon/insert-icon-15.jpg',
+          tooltip: 'les chmaps de paiment pour Elève ',
+          exec: function (editor) {
+            openFieldModal(availableFieldsElevePaiment);
+          }
+        }
+      ],
+      language: "fr",
+    }),
+    []
+  );
+
   return (
     <>
       <nav>
         <Link to="/dashboard" className="text-primary">Accueil</Link>
         <span> / </span>
-        <span>Gestion des ressources humaines</span>
+        <Link to="/documents" className="text-primary">Liste doucments</Link>
+        <span> / </span>
+        <span> Ajouter</span>
       </nav>
-
       <div className="card card-primary card-outline">
         <div className="card-header d-flex">
           <img src={rh} alt="" width="90px" />
           <p className="card-title mt-5 ml-2 p-2 text-center"
             style={{ width: "350px", borderRadius: "50px", border: "1px solid rgb(215, 214, 216)" }}>
-            Modifier le document 
+            Modifier le document
           </p>
         </div>
 
@@ -409,12 +414,26 @@ const DocumentsEmployesModifier = () => {
                     <div className="col-12">
                       <div className="card">
                         <div className="card-header p-2" style={{ backgroundColor: "#f8f8f8" }}>
-                          <div className="row mt-3">
+                          <div className="row p-4">
 
+                            <div className="col-4">
+                              <label htmlFor="code">Code*</label>
+                              <input
+                                style={{ height: '35px' }}
+                                type="text"
+                                id="code"
+                                name="code"
+                                className="form-control"
+                                value={code}
+                                onChange={(e) => setCode(e.target.value)}
+                                readOnly={code === "CPE" || code === "RPE"}
+                              />
+                            </div>
                             {/* Nom du document */}
-                            <div className="col-6">
+                            <div className="col-4">
                               <label htmlFor="nomdoc">Nom*</label>
                               <input
+                                style={{ height: '35px' }}
                                 type="text"
                                 id="nomdoc"
                                 name="nomdoc"
@@ -425,7 +444,7 @@ const DocumentsEmployesModifier = () => {
                             </div>
 
                             {/* Sélection du module */}
-                            <div className="col-6">
+                            <div className="col-4">
                               <label htmlFor="module">Module*</label>
                               <Select
                                 options={moduleOptions}
@@ -435,10 +454,10 @@ const DocumentsEmployesModifier = () => {
                               />
                             </div>
 
-                            {/* Description */}
-                            <div className="col-12 mt-3">
+                            <div className="col-4">
                               <label htmlFor="desc">Description</label>
                               <textarea
+                                maxLength="150"
                                 name="description"
                                 id="desc"
                                 className="form-control"
@@ -475,7 +494,6 @@ const DocumentsEmployesModifier = () => {
               </section>
             </div>
           </div>
-          <ToastContainer />
         </div>
       </div>
     </>

@@ -30,9 +30,9 @@ const Typerevenue = () => {
 
 
     const styleRemarque={
-            whiteSpace: "pre-wrap", /* Allows line breaks */
-            wordWrap: "break-word", /* Handles long words */
-            maxWidth: "200px", /* Limits the width of the cell */
+            whiteSpace: "pre-wrap", 
+            wordWrap: "break-word",
+            maxWidth: "200px", 
         
     }
     // Fonction pour charger la liste des périodes de paie
@@ -107,7 +107,6 @@ const Typerevenue = () => {
                 });
                 alert('ajoutée avec succès');
             }
-          
             setFormData({
                 type: "",
                 remarque: "",
@@ -116,19 +115,16 @@ const Typerevenue = () => {
             setIsEditMode(false);
             setEditId(null);
             await ListeTR();
+           
         } catch (error) {
-            
             if (error.status===400){
                 alert(error.response.data.message)
-            
             }else{
                 console.error("Erreur :", error);
                 alert("Une erreur est survenue !");
             }
-         
         }
     };
-
     // Fonction pour archiver une période de paie
     const ArchiverHS = async (id) => {
         try {
@@ -159,15 +155,15 @@ const Typerevenue = () => {
         });
     };
     const handleExport = () => {
-        const ws = XLSX.utils.json_to_sheet(data.map(item => ({
+        const ws = XLSX.utils.json_to_sheet(filteredData.map(item => ({
             "Type": item.type,
             "Remarque": item.remarque,
             "Ecole Principale": item.EcolePrincipal?.nomecole,
             "Ecole": item.Ecole?.nomecole,
         })));
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "heures supplémentaires");
-        XLSX.writeFile(wb, "heures_suplémentaires.xlsx");
+        XLSX.utils.book_append_sheet(wb, ws, "liste_TypeRevenus");
+        XLSX.writeFile(wb, "liste_TypeRevenus.xlsx");
     };
     //seartch
     const filteredData = data.filter(item => {
@@ -296,6 +292,8 @@ const Typerevenue = () => {
                                                     </div>
 
                                                     <p>Liste des types de revenus</p>
+                                                     <div  style={{ overflowX: 'auto', overflowY: 'hidden', scrollBehavior: 'smooth', }}>
+
                                                     <table id="example2" className="table table-bordered table-sm">
                                                         <thead>
                                                             <tr>
@@ -308,7 +306,7 @@ const Typerevenue = () => {
                                                             </tr>
                                                         </thead>
                                                         <tbody>
-                                                            {currentItems.sort().reverse().map((item, index) => (
+                                                            {currentItems.map((item, index) => (
                                                                 <tr key={index}>
                                                                     <td>{index+1}</td>
                                                                     <td>{item.type}</td>
@@ -323,7 +321,7 @@ const Typerevenue = () => {
                                                                         </a>
                                                                         &nbsp;&nbsp;&nbsp;&nbsp;
                                                                         <a
-                                                                            className="btn btn-outline-warning p-2"
+                                                                            className="btn btn-outline-danger p-2"
                                                                             onClick={() => handleShow(item.id)}
                                                                         >
                                                                             <img src={deletee} alt="" width="20px" title="Supprimer" />
@@ -333,6 +331,7 @@ const Typerevenue = () => {
                                                             ))}
                                                         </tbody>
                                                     </table>
+                                                </div>
                                                 </div>
                                             </div>
                                         </div>

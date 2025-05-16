@@ -16,13 +16,11 @@ import IRG from '../../../models/RH/paie/IRG.js';
 import moment from 'moment';
 import CongeAbsence from '../../../models/RH/congeAbsence.js';
 
-
 ///bultainde paie
 
 export const FindEmploye = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log('lala', id)
     const profilEmploye = await Employe.findOne({
       where: { id },
       include: [
@@ -38,8 +36,6 @@ export const FindEmploye = async (req, res) => {
         { model: Enseignant },
       ],
     });
-    // console.log('profilEmploye', profilEmploye);
-
     if (!profilEmploye) {
       return res.status(404).json({ message: "Employé non trouvé" });
     }
@@ -228,18 +224,7 @@ export const FindPointage = async (req, res) => {
   }
 };
 
-// export const journalpaie = async (req, res) => {
-//   try {
 
-//     const dataWithDate = {...req.body,date: new Date(),  };
-//     const newJournalPaie = await JournalPaie.create(dataWithDate);
-//     res.status(201).json(newJournalPaie);
-
-//   } catch (error) {
-//     console.error("Erreur lors de l'ajout :", error);
-//     res.status(500).json({ message: "Erreur serveur" });
-//   }
-// };
 export const journalpaie = async (req, res) => {
   try {
 
@@ -287,7 +272,7 @@ export const liste = async (req, res) => {
             where: { ecoleId  ,statut:'Clôturée'},
             include: [{ model: EcolePrincipal, attributes: ['nomecole', 'adresse', 'emailecole'] }]
           },
-          {model:Employe,attributes: ['id','declaration'],
+          {model:Employe,attributes: ['id','declaration','CE'],
             include:[{model:User,attributes:['statuscompte']}]}
         ]
       }
@@ -460,7 +445,8 @@ export const JPEmploye = async (req, res) => {
     const journal = await JournalPaie.findAll({
       where: {
         idEmploye: employe.id,
-        statut: 'Publié'
+        statut: 'Publié',
+        archiver:0,
       },
       include:[{model:PeriodePaie,attributes:['dateDebut','dateFin']}]
     });

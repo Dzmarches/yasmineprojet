@@ -10,7 +10,7 @@ import Select from 'react-select';
 import ProfileEmploye from './ProfileEmploye';
 import rh from '../../../assets/imgs/employe.png';
 import edit from '../../../assets/imgs/edit.png';
-import archive from '../../../assets/imgs/archive.png';
+import archive from '../../../assets/imgs/delete.png';
 import recherche from '../../../assets/imgs/recherche.png';
 import utilisateur from '../../../assets/imgs/utilisateur.png';
 import fichier from '../../../assets/imgs/fichier.png';
@@ -37,7 +37,6 @@ const Employes = () => {
   const [ModeleDoc, setModeleDoc] = useState([]);
   const [ListeBTP, setListeBTP] = useState([]);
   const navigate = useNavigate();
-
 
   const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -104,7 +103,6 @@ const Employes = () => {
     };
     fetchUser();
   }, []);
-  
 
   const fetchEmployeConnecte = async () => {
     try {
@@ -113,34 +111,24 @@ const Employes = () => {
         alert("Vous devez être connecté ");
         return;
       }
-    
       const response = await axios.get('http://localhost:5000/employes/me', {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
-    
       setEmployeConnecte(response.data);
-
     } catch (error) {
       console.error("Erreur lors de la récupération des informations de l'employé :", error);
       // alert(error.response?.data?.message || "Une erreur est survenue. Veuillez réessayer.");
     }
   };
-
   useEffect(() => {
     if (Array.isArray(roles) && roles.includes("Employé")) {
       fetchEmployeConnecte();
     }
   }, [roles]);
   
-
-
-
-
-
-
   const filteredData = data.filter(item => {
     const search = searchTerm.toLowerCase().trim();
     // Filtre par recherche texte
@@ -150,6 +138,7 @@ const Employes = () => {
       (item.User?.email && item.User?.email.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
       (item.User?.telephone && item.User?.telephone.includes(searchTerm)) ||
       (item.Poste?.poste && item.Poste.poste.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
+      (item.CE && item.CE.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
       (
         item.declaration !== undefined &&
         (
@@ -247,7 +236,6 @@ const Employes = () => {
     //  handleListePostes();
   }, [])
 
-
   const handleListeEmploye = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -284,7 +272,6 @@ const Employes = () => {
       console.log("Erreur lors de la récupération des employes", error)
     }
   }
-
   const ArchiverEmploye = async (id) => {
     try {
       const token = localStorage.getItem("token");
@@ -648,7 +635,6 @@ const Employes = () => {
     drawText(` ${selectedEmployee.daterecru ? moment(selectedEmployee.daterecru).format('DD-MM-YYYY') : ''}`
       , 250, 347, true);
 
-
     drawText(`${formDataATS.dernierJourTravail ? moment(formDataATS.dernierJourTravail).format('DD-MM-YYYY') : ''}`, 250, 330, true);
     drawText(`${formDataATS.dateRepriseTravail ? moment(formDataATS.dateRepriseTravail).format('DD-MM-YYYY') : ''}`, 250, 310, true);
     drawText(`${formDataATS.dateNonReprise ? moment(formDataATS.dateNonReprise).format('DD-MM-YYYY') : ''}`, 250, 290, true);
@@ -841,7 +827,6 @@ const Employes = () => {
     }),
   };
 
-
   return (
     <>
       <nav>
@@ -1021,12 +1006,13 @@ const Employes = () => {
                             </div>
                           </div>
                         </div>
-                        <div className="card-body mt-2">
+                        <div className="card-body mt-2" style={{ overflowX: 'auto', overflowY: 'hidden', scrollBehavior: 'smooth', }}>
                           <table id="example2" className="table table-bordered ">
                             <thead>
                               <tr>
                                 <th>Id</th>
                                 <th>Photo</th>
+                                <th>Code</th>
                                 <th>Nom Prénom</th>
                                 <th>Email</th>
                                 <th>Numéro de téléphone</th>
@@ -1045,6 +1031,7 @@ const Employes = () => {
                                   <td>
                                     <img className="ronde" src={item.photo ? url + item.photo : utilisateur} alt="Photo de l'employé" />
                                   </td>
+                                  <td>{item.CE}</td>
                                   <td>{item.User?.nom} {item.User?.prenom}</td>
                                   <td>{item.User?.email}</td>
                                   <td>{item.User?.telephone}</td>
@@ -1083,7 +1070,7 @@ const Employes = () => {
                                     </Link>
 
                                     {/* Bouton Archiver */}
-                                    <button className="btn btn-outline-warning d-flex justify-content-center align-items-center p-1"
+                                    <button className="btn btn-outline-danger d-flex justify-content-center align-items-center p-1"
                                       style={{ width: "35px", height: "35px" }}
                                       onClick={() => handleShow(item.id)}>
                                       <img src={archive} alt="" width="22px" title='Archiver' />
@@ -1141,10 +1128,10 @@ const Employes = () => {
         {/* modal supprimer */}
         <Modal show={showDeleteModal} onHide={handleClose}>
           <Modal.Header closeButton>
-            <Modal.Title>Confirmer l'archivage</Modal.Title>
+            <Modal.Title>Confirmer la suppression</Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            <p>Êtes-vous sûr de vouloir archiver  ?</p>
+            <p>Êtes-vous sûr de vouloir supprimer  ?</p>
           </Modal.Body>
           <Modal.Footer>
             <Button variant="secondary" onClick={handleClose}>
@@ -1157,7 +1144,7 @@ const Employes = () => {
                 handleClose();
               }}
             >
-              Archiver
+              Supprimer
             </Button>
           </Modal.Footer>
         </Modal>
@@ -1236,8 +1223,6 @@ const Employes = () => {
 
                 </Col>
               </Row>
-
-
 
               <hr />
               <h6 style={{ color: '#0056b3' }}>Renseignements nécessaires à l'étude des droits</h6>

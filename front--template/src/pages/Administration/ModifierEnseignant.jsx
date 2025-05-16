@@ -43,16 +43,16 @@ const ModifierEmploye = () => {
             alert("Vous devez être connecté pour soumettre le formulaire.");
             return;
           }
-  
+
           const response = await axios.get(`http://localhost:5000/enseignant/${id}`, {
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           });
-  
+
           console.log("Réponse complète du backend:", response.data);
-  
+
           // Initialisation des disponibilités vides par défaut
           let disponibilites = {
             lundi: { disponible: false, heures: [] },
@@ -63,7 +63,7 @@ const ModifierEmploye = () => {
             samedi: { disponible: false, heures: [] },
             dimanche: { disponible: false, heures: [] }
           };
-  
+
           // Parsing des disponibilités si elles existent
           if (response.data.Enseignant?.disponibilites) {
             try {
@@ -74,13 +74,13 @@ const ModifierEmploye = () => {
               console.error("Erreur de parsing des disponibilités:", e);
             }
           }
-  
+
           // Remplir les valeurs pour le formulaire
           const user = response.data.User || {};
           const enseignant = response.data.Enseignant || {};
-  
+
           setData(response.data);
-  
+
           setValues({
             nom: user.nom || '',
             prenom: user.prenom || '',
@@ -124,12 +124,12 @@ const ModifierEmploye = () => {
             service: response.data.service || '',
             disponibilites: disponibilites,
           });
-  
+
           // Extraction unique des matières, sections et niveaux
           const uniqueMatieres = {};
           const uniqueSections = {};
           const uniqueNiveaux = {};
-  
+
           response.data.enseignantClasses?.forEach(ec => {
             if (ec.matiere) {
               uniqueMatieres[ec.matiere.id] = {
@@ -150,21 +150,21 @@ const ModifierEmploye = () => {
               };
             }
           });
-  
+
           setSelectedMatiere(Object.values(uniqueMatieres));
           setSelectedSections(Object.values(uniqueSections));
           setSelectedNiveaux(Object.values(uniqueNiveaux));
-  
+
           setSelectedPosteId(response.data.poste);
-  
+
         } catch (error) {
           console.error("Erreur lors de la récupération des informations de l'employé :", error);
         }
       };
-  
+
       fetchEmploye();
     }
-  }, [id]);  
+  }, [id]);
 
   if (!id) {
     return <p>Chargement...</p>;
@@ -386,7 +386,7 @@ const ModifierEmploye = () => {
     e.preventDefault();
     const newErrors = validateStep(step);
     setErrors(newErrors);
-  
+
     if (Object.keys(newErrors).length === 0) {
       try {
         const token = localStorage.getItem("token");
@@ -394,13 +394,13 @@ const ModifierEmploye = () => {
           alert("Vous devez être connecté pour soumettre le formulaire.");
           return;
         }
-  
+
         const niveauIds = selectedNiveaux.map(niveau => niveau.value);
         const matieresIds = selectedMatiere.map(matiere => matiere.value);
         const sectionsIds = selectedSections.map(section => section.value);
-  
+
         const formFile = new FormData();
-        
+
         // Traitement des valeurs du formulaire
         Object.entries(values).forEach(([key, value]) => {
           // Si c'est le champ 'disponibilites', on le convertit en JSON string
@@ -410,12 +410,12 @@ const ModifierEmploye = () => {
             formFile.append(key, value);
           }
         });
-  
+
         // Ajouter les IDs des matières, sections et niveaux
         formFile.append("matieresIds", JSON.stringify(matieresIds));
         formFile.append("sectionsIds", JSON.stringify(sectionsIds));
         formFile.append("niveauIds", JSON.stringify(niveauIds));
-  
+
         const response = await axios.put(
           `http://localhost:5000/enseignant/modifier/${id}`,
           formFile,
@@ -426,7 +426,7 @@ const ModifierEmploye = () => {
             },
           }
         );
-  
+
         if (response.status === 200) {
           toast.success('Employé modifié avec succès');
         }
@@ -439,7 +439,7 @@ const ModifierEmploye = () => {
       }
     }
   };
-  
+
 
   const validateStep = (step) => {
     const newErrors = {};
@@ -975,39 +975,53 @@ const ModifierEmploye = () => {
                       </div>
 
                       <div className='row'>
-                        <div className='col-md-4 mb-3'> {/* Utilisez col-md-4 pour trois colonnes */}
+                        {/* Niveaux */}
+                        <div className='col-md-4 mb-3'>
                           <Select
                             isMulti
                             classNamePrefix="react-select"
                             options={niveaux.map(n => ({ value: n.id, label: n.nomniveau }))}
-                            // options={niveaux.map(niveau => ({
-                            //   value: niveau.id,
-                            //   label: niveau.nomniveau,
-                            // }))}
                             value={selectedNiveaux}
                             onChange={setSelectedNiveaux}
                             placeholder="Sélectionner les niveaux"
+                            menuPortalTarget={document.body}
+                            menuPosition="fixed"
+                            closeMenuOnSelect={false}
+                            hideSelectedOptions={false}
                             styles={{
                               container: (base) => ({
                                 ...base,
-                                width: '100%', // Utilisez 100% pour s'adapter à la colonne
+                                width: '100%',
                               }),
-                              control: (base) => ({
+                              control: (base, state) => ({
                                 ...base,
                                 backgroundColor: '#F0F2F8',
                                 borderRadius: '50px',
                                 margin: '10px 0',
-                                boxShadow: '2px 2px 8px rgba(0, 0, 0, 0.1)',
-                                height: '50px',
+                                padding: '2px 10px',
+                                boxShadow: state.isFocused ? '0 0 0 2px rgba(90, 203, 207, 0.5)' : '2px 2px 8px rgba(0, 0, 0, 0.1)',
+                                minHeight: '50px',
+                                borderColor: state.isFocused ? '#5ACBCF' : '#ced4da',
+                                '&:hover': {
+                                  borderColor: '#5ACBCF'
+                                },
+                              }),
+                              valueContainer: (base) => ({
+                                ...base,
+                                flexWrap: 'nowrap',
+                                overflowX: 'auto',
+                                maxWidth: '90%',
                               }),
                               multiValue: (base) => ({
                                 ...base,
                                 backgroundColor: '#5ACBCF',
                                 borderRadius: '10px',
+                                flexShrink: 0,
                               }),
                               multiValueLabel: (base) => ({
                                 ...base,
                                 color: 'white',
+                                padding: '2px 6px',
                               }),
                               multiValueRemove: (base) => ({
                                 ...base,
@@ -1017,6 +1031,17 @@ const ModifierEmploye = () => {
                                   color: 'white',
                                 },
                               }),
+                              menuPortal: base => ({ ...base, zIndex: 9999 }),
+                              menu: base => ({
+                                ...base,
+                                zIndex: 9999,
+                                width: 'auto',
+                                minWidth: '100%',
+                              }),
+                              menuList: base => ({
+                                ...base,
+                                maxHeight: '200px',
+                              }),
                               placeholder: (base) => ({
                                 ...base,
                                 color: '#A9A9A9',
@@ -1024,45 +1049,63 @@ const ModifierEmploye = () => {
                               input: (base) => ({
                                 ...base,
                                 color: '#333',
+                                width: 'auto !important',
                               }),
+                            }}
+                            components={{
+                              DropdownIndicator: null
                             }}
                           />
                         </div>
 
-                        <div className='col-md-4 mb-3'> {/* Utilisez col-md-4 pour trois colonnes */}
+                        {/* Sections */}
+                        <div className='col-md-4 mb-3'>
                           <Select
                             isMulti
                             classNamePrefix="react-select"
                             options={sections.map(s => ({ value: s.id, label: s.classe }))}
-                            // options={sections.map(section => ({
-                            //   value: section.id,
-                            //   label: section.classe,
-                            // }))}
                             value={selectedSections}
                             onChange={setSelectedSections}
                             placeholder="Sélectionnez des sections"
                             isDisabled={!selectedNiveaux}
+                            menuPortalTarget={document.body}
+                            menuPosition="fixed"
+                            closeMenuOnSelect={false}
+                            hideSelectedOptions={false}
                             styles={{
                               container: (base) => ({
                                 ...base,
-                                width: '100%', // Utilisez 100% pour s'adapter à la colonne
+                                width: '100%',
                               }),
-                              control: (base) => ({
+                              control: (base, state) => ({
                                 ...base,
                                 backgroundColor: '#F0F2F8',
                                 borderRadius: '50px',
                                 margin: '10px 0',
-                                boxShadow: '2px 2px 8px rgba(0, 0, 0, 0.1)',
-                                height: '50px',
+                                padding: '2px 10px',
+                                boxShadow: state.isFocused ? '0 0 0 2px rgba(90, 203, 207, 0.5)' : '2px 2px 8px rgba(0, 0, 0, 0.1)',
+                                minHeight: '50px',
+                                borderColor: state.isFocused ? '#5ACBCF' : '#ced4da',
+                                '&:hover': {
+                                  borderColor: '#5ACBCF'
+                                },
+                              }),
+                              valueContainer: (base) => ({
+                                ...base,
+                                flexWrap: 'nowrap',
+                                overflowX: 'auto',
+                                maxWidth: '90%',
                               }),
                               multiValue: (base) => ({
                                 ...base,
                                 backgroundColor: '#5ACBCF',
                                 borderRadius: '10px',
+                                flexShrink: 0,
                               }),
                               multiValueLabel: (base) => ({
                                 ...base,
                                 color: 'white',
+                                padding: '2px 6px',
                               }),
                               multiValueRemove: (base) => ({
                                 ...base,
@@ -1072,6 +1115,17 @@ const ModifierEmploye = () => {
                                   color: 'white',
                                 },
                               }),
+                              menuPortal: base => ({ ...base, zIndex: 9999 }),
+                              menu: base => ({
+                                ...base,
+                                zIndex: 9999,
+                                width: 'auto',
+                                minWidth: '100%',
+                              }),
+                              menuList: base => ({
+                                ...base,
+                                maxHeight: '200px',
+                              }),
                               placeholder: (base) => ({
                                 ...base,
                                 color: '#A9A9A9',
@@ -1079,44 +1133,65 @@ const ModifierEmploye = () => {
                               input: (base) => ({
                                 ...base,
                                 color: '#333',
+                                width: 'auto !important',
                               }),
+                            }}
+                            components={{
+                              DropdownIndicator: null
                             }}
                           />
                         </div>
 
-                        <div className='col-md-4 mb-3'> {/* Utilisez col-md-4 pour trois colonnes */}
+                        {/* Matières */}
+                        <div className='col-md-4 mb-3'>
                           <Select
                             isMulti
                             classNamePrefix="react-select"
-                            options={matieres.map(m => ({ value: m.id, label: m.nom }))}
-                            // options={matieres.map(matiere => ({
-                            //   value: matiere.id,
-                            //   label: matiere.nom,
-                            // }))}
+                            options={matieres.map(m => ({
+                              value: m.id,
+                              label: `${m.nom} - ${m.nomarabe}`,
+                            }))}
                             value={selectedMatiere}
                             onChange={setSelectedMatiere}
                             placeholder="Sélectionner les matières"
+                            menuPortalTarget={document.body}
+                            menuPosition="fixed"
+                            closeMenuOnSelect={false}
+                            hideSelectedOptions={false}
                             styles={{
                               container: (base) => ({
                                 ...base,
-                                width: '100%', // Utilisez 100% pour s'adapter à la colonne
+                                width: '100%',
                               }),
-                              control: (base) => ({
+                              control: (base, state) => ({
                                 ...base,
                                 backgroundColor: '#F0F2F8',
                                 borderRadius: '50px',
                                 margin: '10px 0',
-                                boxShadow: '2px 2px 8px rgba(0, 0, 0, 0.1)',
-                                height: '50px',
+                                padding: '2px 10px',
+                                boxShadow: state.isFocused ? '0 0 0 2px rgba(90, 203, 207, 0.5)' : '2px 2px 8px rgba(0, 0, 0, 0.1)',
+                                minHeight: '50px',
+                                borderColor: state.isFocused ? '#5ACBCF' : '#ced4da',
+                                '&:hover': {
+                                  borderColor: '#5ACBCF'
+                                },
+                              }),
+                              valueContainer: (base) => ({
+                                ...base,
+                                flexWrap: 'nowrap',
+                                overflowX: 'auto',
+                                maxWidth: '90%',
                               }),
                               multiValue: (base) => ({
                                 ...base,
                                 backgroundColor: '#5ACBCF',
                                 borderRadius: '10px',
+                                flexShrink: 0,
                               }),
                               multiValueLabel: (base) => ({
                                 ...base,
                                 color: 'white',
+                                padding: '2px 6px',
                               }),
                               multiValueRemove: (base) => ({
                                 ...base,
@@ -1126,6 +1201,17 @@ const ModifierEmploye = () => {
                                   color: 'white',
                                 },
                               }),
+                              menuPortal: base => ({ ...base, zIndex: 9999 }),
+                              menu: base => ({
+                                ...base,
+                                zIndex: 9999,
+                                width: 'auto',
+                                minWidth: '100%',
+                              }),
+                              menuList: base => ({
+                                ...base,
+                                maxHeight: '200px',
+                              }),
                               placeholder: (base) => ({
                                 ...base,
                                 color: '#A9A9A9',
@@ -1133,7 +1219,11 @@ const ModifierEmploye = () => {
                               input: (base) => ({
                                 ...base,
                                 color: '#333',
+                                width: 'auto !important',
                               }),
+                            }}
+                            components={{
+                              DropdownIndicator: null
                             }}
                           />
                         </div>
@@ -1141,7 +1231,7 @@ const ModifierEmploye = () => {
 
                       <div className="card-body">
                         <h5>Disponibilités</h5>
-                        {['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'].map((jour) => {
+                        {['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi',].map((jour) => {
                           const dispoJour = values.disponibilites[jour] || {
                             disponible: false,
                             heures: []

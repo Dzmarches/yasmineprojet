@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "./AuthContext";
 import "./login.css";
 
+
+
 const Login = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -33,44 +35,45 @@ const Login = () => {
 
     const Auth = async (e) => {
         e.preventDefault();
-        console.log("Tentative de connexion...");
-
+        setMsg('');
+    
         try {
             let location = null;
             try {
                 location = await getLocation();
             } catch (geoError) {
                 console.warn("La géolocalisation n'est pas disponible:", geoError.message);
-                // On continue sans la localisation
             }
-
+    
             const response = await axios.post('http://localhost:5000/Login', {
                 username,
                 password,
                 latitude: location?.latitude || null,
                 longitude: location?.longitude || null,
             });
-
-            const { token, redirectTo, username: responseUsername, userId, ecoleId, ecoleeId, permissions } = response.data;
-
-            localStorage.setItem('token', token);
-            localStorage.setItem('username', responseUsername);
-            localStorage.setItem('userId', userId);
-            localStorage.setItem('ecoleId', ecoleId);
-            localStorage.setItem('ecoleeId', ecoleeId);
-            localStorage.setItem('permissions', JSON.stringify(permissions));
-
-            login(token, responseUsername, userId, ecoleId, ecoleeId, permissions);
-            console.log("Permissions stockées :", permissions);
-
+    
+            const {
+                token,
+                redirectTo,
+                username: responseUsername,
+                userId,
+                ecoleId,
+                ecoleeId,
+                roles
+            } = response.data;
+    
+            // Appel login (on attend que ce soit terminé)
+            await login(token, responseUsername, userId, ecoleId, ecoleeId, roles);
+    
+            // ✅ Maintenant on redirige une fois le contexte bien mis à jour
             navigate(redirectTo);
         } catch (error) {
             const errorMsg = error.response?.data?.message || "Erreur lors de la connexion";
             console.error("Erreur lors de la connexion :", errorMsg);
             setMsg(errorMsg);
         }
-
     };
+    
 
     return (
         <div className="login_container">

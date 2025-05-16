@@ -89,26 +89,30 @@ export const ajouterCA = async (req, res) => {
     const ecoleeId = req.user.ecoleeId;
 
     const file = req.file;
-    const { type_demande, dateDebut, dateFin, commentaire,idcongeAnnuel } = req.body;
-    let filePath = null; 
+    const { type_demande, dateDebut, dateFin, commentaire, idcongeAnnuel } = req.body;
+    
+    const idCAValue = (idcongeAnnuel === 'null' || idcongeAnnuel === '' || idcongeAnnuel === undefined) ? null : parseInt(idcongeAnnuel);
+
+    let filePath = null;
 
     // Si un fichier est uploadé, définir le chemin de la photo
     if (file) {
       filePath = `/conges/employes/${employe_id}/${file.filename}`;
     }
     const FindCAAttente = await CongeAbsence.findOne(
-      { where: { 
-      employe_id: employe_id ,
-      type_demande:"Congé Annuel",
-      statut:"En attente"
-  } })
+      {
+        where: {
+          employe_id: employe_id,
+          type_demande: "Congé Annuel",
+          statut: "En attente"
+        }
+      })
 
     // console.log('FindCAAttente',FindCAAttente)
 
-    if(FindCAAttente){
+    if (FindCAAttente) {
       return res.status(203).json({ message: 'Vous avez déjà une demande de congé annuel en attente' });
     }
-
 
     const FindEmplyeCA = await CongeAbsence.findAll({ where: { employe_id: employe_id } })
     //trouver dernier tupple congeabsence restant
@@ -125,8 +129,8 @@ export const ajouterCA = async (req, res) => {
       const jour_restant = (jour_congeMois - joursDeCongeMoisPrecedant) + dernierCAE.jour_restant;
       //   const jour_consomme = joursDeCongeMois-(FindJourRestant+jour_consomme);
       //envoyer combien du jour restant 
-    console.log('idcongeAnnuel notelese',idcongeAnnuel)
 
+      // Convertir 'null' (string) ou '' en null (valeur JavaScript)
       const newCA = await CongeAbsence.create({
         type_demande,
         dateDebut,
@@ -137,13 +141,11 @@ export const ajouterCA = async (req, res) => {
         jour_congeMois,
         fichier: filePath,
         ecoleId, ecoleeId,
-        idCA:idcongeAnnuel
+        idCA: idCAValue
       });
       return res.status(201).json({ message: 'Congé ajouté avec succès', newCA });
 
     } else {
-      console.log('idcongeAnnuelelse',idcongeAnnuel)
-
       const jour_congeMois = await calculerMoisConge(employe_id);
       const jour_restant = jour_congeMois
       const newCA = await CongeAbsence.create({
@@ -156,11 +158,11 @@ export const ajouterCA = async (req, res) => {
         jour_restant,
         fichier: filePath,
         ecoleId, ecoleeId,
-        idCA:idcongeAnnuel
+        idCA: idCAValue
       });
       return res.status(201).json({ message: 'Congé ajouté avec succès', newCA });
     };
-  
+
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Erreur serveur' });
@@ -243,7 +245,7 @@ export const CAEmployes = async (req, res) => {
     //   ],
     // });
 
-    const isSuperAdmin = roles.includes("AdminPrincipal"); 
+    const isSuperAdmin = roles.includes("AdminPrincipal");
     const includeEcole = {
       model: Ecole,
       through: UserEcole,
@@ -285,9 +287,9 @@ export const CAEmployes = async (req, res) => {
     //               },
     //             ],
     //           },
-             
+
     //         ],
-    
+
     // });
     const demandes = await CongeAbsence.findAll({
       where: { archiver: 0 },
@@ -323,17 +325,16 @@ export const CAEmployes = async (req, res) => {
         },
         {
           model: CongeAnnuel,
-          required: false, 
+          required: false,
         },
       ],
     });
-    
+
 
 
     if (!demandes) {
       return res.status(404).json({ message: "pas de demande" });
     }
-    console.log(demandes);
     return res.status(200).json(demandes);
   } catch (error) {
     console.error("Erreur lors de la récupération des demandes :", error);
@@ -400,7 +401,6 @@ export const ModifierStautdemande = async (req, res) => {
         order: [['createdAt', 'DESC']],
         limit: 1
       });
-      console.log('deduireCongeAnnuel', deduireCongeAnnuel)
 
       if (demande.type_demande === "Congé Annuel" || deduireCongeAnnuel) {
 
@@ -409,13 +409,9 @@ export const ModifierStautdemande = async (req, res) => {
 
 
         if (statut === 'Accepté' && diffjrCD >= 0) {
-          console.log('test6')
           demande.statut = statut;
           demande.jour_consomme = jrCongeDemander;
           demande.jour_restant = dernierCAE.jour_restant - jrCongeDemander
-          console.log('jour restant', demande.jour_restant)
-          console.log(' jour_consomme', demande.jour_consomme)
-
           //mois ou jai accepte la demande est inferieure au mois au l'employe ma envoyer la demande
           if (jourcongeMois > dernierCAE.jour_congeMois) {
             const jourRestant = ((jourcongeMois - dernierCAE.jour_congeMois) + dernierCAE.jour_restant) - diffjrCD;
@@ -562,7 +558,6 @@ export const CongesAnnuel = async (req, res) => {
       });
       const FindJourRestant = dernierCAE.jour_restant;
       //envoyer combien du jour restant 
-      console.log(FindJourRestant);
       return res.status(201).json
         ({
           message: `vous avez le droit a ${FindJourRestant} du conge`,
@@ -571,7 +566,6 @@ export const CongesAnnuel = async (req, res) => {
     } else {
       //si employe effectue pour la premier fois la demande
       const joursDeCongeMois = await calculerMoisConge(id);
-      console.log('jourconfe', joursDeCongeMois);
       return res.status(201).json({
         message: `vous avez le droit à ${joursDeCongeMois} jours de congé`,
         jourConge: joursDeCongeMois
@@ -581,7 +575,6 @@ export const CongesAnnuel = async (req, res) => {
     console.log(error)
   }
 }
-
 export const calculerMoisConge = async (idEmploye) => {
   try {
     if (!idEmploye) {
@@ -620,7 +613,6 @@ export const AjouterCongesAnnuels = async (req, res) => {
     const rawDateFin = req.body.dateFin;
 
     if (!rawDateDebut || !rawDateFin) {
-      console.log("existe");
       return res.status(400).json({ message: "Les dates ne doivent pas être vides." });
     }
     const dateDebut = moment(rawDateDebut, "YYYY-MM-DD", true);
@@ -628,7 +620,6 @@ export const AjouterCongesAnnuels = async (req, res) => {
 
 
     if (!dateDebut.isValid() || !dateFin.isValid()) {
-      console.log("Dates invalides");
       return res.status(400).json({ message: "Format de date invalide." });
     }
 
@@ -689,7 +680,6 @@ export const verifierDateCongeAnnuel = async (req, res) => {
         conge: liste,
       });
     } else {
-      console.log("❌ Aujourd'hui N'EST PAS dans la période de congé.");
       return res.status(404).json({
         message: "Aujourd'hui N'EST PAS dans la période de congé.",
       });
@@ -717,19 +707,15 @@ export const supprimerMademande = async (req, res) => {
     if (demande.statut !== 'En attente') {
       return res.status(400).json({ message: "Vous ne pouvez supprimer que les demandes en attente." });
     }
-    console.log('le fichier est', demande.fichier);
     if (demande.fichier) {
       const imagePath = path.join(__dirname, '../../public', demande.fichier);
-      console.log('imagepath', imagePath)
       // Supprimer le fichier s'il existe
       if (fs.existsSync(imagePath)) {
-        console.log('existe photo ')
         fs.unlink(imagePath, (err) => {
           if (err) {
             console.error("Erreur lors de la suppression du fichier:", err);
           }
         });
-        console.log('existe photo pas  ')
       }
     }
     await demande.destroy();
@@ -740,21 +726,16 @@ export const supprimerMademande = async (req, res) => {
   }
 };
 
-
-
 export const ListeCAnnuel = async (req, res) => {
   try {
     const ecoleId = req.user.ecoleId;
     const ecoleeId = req.user.ecoleeId;
     const roles = req.user.roles;
-
     const isAdminPrincipal = roles.includes("AdminPrincipal");
     const isAdministrateur = roles.includes("Administrateur");
 
     let liste;
-
     if (isAdministrateur) {
-      console.log("Administrateur détecté");
       liste = await CongeAnnuel.findAll({
         where: { archiver: 0 },
         include: [
@@ -769,7 +750,6 @@ export const ListeCAnnuel = async (req, res) => {
         ],
       });
     } else if (isAdminPrincipal) {
-      console.log("AdminPrincipal détecté");
       liste = await CongeAnnuel.findAll({
         where: { archiver: 0, ecoleId: ecoleId },
         include: [
@@ -784,7 +764,6 @@ export const ListeCAnnuel = async (req, res) => {
         ],
       });
     } else {
-      console.log("Autre rôle détecté");
       liste = await CongeAnnuel.findAll({
         where: {
           archiver: 0,
@@ -813,7 +792,6 @@ export const ListeCAnnuel = async (req, res) => {
     res.status(500).json({ message: "Erreur serveur." });
   }
 };
-
 
 export const ModifierCAnnuel = async (req, res) => {
   const { id } = req.params;

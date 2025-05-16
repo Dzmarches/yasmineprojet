@@ -109,7 +109,6 @@ export const Listepointage = async (req, res) => {
     const ecoleeId = req.user.ecoleeId;
     const roles = req.user.roles;
     const today = moment().format("YYYY-MM-DD");
-
     
     const isAdminPrincipal = roles.includes('AdminPrincipal');
     const includeEcole = {
@@ -338,8 +337,6 @@ export const Listepointagedate = async (req, res) => {
       include: [
         {
           model: Employe,
-
-
           include: [
             {
               model: Poste,
@@ -1028,3 +1025,20 @@ export const marquerabsences = async (req, res) => {
         }
 }
 
+ export const archiver = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const hs = await Pointage.findByPk(id);
+      if (!hs) {
+        return res.status(404).json({ message: "non trouvée." });
+      }
+        await Pointage.update(
+        { archiver: 1 },
+        { where: { id } }
+      );
+      return res.status(200).json({ message: "archivée avec succès." });
+    } catch (error) {
+      console.error("❌ Erreur lors de l'archivage :", error);
+      return res.status(500).json({ message: "Erreur serveur." });
+    }
+  };

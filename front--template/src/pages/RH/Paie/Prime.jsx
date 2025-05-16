@@ -19,7 +19,7 @@ import AddPrime from './AddPrime.jsx';
 import EditPrime from './EditPrime.jsx';
 import accept from '../../../assets/imgs/accept.png'
 import excel from '../../../assets/imgs/excel.png'
-import archive from '../../../assets/imgs/archive.png';
+import archive from '../../../assets/imgs/delete.png';
 import * as XLSX from 'xlsx';
 
 const Primes = () => {
@@ -87,6 +87,7 @@ const Primes = () => {
       (item.type_prime && item.type_prime.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
       (item.commentaire && item.commentaire.toLowerCase().includes(searchTerm.toLowerCase().trim())) ||
       (item.montant && item.montant.toString().includes(searchTerm.trim())) ||
+      (item.identifiant_special && item.identifiant_special.toString().includes(searchTerm.trim())) ||
       (item.prime_cotisable !== undefined &&
         String(item.prime_cotisable ? "ouic" : "nonc")
           .toLowerCase()
@@ -355,6 +356,7 @@ const Primes = () => {
                               <tr>
                                 {columnVisibility.id && <th>Id</th>}
                                 {columnVisibility.code && <th>Code</th>}
+                                 <th>Identifiant spécial</th>
                                 {columnVisibility.type_prime && <th>Type Prime</th>}
                                 {columnVisibility.montant && <th>Montant</th>}
                                 {columnVisibility.prime_cotisable && <th>Prime Cotisable</th>}
@@ -368,6 +370,7 @@ const Primes = () => {
                               {currentItems.map((item, index) => (
                                 <tr key={index}>
                                   {columnVisibility.id && <td>{indexOfFirstItem + index + 1}</td>}
+                                  <td>{item.identifiant_special}</td>
                                   {columnVisibility.code && <td>{item.code}</td>}
                                   {columnVisibility.type_prime && <td>{item.type_prime}</td>}
                                   {columnVisibility.montant && <td>{item.montant}</td>}
@@ -406,7 +409,7 @@ const Primes = () => {
                                       </a>
                                       &nbsp;&nbsp;&nbsp;&nbsp;
                                       <a
-                                        className="btn btn-outline-warning p-2"
+                                        className="btn btn-outline-danger p-2"
                                         onClick={() => handleShow(item.id)}
                                       >
                                         <img src={archive} alt="" width="27px" title="arhciver" />
@@ -454,10 +457,10 @@ const Primes = () => {
             <EditPrime primeId={primeId} ListePrimes={ListePrimes} />
             <Modal show={showDeleteModal} onHide={handleClose}>
               <Modal.Header closeButton>
-                <Modal.Title>Confirmer l'archivage</Modal.Title>
+                <Modal.Title>Confirmer la suppression</Modal.Title>
               </Modal.Header>
               <Modal.Body>
-                <p>Êtes-vous sûr de vouloir archiver cette prime ?</p>
+                <p>Êtes-vous sûr de vouloir supprimer cette prime ?</p>
               </Modal.Body>
               <Modal.Footer>
                 <Button variant="secondary" onClick={handleClose}>
@@ -470,7 +473,7 @@ const Primes = () => {
                     handleClose();
                   }}
                 >
-                  Archiver
+                  Supprimer
                 </Button>
               </Modal.Footer>
             </Modal>

@@ -1,122 +1,101 @@
-import React, { useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import Typerevenue from './Typerevenue'
-import Typedepense from './Typedepense'
-import DepensesC from './DepensesC'
-import RevenusC from './RevenusC'
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import Typerevenue from './Typerevenue';
+import Typedepense from './Typedepense';
+import DepensesC from './DepensesC';
+import RevenusC from './RevenusC';
 
 const Comptabilite = () => {
+  const [activeTab, setActiveTab] = useState('#TypeRevenus');
 
-    useEffect(() => {
-        
-        const savedTab = localStorage.getItem('activeTab')||'#TypeRevenus';
-        if (savedTab) {
-            const tabTrigger = document.querySelector(`a[href="${savedTab}"]`);
-            if (tabTrigger) {
-                new window.bootstrap.Tab(tabTrigger).show();
-            }
-        }
-    }, []);
+  // Récupère le dernier onglet sélectionné au chargement
+  useEffect(() => {
+    const savedTab = localStorage.getItem('activeTab') || '#TypeRevenus';
+    setActiveTab(savedTab);
+  }, []);
 
-    return (
-        <div>
-            <nav classNameName="mt-5">
-                <Link to="/dashboard">Dashboard</Link>
-                <span> / </span>
-                <span>Gestion des Dépenses et des Revenus</span>
-            </nav>
+  const handleTabClick = (tabId) => {
+    setActiveTab(tabId);
+    localStorage.setItem('activeTab', tabId);
+  };
 
-            <div className="row mt-2">
-                <div className="col-md-12">
-                    <div className="card  card-tabs">
-                        <div className="card-header p-2 pt-1">
-                            <ul className="nav nav-tabs custom-tabs " id="custom-tabs-five-tab" role="tablist" >
-                                {/* type revenus */}
-                                <li className="nav-item">
-                                    <a
-                                        className="nav-link"
-                                        id="custom-tabs-five-normal-tab"
-                                        //pill ajoute ou supprime la classe active
-                                        data-toggle="pill"
-                                        href="#TypeRevenus"
-                                        role="tab"
-                                        aria-controls="custom-tabs-five-overlay"
-                                        aria-selected="true"
-                                        onClick={() => localStorage.setItem('activeTab', '#TypeRevenus')}
-                                        >
-                                        Gestion Types Revenus
-                                    </a>
-                                </li>
+  return (
+    <div>
+      <nav className="mt-5">
+        <Link to="/dashboard">Dashboard</Link>
+        <span> / </span>
+        <span>Gestion des Dépenses et des Revenus</span>
+      </nav>
 
-                                {/* Type depenses */}
-                                <li className="nav-item">
-                                    <a
-                                        className="nav-link"
-                                        id="custom-tabs-five-normal-tab"
-                                        data-toggle="pill"
-                                        href="#TypeDepense"
-                                        role="tab"
-                                        aria-controls="custom-tabs-five-overlay"
-                                        aria-selected="false"
-                                        onClick={() => localStorage.setItem('activeTab', '#TypeDepense')}
-                                    > Gestion Types Dépenses</a>
-                                </li>
-
-                                {/* Revenus */}
-                                <li className="nav-item">
-                                    <a
-                                        className="nav-link"
-                                        id="custom-tabs-five-normal-tab"
-                                        data-toggle="pill"
-                                        href="#revenus"
-                                        role="tab"
-                                        aria-controls="custom-tabs-five-overlay"
-                                        aria-selected="false"
-                                        onClick={() => localStorage.setItem('activeTab', '#revenus')}
-                                    > Gestion Revenus</a>
-                                </li>
-                                {/* Depenses */}
-                                <li className="nav-item">
-                                    <a
-                                        className="nav-link"
-                                        id="custom-tabs-five-normal-tab"
-                                        data-toggle="pill"
-                                        href="#depenses"
-                                        role="tab"
-                                        aria-controls="custom-tabs-five-overlay"
-                                        aria-selected="false"
-                                        onClick={() => localStorage.setItem('activeTab', '#depenses')}
-                                    >Gestion Dépenses</a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div className="card-body">
-                        <div className="tab-content" id="custom-tabs-five-tabContent">
-                            {/* types revenus */}
-                            <div className="tab-pane fade show active" id="TypeRevenus" role="tabpanel" aria-labelledby="custom-tabs-five-normal-tab">
-                                <Typerevenue />
-                            </div>
-                            {/* types depenses */}
-                            <div className="tab-pane fade" id="TypeDepense" role="tabpanel" aria-labelledby="custom-tabs-five-normal-tab">
-                                <Typedepense />
-                            </div>
-                            {/* Revenus */}
-                            <div className="tab-pane fade" id="revenus" role="tabpanel" aria-labelledby="custom-tabs-five-normal-tab">
-                                <RevenusC />
-                            </div>
-                            {/* depenses */}
-                            <div className="tab-pane fade" id="depenses" role="tabpanel" aria-labelledby="custom-tabs-five-normal-tab">
-                                <DepensesC />
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
+      <div className="row mt-2">
+        <div className="col-md-12">
+          <div className="card card-tabs">
+            <div className="card-header p-2 pt-1">
+              <ul className="nav nav-tabs custom-tabs" role="tablist">
+                <li className="nav-item">
+                  <a
+                    className={`nav-link ${activeTab === '#TypeRevenus' ? 'active' : ''}`}
+                    onClick={() => handleTabClick('#TypeRevenus')}
+                  >
+                    Gestion Types Revenus
+                  </a>
+                </li>
+                <li className="nav-item">
+                  <a
+                    className={`nav-link ${activeTab === '#TypeDepense' ? 'active' : ''}`}
+                    onClick={() => handleTabClick('#TypeDepense')}
+                  >
+                    Gestion Types Dépenses
+                  </a>
+                </li>
+                <li className="nav-item">
+                  <a
+                    className={`nav-link ${activeTab === '#revenus' ? 'active' : ''}`}
+                    onClick={() => handleTabClick('#revenus')}
+                  >
+                    Gestion Revenus
+                  </a>
+                </li>
+                <li className="nav-item">
+                  <a
+                    className={`nav-link ${activeTab === '#depenses' ? 'active' : ''}`}
+                    onClick={() => handleTabClick('#depenses')}
+                  >
+                    Gestion Dépenses
+                  </a>
+                </li>
+              </ul>
             </div>
+
+            <div className="card-body">
+              <div className="tab-content">
+                {activeTab === '#TypeRevenus' && (
+                  <div className="tab-pane fade show active">
+                    <Typerevenue />
+                  </div>
+                )}
+                {activeTab === '#TypeDepense' && (
+                  <div className="tab-pane fade show active">
+                    <Typedepense />
+                  </div>
+                )}
+                {activeTab === '#revenus' && (
+                  <div className="tab-pane fade show active">
+                    <RevenusC />
+                  </div>
+                )}
+                {activeTab === '#depenses' && (
+                  <div className="tab-pane fade show active">
+                    <DepensesC />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
+    </div>
+  );
+};
 
-        </div >
-    )
-}
-
-export default Comptabilite
+export default Comptabilite;

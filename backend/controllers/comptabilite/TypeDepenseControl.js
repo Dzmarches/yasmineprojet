@@ -1,6 +1,7 @@
 import EcolePrincipal from '../../models/EcolePrincipal.js';
 import TypeDepense from '../../models/comptabilite/TypeDepense.js';
 import Ecole from '../../models/Admin/Ecole.js';
+import Depense from '../../models/comptabilite/Depense.js';
 
 export const ListeTD = async (req, res) => {
   try {
@@ -17,7 +18,6 @@ export const ListeTD = async (req, res) => {
       includeEcole.where = { id: ecoleeId };
       includeEcole.required = true;
     }
-
     let hps;
     if (isAdminPrincipal) {
       console.log('AdminPrincipal détecté');
@@ -49,7 +49,6 @@ export const ListeTD = async (req, res) => {
           },
           includeEcole
         ]
-
       });
     }
     res.status(200).json(hps);
@@ -88,7 +87,7 @@ export const ArchiverTD = async (req, res) => {
       { archiver: 1 },
       { where: { id } }
     );
-
+    await Depense.update({ archiver: 1 }, { where: { typeId: id }});
     return res.status(200).json({ message: "archivée avec succès." });
   } catch (error) {
     console.error("❌ Erreur lors de l'archivage :", error);
@@ -106,10 +105,10 @@ export const AjouterTD = async (req, res) => {
       return res.status(400).json({ message: " le type est  obligatoire" });
     }
     // Vérifier si le identifiant est unique
-    // const existingtype= await TypeDepense.findOne({ where: { type } });
-    // if (existingtype) {
-    //   return res.status(400).json({ message: "type existe déjà" });
-    // }
+    const existingtype= await TypeDepense.findOne({ where: { type,ecoleId,ecoleeId } });
+    if (existingtype) {
+      return res.status(400).json({ message: "type existe déjà" });
+    }
     const newHeureSup = await TypeDepense.create({
       type, remarque, ecoleId, ecoleeId
     });

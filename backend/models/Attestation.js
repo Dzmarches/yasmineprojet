@@ -8,6 +8,10 @@ const Attestation= sequelize.define('Attestation', {
     primaryKey: true,
     autoIncrement: true,
   },
+  code:{
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
   nom: {
     type: DataTypes.STRING,
     allowNull: false,

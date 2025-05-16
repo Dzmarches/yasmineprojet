@@ -1,6 +1,6 @@
 import express from 'express'
 import {Ajouter,ModifierContrat,Liste,Archiver,Find,MidifierPlanning 
-    ,StatePE,ListePlanning,Archiverpp,DashboardCompt} from
+    ,StatePE,ListePlanning,Archiverpp,DashboardCompt,DashboardComptAll,Rappel} from
  '../../../controllers/comptabilite/paimentEleve/ContratControl.js'
 
 
@@ -16,12 +16,15 @@ router.patch('/archiver/:id', Archiver);
 router.put('/modifierPlanning/:id',MidifierPlanning);
 router.get('/listeplanning',ListePlanning);
 router.patch('/archiver/pp/:id',Archiverpp);
-
 //static
-router.get('/stats',StatePE)
+router.get('/stats',StatePE);
 
 //Dashboard Comptabilité:
 router.post('/dashboard',DashboardCompt)
+router.post('/dashboard/all',DashboardComptAll);
+
+//rappel
+router.post('/ajouterRappel',Rappel);
 
 
 

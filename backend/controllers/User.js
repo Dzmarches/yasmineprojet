@@ -366,7 +366,6 @@ export const Login = async (req, res) => {
         ecoleeId,
         roles,
         roleIds,
-        permissions,
       },
       process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: "2d" }
@@ -381,7 +380,6 @@ export const Login = async (req, res) => {
       ecoleeId,
       roles,
       roleIds,
-      permissions,
       redirectTo: roles.includes("Administrateur")
         ? "/dashboardadministrateur"
         : "/dashboard",

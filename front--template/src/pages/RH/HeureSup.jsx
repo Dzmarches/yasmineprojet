@@ -90,8 +90,8 @@ const HeureSup = () => {
             }
             let response;
             if (isEditMode) {
-                console.log('token',token)
-                console.log('edit mode',isEditMode)
+                console.log('token', token)
+                console.log('edit mode', isEditMode)
                 response = await axios.put(`http://localhost:5000/HeureSup/modifier/${editId}`, formData, {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -108,9 +108,9 @@ const HeureSup = () => {
                 });
                 alert('ajoutée avec succès');
 
-               
+
             }
-          
+
             setFormData({
                 nom: "",
                 taux: "",
@@ -119,15 +119,15 @@ const HeureSup = () => {
             setEditId(null);
             await ListeHS();
         } catch (error) {
-            
-            if (error.status===400){
+
+            if (error.status === 400) {
                 alert(error.response.data.message)
-            
-            }else{
+
+            } else {
                 console.error("Erreur :", error);
                 alert("Une erreur est survenue !");
             }
-         
+
         }
     };
 
@@ -217,182 +217,184 @@ const HeureSup = () => {
             </nav> */}
 
             {/* <div className="card card-primary card-outline"> */}
-                {/* <div className="card-header d-flex">
+            {/* <div className="card-header d-flex">
                     <img src={paimentt} className='mt-2' width="60px" height="80px" />
                     <p className="card-title mt-5 ml-2 p-2 text-center" style={{ width: '350px', borderRadius: '50px', border: '1px solid rgb(215, 214, 216)' }}>
                         Heures supplémentaire
                     </p>
                 </div> */}
-                <div className="card-body">
-                    <div className="tab-content" id="custom-content-below-tabContent">
-                        <div className="tab-pane fade show active" id="listes" role="tabpanel" aria-labelledby="custom-content-below-home-tab">
-                            <section className="content mt-2">
-                                <div className="container-fluid">
-                                    <div className="row">
-                                        <div className="col-12">
-                                            <div className="card">
-                                                <div className="card-header " style={{ backgroundColor: "#f8f8f8" }}>
-                                                    <div className="modal-body">
-                                                        <div className="card-body border-0 rounded-lg">
-                                                            <div className="row">
-                                                                <div className="col-md-4">
-                                                                    <label>Nom *</label>
-                                                                    <input type="text" className="form-control" name="nom" value={formData.nom} onChange={handleChange} />
-                                                                    {errors.nom && <span className="text-danger">{errors.nom}</span>}
-                                                                </div>
+            <div className="card-body">
+                <div className="tab-content" id="custom-content-below-tabContent">
+                    <div className="tab-pane fade show active" id="listes" role="tabpanel" aria-labelledby="custom-content-below-home-tab">
+                        <section className="content mt-2">
+                            <div className="container-fluid">
+                                <div className="row">
+                                    <div className="col-12">
+                                        <div className="card">
+                                            <div className="card-header " style={{ backgroundColor: "#f8f8f8" }}>
+                                                <div className="modal-body">
+                                                    <div className="card-body border-0 rounded-lg">
+                                                        <div className="row">
+                                                            <div className="col-md-4">
+                                                                <label>Libellé *</label>
+                                                                <input type="text" className="form-control" name="nom" value={formData.nom}
+                                                                    onChange={handleChange} style={{ height: '40px' }} />
+                                                                {errors.nom && <span className="text-danger">{errors.nom}</span>}
+                                                            </div>
 
-                                                                <div className="col-md-4">
-                                                                    <label>Taux *</label>
-                                                                    <input type="number" className="form-control" name="taux" value={formData.taux} onChange={handleChange} />
-                                                                    <small className='text-muted'>Veuillez entrer le taux  en décimal (ex : 20% → 0.2)</small>
-                                                                    {errors.taux && <span className="text-danger">{errors.taux}</span>}<br/>
-                                                                </div>
+                                                            <div className="col-md-4">
+                                                                <label>Taux *</label>
+                                                                <input type="number" className="form-control" name="taux" value={formData.taux}
+                                                                    onChange={handleChange} style={{ height: '40px' }} />
+                                                                <small className='text-muted'>Veuillez entrer le taux  en décimal (ex : 20% → 0.2)</small>
+                                                                {errors.taux && <span className="text-danger">{errors.taux}</span>}<br />
+                                                            </div>
 
-                                                                {/* Boutons */}
-                                                                <div className="col-md-4" style={{marginTop:'40px'}}>
-                                                                    <button type="button" className="btn btn-outline-primary" onClick={AjouterPeriodePaie}>
-                                                                        {isEditMode ? "Modifier" : "Ajouter"}
+                                                            {/* Boutons */}
+                                                            <div className="col-md-4" style={{ marginTop: '40px' }}>
+                                                                <button type="button" className="btn btn-outline-primary" onClick={AjouterPeriodePaie}>
+                                                                    {isEditMode ? "Modifier" : "Ajouter"}
+                                                                </button>
+                                                                {isEditMode && (
+                                                                    <button type="button" className="btn btn-outline-secondary ml-2 "
+                                                                        onClick={() => {
+                                                                            setIsEditMode(false);
+                                                                            setEditId(null);
+                                                                            setFormData({
+                                                                                taux: "",
+                                                                                nom: "",
+                                                                            });
+                                                                        }}
+                                                                    >
+                                                                        Annuler
                                                                     </button>
-                                                                    {isEditMode && (
-                                                                        <button type="button" className="btn btn-outline-secondary ml-2"
-                                                                            onClick={() => {
-                                                                                setIsEditMode(false);
-                                                                                setEditId(null);
-                                                                                setFormData({
-                                                                                    taux: "",
-                                                                                    nom: "",
-                                                                                });
-                                                                            }}
-                                                                        >
-                                                                            Annuler
-                                                                        </button>
-                                                                    )}
-                                                                </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="card-body ">
-                                                    <div className="row">
-                                                        <div className="col-md-4">
-                                                            <button className='btn btn-app p-1' onClick={handleExport}>
-                                                                <img src={excel} alt="" width="25px" /><br />Exporter
-                                                            </button>
-                                                        </div>
-                                                        <div className="col-md-4 ml-auto ">
-                                                            <div className="input-group mr-2">
-                                                                <div className="form-outline">
-                                                                    <input
-                                                                        type="search"
-                                                                        id="form1"
-                                                                        className="form-control"
-                                                                        placeholder="Recherche"
-                                                                        style={{ height: "38px", width: "250px" }}
-                                                                        value={searchTerm}
-                                                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                                                    />
-                                                                </div>
-                                                                <div style={{ background: "rgb(202, 200, 200)", padding: "3px", height: "37px", borderRadius: "2px" }}>
-                                                                    <img src={recherche} alt="" height="30px" width="30px" />
-                                                                </div>
+                                            </div>
+                                            <div className="card-body ">
+                                                <div className="row">
+                                                    <div className="col-md-4">
+                                                        <button className='btn btn-app p-1' onClick={handleExport}>
+                                                            <img src={excel} alt="" width="25px" /><br />Exporter
+                                                        </button>
+                                                    </div>
+                                                    <div className="col-md-4 ml-auto ">
+                                                        <div className="input-group mr-2">
+                                                            <div className="form-outline">
+                                                                <input
+                                                                    type="search"
+                                                                    id="form1"
+                                                                    className="form-control"
+                                                                    placeholder="Recherche"
+                                                                    style={{ height: "38px", width: "250px" }}
+                                                                    value={searchTerm}
+                                                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                                                />
+                                                            </div>
+                                                            <div style={{ background: "rgb(202, 200, 200)", padding: "3px", height: "37px", borderRadius: "2px" }}>
+                                                                <img src={recherche} alt="" height="30px" width="30px" />
                                                             </div>
                                                         </div>
                                                     </div>
+                                                </div>
 
-                                                    <p>Liste des heures  supplémentaire</p>
-                                                    <table id="example2" className="table table-bordered">
-                                                        <thead>
-                                                            <tr>
-                                                                <th>Id</th>
-                                                                <th>Nom</th>
-                                                                <th>Taux</th>
-                                                                <th>École Principale</th>
-                                                                <th>Action</th>
+                                                <p>Liste des heures  supplémentaire</p>
+                                                <table id="example2" className="table table-bordered table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Id</th>
+                                                            <th>Libellé </th>
+                                                            <th>Taux</th>
+                                                            <th>École Principale</th>
+                                                            <th>Action</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {currentItems.sort().reverse().map((item, index) => (
+                                                            <tr key={index}>
+                                                                <td>{index + 1}</td>
+                                                                <td>{item.nom}</td>
+                                                                <td>{item.taux}</td>
+                                                                <td>{item.EcolePrincipal.nomecole}</td>
+                                                                <td style={{ maxWidth: "25px" }}>
+                                                                    <div className="d-flex gap-2 ">
+                                                                        <button
+                                                                            className="btn btn-outline-success action-btn"
+                                                                            onClick={() => handleEdit(item)}>
+                                                                            <img src={edit} alt="" width="27px" title="Modifier" className="action-icon" />
+                                                                        </button>
+                                                                        <button
+                                                                            className="btn btn-outline-danger action-btn"
+                                                                            onClick={() => handleShow(item.id)}>
+                                                                            <img src={deletee} alt="" width="27px" title="Supprimer" className="action-icon" />
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
                                                             </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {currentItems.sort().reverse().map((item, index) => (
-                                                                <tr key={index}>
-                                                                    <td>{index+1}</td>
-                                                                    <td>{item.nom}</td>
-                                                                    <td>{item.taux}</td>
-                                                                    <td>{item.EcolePrincipal.nomecole}</td>
-                                                                    <td width="300px" className="text-center">
-                                                                        <a className="btn btn-outline-success p-2"
-                                                                            onClick={() => handleEdit(item)}
-                                                                        >
-                                                                            <img src={edit} alt="" width="27px" title="Modifier" />
-                                                                        </a>
-                                                                        &nbsp;&nbsp;&nbsp;&nbsp;
-                                                                        <a
-                                                                            className="btn btn-outline-warning p-2"
-                                                                            onClick={() => handleShow(item.id)}
-                                                                        >
-                                                                            <img src={deletee} alt="" width="27px" title="Supprimer" />
-                                                                        </a>
-                                                                    </td>
-                                                                </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </section>
-                        </div>
-                    </div>
-                    {/* Pagination */}
-                    <div className="pagination">
-                        <button
-                            className="btn btn-primary"
-                            onClick={() => handlePageChange(currentPage - 1)}
-                            disabled={currentPage === 1}
-                        >
-                            Précédent
-                        </button>
-                        {pageNumbers.map((number) => (
-                            <button
-                                key={number}
-                                className={`btn ${currentPage === number ? 'btn-info' : 'btn-light'}`}
-                                onClick={() => handlePageChange(number)}
-                            >
-                                {number}
-                            </button>
-                        ))}
-                        <button
-                            className="btn btn-primary"
-                            onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={currentPage === totalPages}
-                        >
-                            Suivant
-                        </button>
+                            </div>
+                        </section>
                     </div>
                 </div>
-
-                <Modal show={showDeleteModal} onHide={handleClose}>
-                    <Modal.Header closeButton>
-                        <Modal.Title>Confirmer la suppression</Modal.Title>
-                    </Modal.Header>
-                    <Modal.Body>
-                        <p>Êtes-vous sûr de vouloir supprimer ?</p>
-                    </Modal.Body>
-                    <Modal.Footer>
-                        <Button variant="secondary" onClick={handleClose}>
-                            Annuler
-                        </Button>
-                        <Button
-                            variant="danger"
-                            onClick={() => {
-                                ArchiverHS(demandeIdToDelete);
-                                handleClose();
-                            }}
+                {/* Pagination */}
+                <div className="pagination">
+                    <button
+                        className="btn btn-primary"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                    >
+                        Précédent
+                    </button>
+                    {pageNumbers.map((number) => (
+                        <button
+                            key={number}
+                            className={`btn ${currentPage === number ? 'btn-info' : 'btn-light'}`}
+                            onClick={() => handlePageChange(number)}
                         >
-                            Supprimer
-                        </Button>
-                    </Modal.Footer>
-                </Modal>
+                            {number}
+                        </button>
+                    ))}
+                    <button
+                        className="btn btn-primary"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                    >
+                        Suivant
+                    </button>
+                </div>
+            </div>
+
+            <Modal show={showDeleteModal} onHide={handleClose}>
+                <Modal.Header closeButton>
+                    <Modal.Title>Confirmer la suppression</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <p>Êtes-vous sûr de vouloir supprimer ?</p>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={handleClose}>
+                        Annuler
+                    </Button>
+                    <Button
+                        variant="danger"
+                        onClick={() => {
+                            ArchiverHS(demandeIdToDelete);
+                            handleClose();
+                        }}
+                    >
+                        Supprimer
+                    </Button>
+                </Modal.Footer>
+            </Modal>
 
             {/* </div> */}
         </>

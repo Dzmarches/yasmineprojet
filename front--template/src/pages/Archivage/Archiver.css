@@ -1,0 +1,11 @@
+.cardModule {
+  border: solid 2px #d5d5d3;
+  border-radius: 15px;
+ 
+}
+.cardModule:hover {
+  background-color: #4e73df;
+  color: white;
+  
+}
+

@@ -966,7 +966,7 @@ const EmploiDuTempsV2 = () => {
         }
     }, [cycle]);
 
-    
+
 
     // if (loading) return <div className="d-flex justify-content-center mt-5"><div className="spinner-border" role="status"></div></div>;
     // if (error) return <Alert variant="danger" className="mt-3">{error}</Alert>;
@@ -1466,8 +1466,9 @@ const EmploiDuTempsV2 = () => {
                                     <thead className="thead-light">
                                         <tr>
                                             <th>Matière</th>
-                                            <th>Durée totale (h/semaine)</th>
+                                            <th>Durée totale (min/semaine)</th>
                                             <th>Durée séance (min)</th>
+                                            <th>nombre séance</th>
                                             <th>Nb. séances/jour</th>
                                             <th>Préférence horaire</th>
                                         </tr>
@@ -1487,6 +1488,7 @@ const EmploiDuTempsV2 = () => {
                                                         min="0"
                                                         value={durees[item.id]?.duree || ''}
                                                         onChange={(e) => handleFieldChange(item.id, 'duree', e.target.value)}
+                                                        placeholder="Minutes/semaine"
                                                     />
                                                 </td>
                                                 <td>
@@ -1495,7 +1497,14 @@ const EmploiDuTempsV2 = () => {
                                                         min="0"
                                                         value={durees[item.id]?.dureeseance || ''}
                                                         onChange={(e) => handleFieldChange(item.id, 'dureeseance', e.target.value)}
+                                                        placeholder="Minutes/séance"
                                                     />
+                                                </td>
+                                                <td>
+                                                    {durees[item.id]?.duree && durees[item.id]?.dureeseance ?
+                                                        Math.ceil(durees[item.id].duree / durees[item.id].dureeseance) :
+                                                        '-'
+                                                    }
                                                 </td>
                                                 <td>
                                                     <Form.Control

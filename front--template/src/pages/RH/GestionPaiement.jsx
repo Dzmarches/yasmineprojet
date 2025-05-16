@@ -16,7 +16,6 @@ import stcc from '../../assets/imgs/paiementt.png'
 
 const GestionPaiement = () => {
     const styles = {
-  
         mainContainer: {
             padding: "20px",
             maxWidth: "1200px",

@@ -18,6 +18,8 @@ import UserEcole from '../../models/Admin/UserEcole.js';
 import EcolePrincipal from '../../models/EcolePrincipal.js'
 import Ecole from '../../models/Admin/Ecole.js';
 import Ecole_SEcole_Role from '../../models/Ecole_SEcole_Role.js';
+import JournalPaie from '../../models/RH/paie/JournalPaie.js';
+import CongeAbsence from '../../models/RH/congeAbsence.js';
 // Convertir l'URL du module en chemin de fichier
 const __filename = fileURLToPath(import.meta.url);
 // Obtenir le répertoire du fichier
@@ -120,7 +122,6 @@ export const AjouterEmploye = async (req, res) => {
     });
 
     // Créer un enregistrement pour l'élève
-    
     await Ecole_SEcole_Role.findOrCreate({
       where: {
         ecoleId: ecoleId,
@@ -135,8 +136,6 @@ export const AjouterEmploye = async (req, res) => {
     }); 
     
     // console.log("✅ Enregistrement Ecole_SEcole_Role vérifié/créé pour employe.");
-
-
     // console.log("newEploye", newEmploye)
     // console.log('avantposte', poste)
     // Création de l'enseignant
@@ -243,7 +242,6 @@ export const ListeEmploye = async (req, res) => {
   }
 };
 
-
 export const ProfileEmploye = async (req, res) => {
   try {
     const { id } = req.params;
@@ -254,9 +252,7 @@ export const ProfileEmploye = async (req, res) => {
         { model: Poste, attributes: ['poste'] },
         { model: Service, attributes: ['service'] },
         { model: Enseignant }
-
       ],
-
     });
     // console.log('profilEmploye', profilEmploye);
 
@@ -273,25 +269,26 @@ export const ProfileEmploye = async (req, res) => {
 export const ArchiverE = async (req, res) => {
   try {
     const { id } = req.params;
-
     const [updated] = await Employe.update(
       { archiver: 1 },
       { where: { id } }
     );
-
     if (updated) {
-      const updatedEmploye = await Employe.findByPk(id)
-        ;
-      // console.log(updatedEmploye);
+      const updatedEmploye = await Employe.findByPk(id);
+       const userId = updatedEmploye?.userId;
+       await JournalPaie.update( { archiver: 1},{ where: {idEmploye: id } });
+       await Pointage.update( { archiver: 1},{ where: {employe_id: id } });
+       await CongeAbsence.update( { archiver: 1},{ where: {employe_id: id } });
+       await User.update( { archiver: 1},{ where: {id:userId } });
+
       return res.status(200).json(updatedEmploye);
+
     } else {
       return res.status(404).json({ message: 'Employé non trouvé.' });
     }
   } catch (error) {
     console.error(error);
-
   }
-
 }
 
 export const ModifierEmploye = async (req, res) => {

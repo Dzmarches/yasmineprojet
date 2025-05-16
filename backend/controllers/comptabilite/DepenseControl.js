@@ -163,6 +163,7 @@ export const ListeD=async (req, res) => {
       if (file) {
       updatedData.fichier = `/depenses/${updatedData.code}/${file.filename}`;
     }
+    console.log('file',file)
     try {
       const [updated] = await Depense.update(updatedData, {
         where: { id }

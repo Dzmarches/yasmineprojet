@@ -75,8 +75,6 @@ const JournalPaie = () => {
         }
     };
 
-
-
     const fetchPeriodesPaie = async () => {
         try {
             const token = localStorage.getItem("token");
@@ -135,6 +133,7 @@ const JournalPaie = () => {
             (item.heuresSupOuvrable && item.heuresSupOuvrable.toString().includes(search)) ||
             (item.joursAbsence && item.joursAbsence.toString().includes(search)) ||
             (periodePaieString && periodePaieString.toLowerCase().includes(search)) ||
+            (item.Employe && item.Employe?.CE.toLowerCase().includes(search)) ||
             (item.date && item.date.toString().includes(search)) ||
             (
                 item.Employe?.declaration !== undefined &&
@@ -541,8 +540,9 @@ const JournalPaie = () => {
                                                         <thead>
                                                             <tr>
                                                                 {columnVisibility.id && <th>Id</th>}
-                                                                {columnVisibility.PeriodePaie && <th>Periode de paie</th>}
+                                                                <th>Periode Paie</th>
                                                                 {columnVisibility.Code_paie && <th>Code Periode de paie</th>}
+                                                                 <th>Code Employé</th>
                                                                 {columnVisibility.nom_prenom && <th>Nom et Prénom</th>}
                                                                 <th>Déclaration CNAS</th>
                                                                 <th>Actuellement employé</th>
@@ -576,6 +576,7 @@ const JournalPaie = () => {
                                                                             {new Date(item.PeriodePaie?.dateFin).toLocaleDateString('fr-FR', { month: 'long' }).toUpperCase()} </td>
                                                                     }
                                                                     {columnVisibility.Code_paie && <td>{item.PeriodePaie?.code}</td>}
+                                                                     <td>{item.Employe?.CE}</td>
                                                                     {columnVisibility.nom_prenom && <td>{item.nom_prenom}</td>}
                                                                     <td>{item.Employe.declaration==1?'Oui':'Non'}</td>
                                                                     <td>{item.Employe?.User?.statuscompte==='activer'?'Employé':'Non Employé'}</td>

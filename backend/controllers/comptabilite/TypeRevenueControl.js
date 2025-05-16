@@ -2,6 +2,7 @@ import EcolePrincipal from '../../models/EcolePrincipal.js';
 import TypeRevenue from '../../models/comptabilite/TypeRevenue.js';
 import Ecole from '../../models/Admin/Ecole.js';
 import  UserEcole  from '../../models/Admin/UserEcole.js';
+import Revenu from '../../models/comptabilite/Revenu.js';
 
 export const ListeTR=async (req, res) => {
   try {
@@ -88,7 +89,8 @@ export const FindTR=async (req, res) => {
         { archiver: 1 },
         { where: { id } }
       );
-  
+
+        await Revenu.update({ archiver: 1 }, { where: { typeId: id }});
       return res.status(200).json({ message: "archivée avec succès." });
     } catch (error) {
       console.error("❌ Erreur lors de l'archivage :", error);
@@ -106,10 +108,10 @@ export const FindTR=async (req, res) => {
         return res.status(400).json({ message: " le type est  obligatoire" });
       }
       // Vérifier si le identifiant est unique
-      // const existingtype= await TypeRevenue.findOne({ where: { type } });
-      // if (existingtype) {
-      //   return res.status(400).json({ message: "type existe déjà" });
-      // }
+      const existingtype= await TypeRevenue.findOne({ where: { type ,ecoleId,ecoleeId } });
+      if (existingtype) {
+        return res.status(400).json({ message: "type existe déjà" });
+      }
       const newTR = await TypeRevenue.create({
         type,remarque,ecoleId,ecoleeId
       });

@@ -22,12 +22,10 @@ const Typedepense = () => {
         type: "",
         remarque: "",
     });
-
     const styleRemarque={
         whiteSpace: "pre-wrap", /* Allows line breaks */
         wordWrap: "break-word", /* Handles long words */
-        maxWidth: "200px", /* Limits the width of the cell */
-    
+        maxWidth: "200px", /* Limits the width of the cell */ 
 }
     const [data, setData] = useState([]);
     const [demandeIdToDelete, setDemandeIdToDelete] = useState(null);
@@ -110,10 +108,7 @@ const Typedepense = () => {
                     },
                 });
                 alert('ajoutée avec succès');
-
-
             }
-
             setFormData({
                 type: "",
                 remarque: "",
@@ -123,7 +118,6 @@ const Typedepense = () => {
             setEditId(null);
             await ListeTR();
         } catch (error) {
-
             if (error.status === 400) {
                 alert(error.response.data.message)
 
@@ -131,7 +125,6 @@ const Typedepense = () => {
                 console.error("Erreur :", error);
                 alert("Une erreur est survenue !");
             }
-
         }
     };
 
@@ -165,15 +158,15 @@ const Typedepense = () => {
         });
     };
     const handleExport = () => {
-        const ws = XLSX.utils.json_to_sheet(data.map(item => ({
+        const ws = XLSX.utils.json_to_sheet(filteredData.map(item => ({
             "Type": item.type,
             "Remarque": item.remarque,
             "Ecole Principale": item.EcolePrincipal?.nomecole,
             "Ecole": item.Ecole?.nomecole,
         })));
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "heures supplémentaires");
-        XLSX.writeFile(wb, "heures_suplémentaires.xlsx");
+        XLSX.utils.book_append_sheet(wb, ws, "liste_TypeDepense");
+        XLSX.writeFile(wb, "liste_TypeDepense.xlsx");
     };
     //seartch
     const filteredData = data.filter(item => {
@@ -305,6 +298,8 @@ const Typedepense = () => {
                                                     </div>
 
                                                     <p>Liste des types de dépenses</p>
+                                                     <div  style={{ overflowX: 'auto', overflowY: 'hidden', scrollBehavior: 'smooth', }}>
+
                                                     <table id="example2" className="table table-bordered table-sm">
                                                         <thead>
                                                             <tr>
@@ -317,7 +312,7 @@ const Typedepense = () => {
                                                             </tr>
                                                         </thead>
                                                         <tbody>
-                                                            {currentItems.sort().reverse().map((item, index) => (
+                                                            {currentItems.map((item, index) => (
                                                                 <tr key={index}>
                                                                     <td width="1px">{index + 1}</td>
                                                                     <td>{item.type}</td>
@@ -331,7 +326,7 @@ const Typedepense = () => {
                                                                         </a>
                                                                         &nbsp;&nbsp;&nbsp;&nbsp;
                                                                         <a
-                                                                            className="btn btn-outline-warning p-2"
+                                                                            className="btn btn-outline-danger p-2"
                                                                             onClick={() => handleShow(item.id)}
                                                                         >
                                                                             <img src={deletee} alt="" width="20px" title="Supprimer" />
@@ -341,6 +336,7 @@ const Typedepense = () => {
                                                             ))}
                                                         </tbody>
                                                     </table>
+                                                </div>
                                                 </div>
                                             </div>
                                         </div>

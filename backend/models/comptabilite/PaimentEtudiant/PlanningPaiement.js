@@ -23,7 +23,7 @@ const PlanningPaiement= sequelize.define('PlanningPaiement', {
     allowNull: false,
   },  
   date_echeance: {
-    type: DataTypes.DATE,
+    type: DataTypes.DATEONLY,
     allowNull: false,
   },
   montant_echeance: {
@@ -40,10 +40,10 @@ const PlanningPaiement= sequelize.define('PlanningPaiement', {
     defaultValue: ('non payé')
   },
   date_paiement: {
-    type: DataTypes.DATE,
+    type: DataTypes.DATEONLY,
     allowNull: true,
   },
-mode_paiement: {
+  mode_paiement: {
     type: DataTypes.STRING,
     allowNull: true,
   },
@@ -51,7 +51,21 @@ mode_paiement: {
     type: DataTypes.INTEGER,
     allowNull: true,
   },
-  archiver: {
+  dateRappel: {
+    type: DataTypes.DATEONLY,
+    allowNull: true,
+    defaultValue:null,
+  },
+    dureRappel: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue:null,
+  },
+  rappel_envoye: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+},
+ archiver: {
     type: DataTypes.INTEGER,
     defaultValue: 0,
   },

@@ -10,6 +10,7 @@ import Employe from '../../models/RH/employe.js';
 import User from '../../models/User.js';
 import Section from '../../models/Admin/Section.js';
 import Niveaux from '../../models/Admin/Niveaux.js';
+import Cyclescolaires from '../../models/CycleScolaire.js';
 
 // Fonction utilitaire pour calculer la durée d'une période en heures
 function calculerDureePeriode(debut, fin) {
@@ -22,6 +23,7 @@ function calculerDureePeriode(debut, fin) {
 export const getEmploiDuTempsEnseignant = async (req, res) => {
     try {
         const enseignantId = req.params.enseignantId;
+        const { anneeScolaireId } = req.query;
         
         // Vérifier si l'enseignant existe
         const enseignant = await Enseignant.findByPk(enseignantId);
@@ -29,9 +31,36 @@ export const getEmploiDuTempsEnseignant = async (req, res) => {
             return res.status(404).json({ message: "Enseignant non trouvé" });
         }
 
-        // Récupérer l'emploi du temps avec les associations
+        // 1. Récupérer tous les niveaux et sections de l'enseignant
+        const niveauxEnseignant = await EnseignantClasse.findAll({
+            where: { enseignantId },
+            attributes: ['niveauId'],
+            group: ['niveauId'],
+            include: [
+                {
+                    model: Niveaux,
+                    attributes: ['id', 'nomniveau']
+                }
+            ]
+        });
+
+        const sectionsEnseignant = await EnseignantClasse.findAll({
+            where: { enseignantId },
+            attributes: ['classeId'],
+            group: ['classeId'],
+            include: [
+                {
+                    model: Section,
+                    attributes: ['id', 'classe', 'classearab']
+                }
+            ]
+        });
+
+        // 2. Récupérer l'emploi du temps pour toutes ces sections
         const emploiDuTemps = await EmploiDuTemps.findAll({
-            where: { enseignantId: enseignantId },
+            where: { 
+                enseignantId
+            },
             include: [
                 {
                     model: Matiere,
@@ -52,26 +81,26 @@ export const getEmploiDuTempsEnseignant = async (req, res) => {
             ]
         });
 
-        // Organiser les données par jour pour une meilleure présentation
+        // Organiser les données par jour et par heure
         const emploiOrganise = {};
         const jours = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi'];
 
-        // Initialiser la structure
         jours.forEach(jour => {
-            emploiOrganise[jour] = [];
+            emploiOrganise[jour] = {};
         });
 
-        // Remplir avec les données
         emploiDuTemps.forEach(cours => {
             if (emploiOrganise[cours.jour]) {
-                emploiOrganise[cours.jour].push({
+                if (!emploiOrganise[cours.jour][cours.heure]) {
+                    emploiOrganise[cours.jour][cours.heure] = [];
+                }
+                
+                emploiOrganise[cours.jour][cours.heure].push({
                     id: cours.id,
-                    heure: cours.heure,
                     duree: cours.duree,
                     matiere: {
                         id: cours.Matiere.id,
-                        nom: cours.Matiere.nom,
-                        code: cours.Matiere.code
+                        nom: cours.Matiere.nom
                     },
                     section: {
                         id: cours.Section.id,
@@ -86,8 +115,12 @@ export const getEmploiDuTempsEnseignant = async (req, res) => {
                 });
             }
         });
-        console.log('emploi du temps ', emploiOrganise);
-        res.status(200).json(emploiOrganise);
+
+        res.status(200).json({
+            emploiDuTemps: emploiOrganise,
+            niveaux: niveauxEnseignant.map(n => n.Niveaux),
+            sections: sectionsEnseignant.map(s => s.Section)
+        });
     } catch (error) {
         console.error("Erreur lors de la récupération de l'emploi du temps:", error);
         res.status(500).json({ 
@@ -325,13 +358,33 @@ export const genererEmploiAuto = async (req, res) => {
     const { niveauId, sectionId } = req.body;
 
     try {
-        // 1. Récupérer toutes les données nécessaires
+        // 1. Récupérer les données de base
+        const niveau = await Niveaux.findByPk(niveauId);
+        if (!niveau) {
+            return res.status(404).json({ message: "Niveau non trouvé" });
+        }
+
+        const section = await Section.findByPk(sectionId);
+        if (!section) {
+            return res.status(404).json({ message: "Section non trouvée" });
+        }
+
+        // 2. Trouver le cycle associé
+        const cycle = await Cyclescolaires.findOne({
+            where: { nomCycle: niveau.cycle }
+        });
+        if (!cycle) {
+            return res.status(404).json({ message: `Cycle ${niveau.cycle} non trouvé` });
+        }
+
+        // 3. Récupérer toutes les données nécessaires
         const [matieres, enseignantsClasse, periodes, enseignants] = await Promise.all([
             NiveauxMatieres.findAll({
                 where: { niveauId },
-                include: [
-                    { model: Matiere, attributes: ['id', 'nom', 'nomarabe'] }
-                ],
+                include: [{ 
+                    model: Matiere, 
+                    attributes: ['id', 'nom', 'nomarabe'] 
+                }],
                 attributes: ['id', 'duree', 'dureeseance', 'nombreseanceparjour', 'preference', 'matiereId']
             }),
             EnseignantClasse.findAll({
@@ -342,7 +395,7 @@ export const genererEmploiAuto = async (req, res) => {
                 ]
             }),
             Periode.findAll({
-                where: { niveauId, sectionId },
+                where: { cycleId: cycle.id },
                 order: [['type', 'ASC']]
             }),
             Enseignant.findAll({
@@ -356,8 +409,7 @@ export const genererEmploiAuto = async (req, res) => {
         ]);
 
         console.log('=== DONNEES RECUPEREES ===');
-        console.log('Matières:', matieres.map(m => `${m.Matiere.nom} (${m.duree}h, ${m.dureeseance}min)`));
-        // console.log('Enseignants:', enseignants.map(e => `${e.nom} ${e.prenom}`));
+        console.log('Matières:', matieres.map(m => `${m.Matiere.nom} (${m.duree}min, ${m.dureeseance}min)`));
         console.log('Périodes:', periodes.map(p => `${p.type}: ${p.heureDebut}-${p.heureFin}`));
 
         // 2. Préparer les créneaux horaires
@@ -369,6 +421,11 @@ export const genererEmploiAuto = async (req, res) => {
             creneauxParJour[jour] = periodes.flatMap(p => {
                 // Exclure la période de déjeuner
                 if (p.type === 'dejeuner') return [];
+
+                // Pour le cycle Primaire, exclure les créneaux du mardi après-midi
+                if (niveau.cycle === 'Primaire' && jour === 'mardi' && p.type === 'apres_midi') {
+                    return [];
+                }
 
                 const sousPeriodes = p.sousPeriodes ? JSON.parse(p.sousPeriodes) : [];
 
@@ -399,7 +456,7 @@ export const genererEmploiAuto = async (req, res) => {
 
         // 3. Préparer les matières avec leurs enseignants
         const matieresAPlanifier = matieres.map(matiere => {
-            const dureeTotale = (matiere.duree || 0) * 60; // Convertir en minutes
+            const dureeTotale = matiere.duree || 0;
             const dureeSeance = matiere.dureeseance || 0;
 
             if (!dureeTotale || !dureeSeance) {
@@ -437,8 +494,7 @@ export const genererEmploiAuto = async (req, res) => {
             priorite: m.priorite
         })));
 
-        // 4. Algorithme de planification amélioré
-        // 4. Algorithme de planification amélioré
+        // 4. Algorithme de planification
         const emploiGenere = [];
         let matieresNonPlanifiees = [];
 
@@ -446,15 +502,13 @@ export const genererEmploiAuto = async (req, res) => {
         const matieresTriees = [...matieresAPlanifier].sort((a, b) => b.priorite - a.priorite);
 
         // Mélanger les jours pour une répartition plus aléatoire
-        // const joursMelanges = [...joursValides].sort(() => Math.random() - 0.5);
         const joursMelanges = [...joursValides].sort(() => Math.random() - 0.5);
 
         for (const matiere of matieresTriees) {
             let dureeRestante = matiere.dureeTotale;
             let tentatives = 0;
-            const maxTentatives = joursValides.length * 5; // Augmenter le nombre de tentatives
+            const maxTentatives = joursValides.length * 5;
             
-            // Essayer de répartir sur tous les jours
             while (dureeRestante > 0 && tentatives < maxTentatives) {
                 // Choisir un jour aléatoire
                 const jourIndex = Math.floor(Math.random() * joursValides.length);
@@ -465,7 +519,7 @@ export const genererEmploiAuto = async (req, res) => {
                     const dispoJour = matiere.enseignantDisponibilites[jour];
                     if (dispoJour?.disponible === false) {
                         tentatives++;
-                        continue; // Passer au jour suivant si l'enseignant n'est pas disponible
+                        continue;
                     }
                 }
         
