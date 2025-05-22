@@ -30,6 +30,10 @@ const Fournisseur = db.define('Fournisseur', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  magasin: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   archiver: { 
     type: DataTypes.INTEGER,
     defaultValue: 0, 

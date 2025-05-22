@@ -54,9 +54,19 @@ import categorieIcon from '../assets/imgs/categories.png';
 import note from '../assets/imgs/note.png';
 
 import absencee from '../assets/imgs/absence.png';
-import jf from '../assets/imgs/jf.png';
+import jf from '../assets/imgs/timetable (2).png';
 import paieEtudiant from '../assets/imgs/paieEtudiant.png';
 import archives from '../assets/imgs/archive.png';
+import Elearning from '../assets/imgs/elearning.png';
+import chat from '../assets/imgs/chat.png';
+import site from '../assets/imgs/www.png';
+import web from '../assets/imgs/web.png';
+import mail from '../assets/imgs/mail.png';
+import sms from '../assets/imgs/chat (1).png';
+import pedagogique from '../assets/imgs/supplies.png';
+import restauration from '../assets/imgs/groceries.png';
+import divers from '../assets/imgs/shopping-cart (1).png';
+
 import Can from '../can';
 import axios from 'axios';
 
@@ -287,13 +297,12 @@ const Home = () => {
                   </div>
                 </div>
               </Can>
-
               {/* Gestion Académique Section */}
               <Can permission="Academique-Voir">
                 <div className="col-12 col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.6s">
                   <div className="team-item">
                     <div className="team-img">
-                      <img src={Annee} className="img-fluid" alt="Gestion Académique" />
+                      <img src={Annee} className="img-fluid" alt="Gestion Académique" width={90} />
                     </div>
                     <div className="team-title">
                       <p className="mb-0">Gestion Académique</p>
@@ -426,46 +435,6 @@ const Home = () => {
                   </div>
                 </div>
               </Can>
-              {/* Paramètre Section */}
-              <Can permission="Parametre-Voir">
-                <div className="col-12 col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.8s">
-                  <div className="team-item">
-                    <div className="team-img">
-                      <img src={settings} className="img-fluid" alt="" />
-                    </div>
-                    <div className="team-title">
-                      <p className="mb-0">Paramètre</p>
-                      <div className="team-icon">
-                        <Can permission="Parametre-Gestion écoles-Voir">
-                          <span className="info-box-icon elevation-1">
-                            <Link to="/ecoles"><img src={schooll} alt="" title='Gestion Ecole ' /></Link>
-                          </span>
-                        </Can>
-                        <span className="info-box-icon elevation-1">
-                          <Link to="/listeUser"><img src={privilege} alt="" title='Gestion utilisateurs & permission ' /></Link>
-                        </span>
-
-                        <span className="info-box-icon elevation-1">
-                          <Link to="/documents"><img src={attestation} alt="" title='Gestion Documents' /></Link>
-                        </span>
-                      </div>
-                      <div className='row'>
-                        <div className="team-icon">
-                          <span className="info-box-icon elevation-1">
-                            <Link to="/"><img src={chart} alt="" title='Gestion Parents ' /></Link>
-                          </span>
-                          <span className="info-box-icon elevation-1">
-                            <Link to="/joursferies"><img src={jf} alt="" title='Jours Feriés' /></Link>
-                          </span>
-                          <span className="info-box-icon elevation-1">
-                            <Link to="/archives"><img src={archives} alt="" title='Archives' /></Link>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Can>
 
               {/* Section spécifique pour les enseignants */}
               <CanPoste poste={poste} requiredPoste="Enseignant" permission="Parametre-Voir">
@@ -530,7 +499,138 @@ const Home = () => {
               </CanPoste>
               {/* fin de section de l'enseignant */}
 
+              {/* gestion magasin */}
+              <Can permission="Cantine scolaire-Voir">
+                <div className="col-12 col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.2s">
+                  <div className="team-item">
+                    <div className="team-img">
+                      <img src={stock} className="img-fluid" alt="" width={70} />
+                    </div>
+                    <div className="team-title">
+                      <p className="mb-0">Gestion Des Magasin</p>
+                      <div className="row">
+                        <div className="team-icon">
+                          <span className="info-box-icon elevation-1">
+                            <Link to="/magasinpedagogique"><img width="100px" src={pedagogique} alt="" title='Magasin pédagogique ' /></Link>
+                          </span>
+                          <span className="info-box-icon elevation-1">
+                            <Link to="/magasinrestauration"><img width="100px" src={restauration} alt="" title='Magasin de réstauration ' /></Link>
+                          </span>
+                          <span className="info-box-icon elevation-1">
+                            <Link to="/magasindivers"><img width="100px" src={divers} alt="" title="Magasin divers " /></Link>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Can>
+              {/* Paramètre Section */}
+              <Can permission="Parametre-Voir">
+                <div className="col-12 col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.8s">
+                  <div className="team-item">
+                    <div className="team-img">
+                      <img src={settings} className="img-fluid" alt="" width={85}/>
+                    </div>
+                    <div className="team-title">
+                      <p className="mb-0">Paramètre</p>
+                      <div className="team-icon">
+                        <Can permission="Parametre-Gestion écoles-Voir">
+                          <span className="info-box-icon elevation-1">
+                            <Link to="/ecoles"><img src={schooll} alt="" title='Gestion Ecole ' /></Link>
+                          </span>
+                        </Can>
+                        <span className="info-box-icon elevation-1">
+                          <Link to="/listeUser"><img src={privilege} alt="" title='Gestion utilisateurs & permission ' /></Link>
+                        </span>
 
+                        <span className="info-box-icon elevation-1">
+                          <Link to="/documents"><img src={attestation} alt="" title='Gestion Documents' /></Link>
+                        </span>
+                      </div>
+                      <div className='row'>
+                        <div className="team-icon">
+                          <span className="info-box-icon elevation-1">
+                            <Link to="/"><img src={chart} alt="" title='Gestion Parents ' /></Link>
+                          </span>
+                          <span className="info-box-icon elevation-1">
+                            <Link to="/joursferies"><img src={jf} alt="" title='Jours Feriés' /></Link>
+                          </span>
+                          <span className="info-box-icon elevation-1">
+                            <Link to="/archives"><img src={archives} alt="" title='Archives' /></Link>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Can>
+              {/* Communication */}
+              <Can permission="Cantine scolaire-Voir">
+                <div className="col-12 col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.2s">
+                  <div className="team-item">
+                    <div className="team-img">
+                      <img src={chat} className="img-fluid" alt="" width={70} />
+                    </div>
+                    <div className="team-title">
+                      <p className="mb-0">Communication</p>
+                      <div className="row">
+                        <div className="team-icon">
+                          <span className="info-box-icon elevation-1">
+                            <Link to="/communication"><img width="100px" src={mail} alt="" title='Cantine Scolaire ' /></Link>
+                          </span>
+                          <span className="info-box-icon elevation-1">
+                            <Link to="/gestionstock"><img width="100px" src={sms} alt="" title='Gestion du stock ' /></Link>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Can>
+              {/* Elearning */}
+              <Can permission="Cantine scolaire-Voir">
+                <div className="col-12 col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.2s">
+                  <div className="team-item">
+                    <div className="team-img">
+                      <img src={Elearning} className="img-fluid" alt="" width={80} />
+                    </div>
+                    <div className="team-title">
+                      <p className="mb-0">Elearning</p>
+                      <div className="row">
+                        <div className="team-icon">
+                          <span className="info-box-icon elevation-1">
+                            <Link to="/"><img width="100px" src={menu} alt="" title='Cantine Scolaire ' /></Link>
+                          </span>
+                          <span className="info-box-icon elevation-1">
+                            <Link to="/gestionstock"><img width="100px" src={stock} alt="" title='Gestion du stock ' /></Link>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Can>
+              {/* Site */}
+              <Can permission="Cantine scolaire-Voir">
+                <div className="col-12 col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.2s">
+                  <div className="team-item">
+                    <div className="team-img">
+                      <img src={site} className="img-fluid" alt="" />
+                    </div>
+                    <div className="team-title">
+                      <p className="mb-0">Site</p>
+                      <div className="row">
+                        <div className="team-icon">
+                          <span className="info-box-icon elevation-1">
+                            <Link to="/"><img width="100px" src={web} alt="" title='Cantine Scolaire ' /></Link>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Can>
 
               {/* <Can permission="Parametre-Voir">
                 <div className="col-12 col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.8s">

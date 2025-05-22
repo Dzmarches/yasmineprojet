@@ -9,6 +9,7 @@ import router from "./routes/index.js";
 import PeriodeNote from "./models/Admin/periodenote.js";
 import Note from "./models/Admin/Note.js";
 import Event from './models/Event.js';
+import Sortie from "./models/Stocks/sortie.js";
 // import EcolePrincipal from "./models/EcolePrincipal.js";
 // import Ecole from "./models/Ecole.js";
 // import User from "./models/User.js";

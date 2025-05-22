@@ -3,12 +3,21 @@ import { DataTypes } from 'sequelize';
 import db from '../../config/Database.js';
 import Article from './Article.js';
 import Fournisseur from './Fournisseur.js'; // Assure-toi que ce modèle existe
+import Categorie from './Categorie.js';
 
 const Achat = db.define('Achat', {
     id: {
         type: DataTypes.INTEGER,
         autoIncrement: true,
         primaryKey: true,
+    },
+    categorieId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Categorie,
+            key: 'id'
+        }
     },
     articleId: {
         type: DataTypes.INTEGER,
@@ -18,6 +27,10 @@ const Achat = db.define('Achat', {
         type: DataTypes.INTEGER,
         allowNull: false,
     },
+    quantite: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+    },
     prix: {
         type: DataTypes.FLOAT,
         allowNull: false,
@@ -25,6 +38,10 @@ const Achat = db.define('Achat', {
     devise: {
         type: DataTypes.STRING(10),
         allowNull: true
+    },
+    th: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
     },
     tva: {
         type: DataTypes.FLOAT,
@@ -46,6 +63,10 @@ const Achat = db.define('Achat', {
         type: DataTypes.TEXT,
         allowNull: true,
     },
+    magasin: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
     archiver: { 
         type: DataTypes.INTEGER,
         defaultValue: 0, 
@@ -63,5 +84,8 @@ const Achat = db.define('Achat', {
 // Associations
 Achat.belongsTo(Article, { foreignKey: 'articleId' });
 Achat.belongsTo(Fournisseur, { foreignKey: 'fournisseurId' });
+
+Categorie.hasMany(Achat, { foreignKey: 'categorieId' });
+Achat.belongsTo(Categorie, { foreignKey: 'categorieId' });
 
 export default Achat;

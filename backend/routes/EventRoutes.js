@@ -1,5 +1,5 @@
 import express from 'express';
-import { getEvents, createEvent, deleteEvent } from '../controllers/EventController.js';
+import { getEvents, createEvent, deleteEvent, updateEvent } from '../controllers/EventController.js';
 
 const router = express.Router();
 
@@ -7,5 +7,6 @@ const router = express.Router();
 router.get('/', getEvents); // Récupérer tous les événements
 router.post('/', createEvent); // Créer un nouvel événement
 router.delete('/:id', deleteEvent); // Supprimer un événement
+router.put('/:id', updateEvent); // Mettre à jour un événement
 
 export default router;

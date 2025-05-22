@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
+
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import parentIcon from '../../assets/imgs/family.png';
 import { Modal, Button, Form } from 'react-bootstrap';
-
+import moment from 'moment';
 
 import { FaBookOpen as NotesIcon, FaCalendarAlt as EventNoteIcon, FaChild as PersonIcon, FaHome as HomeworkIcon, FaFileUpload as UploadIcon } from 'react-icons/fa';
+
 const ListeDeSesEnfants = () => {
     const [enfants, setEnfants] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -28,14 +30,45 @@ const ListeDeSesEnfants = () => {
     const [absenceReason, setAbsenceReason] = useState('');
 
     const [anneesScolaires, setAnneesScolaires] = useState([]);
+    const [contrats, setContrats] = useState([]);
     const [selectedAnnee, setSelectedAnnee] = useState(null);
     const [trimestres, setTrimestres] = useState([]);
     const [selectedTrimestre, setSelectedTrimestre] = useState(null);
     const [notes, setNotes] = useState([]);
     const [loadingNotes, setLoadingNotes] = useState(false);
     const [showNotesModal, setShowNotesModal] = useState(false);
+    const [LoadingContrats, setLoadingContrats] = useState(false);
+    const [showModalC, setShowModalC] = useState(false);
+    const [selectedContrat, setSelectedContrat] = useState(null);
+    const [Today, setToday] = useState('');
 
+    const handleShowModalC = (contrat) => {
+        setSelectedContrat(contrat);
+        setShowModalC(true);
+    };
+    const handleCloseModalC = () => {
+        setSelectedContrat(null);
+        setShowModalC(false);
+    };
 
+    const fetchContrats = async (enfantId) => {
+        try {
+            setLoadingContrats(true);
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`http://localhost:5000/contrat/listePaimentEleve/${enfantId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const { contrats, today } = response.data;
+            setContrats(contrats);
+            setToday(today);
+            setLoadingContrats(false);
+        } catch (error) {
+            console.error('Erreur lors de la récupération des contrats:',
+                error.response?.data || error.message);
+            setLoadingContrats(false);
+        }
+    };
     const fetchAnneesScolaires = async (enfantId) => {
         try {
             const token = localStorage.getItem('token');
@@ -75,12 +108,10 @@ const ListeDeSesEnfants = () => {
             setLoadingNotes(false);
         }
     };
-
     const handleAnneeClick = (annee) => {
         setSelectedAnnee(annee);
         fetchTrimestres(selectedEnfant.id, annee.id);
     };
-
     const handleTrimestreClick = (trimestre) => {
         setSelectedTrimestre(trimestre);
         fetchNotes(selectedEnfant.id, trimestre.trimestId);
@@ -103,12 +134,11 @@ const ListeDeSesEnfants = () => {
 
             // Charger les présences de l'enfant
             await fetchPresences(enfantId);
+            await fetchContrats(enfantId);
         } catch (error) {
             console.error('Erreur lors de la récupération des détails de l\'enfant:', error);
         }
     };
-
-
     const isWithin7Days = (dateString) => {
         const date = new Date(dateString);
         const today = new Date();
@@ -205,7 +235,6 @@ const ListeDeSesEnfants = () => {
             setLoadingDevoirs(false);
         }
     };
-
     // const handleEnfantClick = async (enfantId) => {
     //     try {
     //         const token = localStorage.getItem('token');
@@ -222,8 +251,6 @@ const ListeDeSesEnfants = () => {
     //         console.error('Erreur lors de la récupération des détails de l\'enfant:', error);
     //     }
     // };
-
-
     const fetchPresences = async (enfantId) => {
         try {
             setLoadingPresences(true);
@@ -238,7 +265,6 @@ const ListeDeSesEnfants = () => {
             setLoadingPresences(false);
         }
     };
-
     // const handleEnfantClick = async (enfantId) => {
     //     try {
     //         const token = localStorage.getItem('token');
@@ -258,7 +284,6 @@ const ListeDeSesEnfants = () => {
     //         console.error('Erreur lors de la récupération des détails de l\'enfant:', error);
     //     }
     // };
-
     const handleJustify = (presence) => {
         setSelectedPresence(presence);
         setShowJustifyModal(true);
@@ -296,11 +321,9 @@ const ListeDeSesEnfants = () => {
             alert('Erreur lors de l\'envoi de la justification');
         }
     };
-
     const downloadJustification = (filename) => {
         window.open(`http://localhost:5000/${filename}`, '_blank');
     };
-
     const getColumnsByCycle = (cycle) => {
         switch (cycle) {
             case 'Primaire':
@@ -385,13 +408,12 @@ const ListeDeSesEnfants = () => {
             { id: 'remarque_math', label: 'Remarque' }
         ];
     };
-
     const NoteTable = ({ notes, columns }) => {
         const flattenedColumns = columns.flatMap(col =>
             col.subColumns ? col.subColumns : [col]
         );
-
         return (
+
             <div className="table-responsive" style={{ marginBottom: '20px' }}>
                 <table className="table table-striped">
                     <thead style={{ backgroundColor: '#2c3e50', color: 'white' }}>
@@ -420,22 +442,21 @@ const ListeDeSesEnfants = () => {
             </div>
         );
     };
-
     const steps = [
         { label: 'Informations', icon: <PersonIcon /> },
         { label: 'Notes', icon: <NotesIcon /> },
         { label: 'Absences', icon: <EventNoteIcon /> },
-        { label: 'Devoirs', icon: <HomeworkIcon /> } // Nouveau step
+        { label: 'Devoirs', icon: <HomeworkIcon /> },
+        { label: 'Paiement Droits Scolarité', icon: <HomeworkIcon /> },
     ];
-
     return (
         <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
             <nav style={{ marginBottom: '20px' }}>
                 <Link to="/dashboard" style={{ color: '#007bff', textDecoration: 'none' }}>Accueil</Link>
                 <span> / </span>
                 <span>Mes enfants</span>
-            </nav>
 
+            </nav>
             <div className="card card-primary card-outline">
                 <div className="card-header d-flex" style={{ backgroundColor: '#F8F8F8' }}>
                     <img src={parentIcon} alt="" width="90px" />
@@ -443,7 +464,6 @@ const ListeDeSesEnfants = () => {
                         Mes Enfants
                     </p>
                 </div>
-
                 {loading ? (
                     <p style={{ textAlign: 'center' }}>Chargement...</p>
                 ) : enfants.length === 0 ? (
@@ -473,306 +493,369 @@ const ListeDeSesEnfants = () => {
                                 </div>
                             ))}
                         </div>
-
-                        <div className="enfant-details">
-                            {/* Stepper */}
-
-
-                            {selectedEnfant && (
-                                <div>
-                                    <div className="stepper-container">
-                                        {steps.map((step, index) => (
-                                            <div
-                                                key={index}
-                                                onClick={() => setActiveStep(index)}
-                                                className={`stepper-step ${activeStep === index ? 'active' : ''}`}
-                                            >
-                                                <div className="icon">{step.icon}</div>
-                                                <div>{step.label}</div>
-                                            </div>
-                                        ))}
+                    </>
+                )}
+            </div>
+            <div className="card card-primary card-outline">
+                <div className="card card-header">
+                    {/* Stepper */}
+                    {selectedEnfant && (
+                        <div>
+                            <div className="stepper-container">
+                                {steps.map((step, index) => (
+                                    <div
+                                        key={index}
+                                        onClick={() => setActiveStep(index)}
+                                        className={`stepper-step ${activeStep === index ? 'active' : ''}`}
+                                    >
+                                        <div className="icon">{step.icon}</div>
+                                        <div>{step.label}</div>
                                     </div>
+                                ))}
+                            </div>
 
-                                    {/* Step content */}
-                                    {activeStep === 0 && (
-                                        <div>
-                                            <h3>Informations de {selectedEnfant.prenom}</h3>
-                                            <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                                                <img
-                                                    src={`http://localhost:5000${selectedEnfant.photo}`}
-                                                    alt="profil"
-                                                    style={{ width: '80px', height: '80px', borderRadius: '50%' }}
-                                                />
-                                                <div>
-                                                    <p><strong>Nom complet:</strong> {selectedEnfant.prenom} {selectedEnfant.nom}</p>
-                                                    <p><strong>Date de naissance:</strong> {new Date(selectedEnfant.datenaiss).toLocaleDateString()}</p>
-                                                    <p><strong>Classe:</strong> {selectedEnfant.classe}</p>
-                                                    <p><strong>Niveau:</strong> {selectedEnfant.niveau}</p>
-                                                    <p><strong>Groupe sanguin:</strong> {selectedEnfant.groupeSanguin || 'Non spécifié'}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
+                        </div>
+                    )}
+                </div>
+                {/* Step content */}
+                {activeStep === 0 && selectedEnfant &&(
+                    <div>
+                        <h3>Informations de {selectedEnfant.prenom}</h3>
+                        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                            <img
+                                src={`http://localhost:5000${selectedEnfant.photo}`}
+                                alt="profil"
+                                style={{ width: '80px', height: '80px', borderRadius: '50%' }}
+                            />
+                            <div>
+                                <p><strong>Nom complet:</strong> {selectedEnfant.prenom} {selectedEnfant.nom}</p>
+                                <p><strong>Date de naissance:</strong> {new Date(selectedEnfant.datenaiss).toLocaleDateString()}</p>
+                                <p><strong>Classe:</strong> {selectedEnfant.classe}</p>
+                                <p><strong>Niveau:</strong> {selectedEnfant.niveau}</p>
+                                <p><strong>Groupe sanguin:</strong> {selectedEnfant.groupeSanguin || 'Non spécifié'}</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {activeStep === 1 && selectedEnfant &&(
+                    <div>
+                        <h3>Notes de {selectedEnfant.prenom}</h3>
 
-                                    {activeStep === 1 && (
-                                        <div>
-                                            <h3>Notes de {selectedEnfant.prenom}</h3>
+                        {anneesScolaires.length === 0 ? (
+                            <div className="alert alert-info">
+                                Aucune année scolaire trouvée.
+                            </div>
+                        ) : (
+                            <div>
+                                <h4>Années scolaires</h4>
+                                <div className="d-flex flex-wrap gap-2 mb-4">
+                                    {anneesScolaires.map(annee => (
+                                        <button
+                                            key={annee.id}
+                                            className={`btn ${selectedAnnee?.id === annee.id ? 'btn-primary' : 'btn-outline-primary'}`}
+                                            onClick={() => handleAnneeClick(annee)}
+                                            style={{ margin: '5px' }}
+                                        >
+                                            {new Date(annee.datedebut).getFullYear()} - {new Date(annee.datefin).getFullYear()}
+                                        </button>
+                                    ))}
 
-                                            {anneesScolaires.length === 0 ? (
-                                                <div className="alert alert-info">
-                                                    Aucune année scolaire trouvée.
-                                                </div>
-                                            ) : (
-                                                <div>
-                                                    <h4>Années scolaires</h4>
-                                                    <div className="d-flex flex-wrap gap-2 mb-4">
-                                                        {anneesScolaires.map(annee => (
-                                                            <button
-                                                                key={annee.id}
-                                                                className={`btn ${selectedAnnee?.id === annee.id ? 'btn-primary' : 'btn-outline-primary'}`}
-                                                                onClick={() => handleAnneeClick(annee)}
-                                                                style={{ margin: '5px' }}
-                                                            >
-                                                                {new Date(annee.datedebut).getFullYear()} - {new Date(annee.datefin).getFullYear()}
-                                                            </button>
-                                                        ))}
-
-                                                    </div>
-
-                                                    {selectedAnnee && trimestres.length > 0 && (
-                                                        <div>
-                                                            <h4 style={{ marginTop: '20px' }}>Trimestres</h4>
-                                                            <div className="d-flex flex-wrap gap-2">
-                                                                {trimestres.map(trimestre => {
-                                                                    const moyenne = trimestre.moyenne;
-                                                                    const moyenneFormatee = typeof moyenne === 'number'
-                                                                        ? moyenne.toFixed(2)
-                                                                        : (typeof moyenne === 'string' && !isNaN(parseFloat(moyenne)))
-                                                                            ? parseFloat(moyenne).toFixed(2)
-                                                                            : 'N/A';
-
-                                                                    return (
-                                                                        <button
-                                                                            key={trimestre.id}
-                                                                            className={`btn ${selectedTrimestre?.id === trimestre.id ? 'btn-success' : 'btn-outline-success'}`}
-                                                                            onClick={() => handleTrimestreClick(trimestre)}
-                                                                            style={{ minWidth: '200px', position: 'relative' }}
-                                                                            disabled={!trimestre.status} // Désactiver si non publié
-                                                                        >
-                                                                            <div>{trimestre.Trimest.titre}</div>
-                                                                            <div>Moyenne: {moyenneFormatee}</div>
-                                                                            {!trimestre.status && (
-                                                                                <small className="text-muted">(Non publié)</small>
-                                                                            )}
-                                                                            {trimestre.status && (
-                                                                                <small className="text-success">(Publié)</small>
-                                                                            )}
-                                                                        </button>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {activeStep === 2 && (
-                                        <div>
-                                            <div className="d-flex justify-content-between mb-3">
-                                                <h3>Absences et retards de {selectedEnfant.prenom}</h3>
-                                                <Button
-                                                    variant="warning"
-                                                    onClick={() => setShowReportAbsenceModal(true)}
-                                                >
-                                                    <i className="fas fa-calendar-times mr-2"></i>
-                                                    Signaler une absence prévue
-                                                </Button>
-                                            </div>
-
-                                            {loadingPresences ? (
-                                                <div className="text-center my-4">
-                                                    <div className="spinner-border text-primary" role="status">
-                                                        <span className="sr-only">Chargement...</span>
-                                                    </div>
-                                                    <p>Chargement des absences...</p>
-                                                </div>
-                                            ) : presences.length === 0 ? (
-                                                <div className="alert alert-info">
-                                                    Aucune absence ou retard enregistré pour le moment.
-                                                </div>
-                                            ) : (
-                                                <div className="table-responsive">
-                                                    <table className="table table-striped table-hover">
-                                                        <thead className="thead-light">
-                                                            <tr>
-                                                                <th>Date</th>
-                                                                <th>Matin</th>
-                                                                <th>Après-midi</th>
-                                                                <th>Justification</th>
-                                                                <th>Actions</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {presences.map((presence) => (
-                                                                <tr key={presence.id}>
-                                                                    <td>
-                                                                        {new Date(presence.date).toLocaleDateString('fr-FR', {
-                                                                            day: '2-digit',
-                                                                            month: '2-digit',
-                                                                            year: 'numeric'
-                                                                        })}
-                                                                    </td>
-                                                                    <td>
-                                                                        <span className={`badge ${presence.matin === 'present' ? 'badge-success' :
-                                                                            presence.matin === 'retard' ? 'badge-warning' : 'badge-danger'
-                                                                            }`}>
-                                                                            {presence.matin}
-                                                                        </span>
-                                                                        {presence.justificationMatin && (
-                                                                            <span className="ml-2 text-success">
-                                                                                <i className="fas fa-check-circle"></i>
-                                                                            </span>
-                                                                        )}
-                                                                    </td>
-                                                                    <td>
-                                                                        <span className={`badge ${presence.apres_midi === 'present' ? 'badge-success' :
-                                                                            presence.apres_midi === 'retard' ? 'badge-warning' : 'badge-danger'
-                                                                            }`}>
-                                                                            {presence.apres_midi}
-                                                                        </span>
-                                                                        {presence.justificationApresMidi && (
-                                                                            <span className="ml-2 text-success">
-                                                                                <i className="fas fa-check-circle"></i>
-                                                                            </span>
-                                                                        )}
-                                                                    </td>
-                                                                    <td>
-                                                                        {/* Justification matin */}
-                                                                        {presence.justificationTextMatin && (
-                                                                            <div className="mb-1">
-                                                                                <i className="fas fa-comment-alt mr-1"></i>
-                                                                                {presence.justificationTextMatin}
-                                                                            </div>
-                                                                        )}
-
-                                                                        {/* Justification après-midi */}
-                                                                        {presence.justificationTextApresMidi && (
-                                                                            <div className="mb-1">
-                                                                                <i className="fas fa-comment-alt mr-1"></i>
-                                                                                {presence.justificationTextApresMidi}
-                                                                            </div>
-                                                                        )}
-
-                                                                        {/* Fichier de justification matin */}
-                                                                        {presence.fichierJustificationMatin && presence.justificationMatin === 'justifié' && (
-                                                                            <div>
-                                                                                <button
-                                                                                    onClick={() => downloadJustification(presence.fichierJustificationMatin)}
-                                                                                    className="btn btn-sm btn-link p-0"
-                                                                                >
-                                                                                    <i className="fas fa-file-download mr-1"></i>
-                                                                                    Voir fichier (matin)
-                                                                                </button>
-                                                                            </div>
-                                                                        )}
-
-                                                                        {/* Fichier de justification après-midi */}
-                                                                        {presence.fichierJustificationApresMidi && presence.justificationApresMidi === 'justifié' && (
-                                                                            <div>
-                                                                                <button
-                                                                                    onClick={() => downloadJustification(presence.fichierJustificationApresMidi)}
-                                                                                    className="btn btn-sm btn-link p-0"
-                                                                                >
-                                                                                    <i className="fas fa-file-download mr-1"></i>
-                                                                                    Voir fichier (après-midi)
-                                                                                </button>
-                                                                            </div>
-                                                                        )}
-                                                                    </td>
-                                                                    <td>
-                                                                        {isWithin7Days(presence.date) ? (
-                                                                            <button
-                                                                                onClick={() => handleJustify(presence)}
-                                                                                className="btn btn-primary btn-sm"
-                                                                            >
-                                                                                <i className="fas fa-edit"></i> Justifier
-                                                                            </button>
-                                                                        ) : (
-                                                                            <span className="text-muted">Délai expiré</span>
-                                                                        )}
-                                                                    </td>
-                                                                </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {activeStep === 3 && (
-                                        <div>
-                                            <h3>Devoirs de {selectedEnfant.prenom}</h3>
-
-                                            {loadingDevoirs ? (
-                                                <div className="text-center my-4">
-                                                    <div className="spinner-border text-primary" role="status">
-                                                        <span className="sr-only">Chargement...</span>
-                                                    </div>
-                                                    <p>Chargement des devoirs...</p>
-                                                </div>
-                                            ) : devoirs.length === 0 ? (
-                                                <div className="alert alert-info">
-                                                    Aucun devoir trouvé pour le moment.
-                                                </div>
-                                            ) : (
-                                                <div className="table-responsive">
-                                                    <table className="table table-striped table-hover">
-                                                        <thead className="thead-light">
-                                                            <tr>
-                                                                <th>Matière</th>
-                                                                <th>Titre</th>
-                                                                <th>Description</th>
-                                                                <th>Date limite</th>
-                                                                <th>Actions</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {devoirs.map((devoir) => (
-                                                                <tr key={devoir.id}>
-                                                                    <td>{devoir.Matiere?.nom}</td>
-                                                                    <td>{devoir.titre}</td>
-                                                                    <td>{devoir.description || 'Aucune description'}</td>
-                                                                    <td>
-                                                                        {new Date(devoir.dateLimite).toLocaleDateString('fr-FR', {
-                                                                            day: '2-digit',
-                                                                            month: '2-digit',
-                                                                            year: 'numeric'
-                                                                        })}
-                                                                    </td>
-                                                                    <td>
-                                                                        <button
-                                                                            onClick={() => downloadDevoir(devoir.fichier)}
-                                                                            className="btn btn-primary btn-sm"
-                                                                        >
-                                                                            <i className="fas fa-download mr-1"></i> Télécharger
-                                                                        </button>
-                                                                    </td>
-                                                                </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
                                 </div>
-                            )}
+
+                                {selectedAnnee && trimestres.length > 0 && (
+                                    <div>
+                                        <h4 style={{ marginTop: '20px' }}>Trimestres</h4>
+                                        <div className="d-flex flex-wrap gap-2">
+                                            {trimestres.map(trimestre => {
+                                                const moyenne = trimestre.moyenne;
+                                                const moyenneFormatee = typeof moyenne === 'number'
+                                                    ? moyenne.toFixed(2)
+                                                    : (typeof moyenne === 'string' && !isNaN(parseFloat(moyenne)))
+                                                        ? parseFloat(moyenne).toFixed(2)
+                                                        : 'N/A';
+
+                                                return (
+                                                    <button
+                                                        key={trimestre.id}
+                                                        className={`btn ${selectedTrimestre?.id === trimestre.id ? 'btn-success' : 'btn-outline-success'}`}
+                                                        onClick={() => handleTrimestreClick(trimestre)}
+                                                        style={{ minWidth: '200px', position: 'relative' }}
+                                                        disabled={!trimestre.status} // Désactiver si non publié
+                                                    >
+                                                        <div>{trimestre.Trimest.titre}</div>
+                                                        <div>Moyenne: {moyenneFormatee}</div>
+                                                        {!trimestre.status && (
+                                                            <small className="text-muted">(Non publié)</small>
+                                                        )}
+                                                        {trimestre.status && (
+                                                            <small className="text-success">(Publié)</small>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {activeStep === 2 && selectedEnfant &&(
+                    <div>
+                        <div className="d-flex justify-content-between mb-3">
+                            <h3>Absences et retards de {selectedEnfant.prenom}</h3>
+                            <Button
+                                variant="warning"
+                                onClick={() => setShowReportAbsenceModal(true)}
+                            >
+                                <i className="fas fa-calendar-times mr-2"></i>
+                                Signaler une absence prévue
+                            </Button>
                         </div>
 
-                    </>
+                        {loadingPresences ? (
+                            <div className="text-center my-4">
+                                <div className="spinner-border text-primary" role="status">
+                                    <span className="sr-only">Chargement...</span>
+                                </div>
+                                <p>Chargement des absences...</p>
+                            </div>
+                        ) : presences.length === 0 ? (
+                            <div className="alert alert-info">
+                                Aucune absence ou retard enregistré pour le moment.
+                            </div>
+                        ) : (
+                            <div className="table-responsive">
+                                <table className="table table-striped table-hover">
+                                    <thead className="thead-light">
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Matin</th>
+                                            <th>Après-midi</th>
+                                            <th>Justification</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {presences.map((presence) => (
+                                            <tr key={presence.id}>
+                                                <td>
+                                                    {new Date(presence.date).toLocaleDateString('fr-FR', {
+                                                        day: '2-digit',
+                                                        month: '2-digit',
+                                                        year: 'numeric'
+                                                    })}
+                                                </td>
+                                                <td>
+                                                    <span className={`badge ${presence.matin === 'present' ? 'badge-success' :
+                                                        presence.matin === 'retard' ? 'badge-warning' : 'badge-danger'
+                                                        }`}>
+                                                        {presence.matin}
+                                                    </span>
+                                                    {presence.justificationMatin && (
+                                                        <span className="ml-2 text-success">
+                                                            <i className="fas fa-check-circle"></i>
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td>
+                                                    <span className={`badge ${presence.apres_midi === 'present' ? 'badge-success' :
+                                                        presence.apres_midi === 'retard' ? 'badge-warning' : 'badge-danger'
+                                                        }`}>
+                                                        {presence.apres_midi}
+                                                    </span>
+                                                    {presence.justificationApresMidi && (
+                                                        <span className="ml-2 text-success">
+                                                            <i className="fas fa-check-circle"></i>
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td>
+                                                    {/* Justification matin */}
+                                                    {presence.justificationTextMatin && (
+                                                        <div className="mb-1">
+                                                            <i className="fas fa-comment-alt mr-1"></i>
+                                                            {presence.justificationTextMatin}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Justification après-midi */}
+                                                    {presence.justificationTextApresMidi && (
+                                                        <div className="mb-1">
+                                                            <i className="fas fa-comment-alt mr-1"></i>
+                                                            {presence.justificationTextApresMidi}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Fichier de justification matin */}
+                                                    {presence.fichierJustificationMatin && presence.justificationMatin === 'justifié' && (
+                                                        <div>
+                                                            <button
+                                                                onClick={() => downloadJustification(presence.fichierJustificationMatin)}
+                                                                className="btn btn-sm btn-link p-0"
+                                                            >
+                                                                <i className="fas fa-file-download mr-1"></i>
+                                                                Voir fichier (matin)
+                                                            </button>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Fichier de justification après-midi */}
+                                                    {presence.fichierJustificationApresMidi && presence.justificationApresMidi === 'justifié' && (
+                                                        <div>
+                                                            <button
+                                                                onClick={() => downloadJustification(presence.fichierJustificationApresMidi)}
+                                                                className="btn btn-sm btn-link p-0"
+                                                            >
+                                                                <i className="fas fa-file-download mr-1"></i>
+                                                                Voir fichier (après-midi)
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td>
+                                                    {isWithin7Days(presence.date) ? (
+                                                        <button
+                                                            onClick={() => handleJustify(presence)}
+                                                            className="btn btn-primary btn-sm"
+                                                        >
+                                                            <i className="fas fa-edit"></i> Justifier
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-muted">Délai expiré</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                )}
+                {activeStep === 3 && selectedEnfant &&(
+                    <div>
+                        <h3>Devoirs de {selectedEnfant.prenom}</h3>
+                        {loadingDevoirs ? (
+                            <div className="text-center my-4">
+                                <div className="spinner-border text-primary" role="status">
+                                    <span className="sr-only">Chargement...</span>
+                                </div>
+                                <p>Chargement des devoirs...</p>
+                            </div>
+                        ) : devoirs.length === 0 ? (
+                            <div className="alert alert-info">
+                                Aucun devoir trouvé pour le moment.
+                            </div>
+                        ) : (
+                            <div className="table-responsive">
+                                <table className="table table-striped table-hover">
+                                    <thead className="thead-light">
+                                        <tr>
+                                            <th>Matière</th>
+                                            <th>Titre</th>
+                                            <th>Description</th>
+                                            <th>Date limite</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {devoirs.map((devoir) => (
+                                            <tr key={devoir.id}>
+                                                <td>{devoir.Matiere?.nom}</td>
+                                                <td>{devoir.titre}</td>
+                                                <td>{devoir.description || 'Aucune description'}</td>
+                                                <td>
+                                                    {new Date(devoir.dateLimite).toLocaleDateString('fr-FR', {
+                                                        day: '2-digit',
+                                                        month: '2-digit',
+                                                        year: 'numeric'
+                                                    })}
+                                                </td>
+                                                <td>
+                                                    <button
+                                                        onClick={() => downloadDevoir(devoir.fichier)}
+                                                        className="btn btn-primary btn-sm"
+                                                    >
+                                                        <i className="fas fa-download mr-1"></i> Télécharger
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                )}
+                {activeStep === 4 && selectedEnfant &&(
+                    <div>
+                        <h3>Paiement Droits Scolarité {selectedEnfant.prenom}</h3>
+                        {LoadingContrats ? (
+                            <div className="text-center my-4">
+                                <div className="spinner-border text-primary" role="status">
+                                    <span className="sr-only">Chargement...</span>
+                                </div>
+                                <p>Chargement des devoirs...</p>
+                            </div>
+                        ) : contrats.length === 0 ? (
+                            <div className="alert alert-info">
+                                Aucun Contrat trouvé pour le moment.
+                            </div>
+                        ) : (
+                            <div className="table-responsive">
+                                <table className="table table-striped table-hover">
+                                    <thead className="thead-light">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Eléve</th>
+                                            <th>Code</th>
+                                            <th>Niveau <br />Année Scolaire</th>
+                                            <th>Num Inscription</th>
+                                            <th>Debut Paiement</th>
+                                            <th>Fin Paiement</th>
+                                            <th>Type Paiement</th>
+                                            <th>Total a payer</th>
+                                            <th>Frais d'inscription	</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {contrats.map((contrat, index) => (
+                                            <tr key={index}>
+                                                <td>{index + 1}</td>
+                                                <td>{contrat.Eleve?.User?.nom}<br />{contrat.Eleve?.User?.prenom}</td>
+                                                <td>{contrat.code}</td>
+                                                <td>{contrat.Eleve?.Niveaux?.nomniveau} <br />
+                                                    {contrat.Anneescolaire?.datedebut && contrat.Anneescolaire?.datefin ? (
+                                                        `${moment(contrat.Anneescolaire.datedebut).format('YYYY')}/
+                                                                        ${moment(contrat.Anneescolaire.datefin).format('YYYY')}`
+                                                    ) : (
+                                                        ""
+                                                    )}
+                                                </td>
+                                                <td>{contrat.Eleve?.numinscription}</td>
+                                                <td>{contrat.date_debut_paiement ? moment(contrat.date_debut_paiement).format("DD-MM-YYYY") : ""}</td>
+                                                <td>{contrat.date_sortie ? moment(contrat.date_sortie).format("DD-MM-YYYY") : '-'}</td>
+                                                <td>{contrat.typePaiment}</td>
+                                                <td>{contrat.totalApayer}</td>
+                                                <td>{contrat.Eleve?.fraixinscription}</td>
+                                                <td>
+                                                    <button
+                                                        className="btn btn-sm btn-info"
+                                                        onClick={() => handleShowModalC(contrat)}
+                                                    >
+                                                        Voir échéances
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
                 )}
             </div>
             <Modal show={showJustifyModal} onHide={() => setShowJustifyModal(false)}>
@@ -956,6 +1039,98 @@ const ListeDeSesEnfants = () => {
                 </Modal.Body>
                 <Modal.Footer style={{ backgroundColor: '#f8f9fa', borderTop: '1px solid #dee2e6' }}>
                     <Button variant="secondary" onClick={() => setShowNotesModal(false)} style={{ borderRadius: '4px', padding: '6px 12px' }}>
+                        Fermer
+                    </Button>
+                </Modal.Footer>
+            </Modal>
+            {/* Modal des échéances */}
+            <Modal show={showModalC} onHide={handleCloseModalC} size="lg" centered>
+                <Modal.Header closeButton>
+                    <Modal.Title>Échéances du contrat : {selectedContrat?.code}
+
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    {/* Légende des couleurs */}
+                    <div style={{
+                        display: 'flex',
+                        marginTop: '5px',
+                        marginBottom: '16px',
+                        marginRight: '35px',
+                        gap: '12px',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        fontFamily: 'Arial, sans-serif',
+                    }}>
+                        <div style={{ backgroundColor: '#A9DFBF', padding: '3px 10px', borderRadius: '15px', minWidth: '150px' }}>
+                            🟢 Payé
+                        </div>
+                        <div style={{ backgroundColor: '#F5B7B1', padding: '3px 10px', borderRadius: '15px', minWidth: '150px' }}>
+                            🔴 Retard &gt; 7 jours
+                        </div>
+                        <div style={{ backgroundColor: '#FAD7A0', padding: '3px 10px', borderRadius: '15px', minWidth: '150px' }}>
+                            🟠 Retard ≤ 7 jours
+                        </div>
+                        <div style={{ backgroundColor: '#FCF3CF', padding: '3px 10px', borderRadius: '15px', minWidth: '150px' }}>
+                            🟡 À venir ≤ 7 jours
+                        </div>
+                    </div>
+
+                    {selectedContrat?.PlanningPaiements?.length > 0 ? (
+                        <table className="table table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Code Échéance</th>
+                                    <th>Date Échéance</th>
+                                    <th>Montant</th>
+                                    <th>Montant Restant</th>
+                                    <th>État Paiement</th>
+                                    <th>Date Paiement</th>
+                                    <th>Mode Paiement</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {selectedContrat?.PlanningPaiements.map((pp) => {
+
+                                    const due = moment(pp.date_echeance).startOf('day');
+                                    const daysDiff = due.diff(Today, 'days');
+                                    let rowClass = '';
+                                    if (pp.etat_paiement === 'payé') {
+                                        rowClass = 'row-paid';
+                                    } else if (daysDiff < -7) {
+                                        rowClass = 'row-overdue';
+                                    } else if (daysDiff < 0) {
+                                        rowClass = 'row-orange';
+                                    } else if (daysDiff <= 7) {
+                                        rowClass = 'row-soon';
+                                    }
+                                    return (
+                                        <tr key={pp.id} className={rowClass}>
+                                            <td>{pp.codePP}</td>
+                                            <td>{pp.date_echeance ? moment(pp.date_echeance).format('DD-MM-YYYY') : ''}</td>
+                                            <td>{pp.montant_echeance}</td>
+                                            <td>{pp.montant_restant}</td>
+                                            <td>
+                                                <span className={`
+                                                 badge ${pp.etat_paiement === 'payé' ?
+                                                        'badge-success' : 'badge-danger'
+                                                    }`}>
+                                                    {pp.etat_paiement}
+                                                </span>
+                                            </td>
+                                            <td>{pp.date_paiement}</td>
+                                            <td>{pp.mode_paiement} </td>
+                                        </tr>
+                                    )
+                                })}
+                            </tbody>
+                        </table>
+                    ) : (
+                        <p>Aucune échéance disponible pour ce contrat.</p>
+                    )}
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={handleCloseModalC}>
                         Fermer
                     </Button>
                 </Modal.Footer>

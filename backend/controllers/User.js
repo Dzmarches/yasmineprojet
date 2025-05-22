@@ -380,9 +380,17 @@ export const Login = async (req, res) => {
       ecoleeId,
       roles,
       roleIds,
-      redirectTo: roles.includes("Administrateur")
-        ? "/dashboardadministrateur"
-        : "/dashboard",
+      redirectTo: roles.includes("Elève")
+        ? "/elevesinterface"
+        : roles.includes("Parent")
+          ? "/listeenfants"
+          : roles.includes("Administrateur")
+            ? "/dashboardadministrateur"
+            : "/dashboard",
+
+      // redirectTo: roles.includes("Administrateur")
+      //   ? "/dashboardadministrateur"
+      //   : "/dashboard",
     });
 
   } catch (error) {

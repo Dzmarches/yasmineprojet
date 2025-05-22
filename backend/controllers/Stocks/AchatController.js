@@ -2,45 +2,61 @@ import Achat from '../../models/Stocks/Achat.js';
 import EcoleAchat from '../../models/Stocks/EcoleAchat.js';
 import Article from '../../models/Stocks/Article.js';
 import Fournisseur from '../../models/Stocks/Fournisseur.js';
+import Categorie from '../../models/Stocks/Categorie.js';
 
 export const getAchats = async (req, res) => {
     try {
-        const ecoleId = req.user.ecoleId;
-        const ecoleeId = req.user.ecoleeId;
-        const roles = req.user.roles;
+        const { ecoleId, ecoleeId, roles } = req.user;
+        const { magasin } = req.query;
 
         const isAdminPrincipal = roles.includes('AdminPrincipal');
         const isAdmin = roles.includes('Admin');
 
-        let achats;
+        let whereClause = {
+            archiver: 0,
+            ...(magasin && { magasin }) // ✅ filtre magasin si présent
+        };
 
+        let achats;
         if (isAdminPrincipal) {
             achats = await Achat.findAll({
-                include: [
-                    {
-                        model: Article,
-                        attributes: ['libelle']
-                    },
-                    {
-                        model: Fournisseur,
-                        attributes: ['nom']
-                    }
-                ],
-                where: { archiver: 0 }
+                include: [{
+                    model: EcoleAchat,
+                    where: { ecoleId }
+                },
+                {
+                    model: Article,
+                    attributes: ['libelle']
+                },
+                {
+                    model: Fournisseur,
+                    attributes: ['nom']
+                },
+                {
+                    model: Categorie,
+                    attributes: ['libelle']
+                }],
+                where: whereClause
             });
         } else if (isAdmin) {
             achats = await Achat.findAll({
-                include: [
-                    {
-                        model: Article,
-                        attributes: ['libelle']
-                    },
-                    {
-                        model: Fournisseur,
-                        attributes: ['nom']
-                    }
-                ],
-                where: { archiver: 0 }
+                include: [{
+                    model: EcoleAchat,
+                    where: { ecoleeId }
+                },
+                {
+                    model: Article,
+                    attributes: ['libelle']
+                },
+                {
+                    model: Fournisseur,
+                    attributes: ['nom']
+                },
+                {
+                    model: Categorie,
+                    attributes: ['libelle']
+                }],
+                where: whereClause
             });
         } else {
             return res.status(403).json({ error: 'Accès non autorisé' });
@@ -53,17 +69,22 @@ export const getAchats = async (req, res) => {
     }
 };
 
+
 export const createAchat = async (req, res) => {
     const {
         articleId,
         fournisseurId,
+        categorieId,
+        quantite,
         prix,
         devise,
+        th,
         tva,
         unite,
         date_achat,
         date_peremption,
         description,
+        magasin,
         ecoleId,
         ecoleeId
     } = req.body;
@@ -72,14 +93,18 @@ export const createAchat = async (req, res) => {
         const achat = await Achat.create({
             articleId,
             fournisseurId,
+            categorieId,
+            quantite,
             prix,
             devise,
+            th,
             tva,
             unite,
             date_achat,
             date_peremption,
             description,
-            date_creation: new Date()
+            magasin,
+            archiver: 0 // valeur par défaut si non fournie
         });
 
         const associationData = {
@@ -91,7 +116,7 @@ export const createAchat = async (req, res) => {
 
         await EcoleAchat.create(associationData);
 
-        res.status(201).json({ message: 'Achat créé avec succès' });
+        res.status(201).json({ message: '✅ Achat créé avec succès' });
     } catch (error) {
         console.error('❌ Erreur création achat :', error);
         res.status(500).json({ error: 'Erreur serveur' });
@@ -101,32 +126,49 @@ export const createAchat = async (req, res) => {
 export const updateAchat = async (req, res) => {
     const { id } = req.params;
     const {
+        categorieId,
+        articleId,
+        fournisseurId,
+        quantite,
         prix,
         devise,
+        th,
         tva,
         unite,
+        date_achat,
         date_peremption,
-        description
+        description,
+        magasin,
+        archiver
     } = req.body;
 
     try {
         await Achat.update({
+            categorieId,
+            articleId,
+            fournisseurId,
+            quantite,
             prix,
             devise,
+            th,
             tva,
             unite,
+            date_achat,
             date_peremption,
-            description
+            description,
+            magasin,
+            archiver
         }, {
             where: { id }
         });
 
-        res.json({ message: 'Achat mis à jour' });
+        res.json({ message: '✅ Achat mis à jour avec succès' });
     } catch (error) {
         console.error('❌ Erreur update achat :', error);
         res.status(500).json({ error: 'Erreur serveur' });
     }
 };
+
 
 export const deleteAchat = async (req, res) => {
     const { id } = req.params;

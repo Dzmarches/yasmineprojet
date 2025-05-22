@@ -61,6 +61,8 @@ import Fournisseur from './Stocks/Fournisseur.js';
 import EcoleFournisseur from './Stocks/EcoleFournisseur.js';
 import Achat from './Stocks/Achat.js';
 import EcoleAchat from './Stocks/EcoleAchat.js';
+import Sortie from './Stocks/sortie.js';
+import EcoleSortie from './Stocks/EcoleSortie.js';
 
 
 
@@ -316,6 +318,19 @@ Ecole.hasMany(EcoleAchat, { foreignKey: "ecoleeId" });
 EcoleAchat.belongsTo(Ecole, { foreignKey: "ecoleeId" });
 EcolePrincipal.hasMany(EcoleAchat, { foreignKey: "ecoleId" });
 EcoleAchat.belongsTo(EcolePrincipal, { foreignKey: "ecoleId" });
+
+
+Ecole.belongsToMany(Sortie, { through: EcoleSortie, foreignKey: "ecoleeId" });
+Sortie.belongsToMany(Ecole, { through: EcoleSortie, foreignKey: "sortieId" });
+EcolePrincipal.belongsToMany(Sortie, { through: EcoleSortie, foreignKey: "ecoleId" });
+Sortie.belongsToMany(EcolePrincipal, { through: EcoleSortie, foreignKey: "sortieId" });
+// Relations directes pour accéder à la table de jointure
+Sortie.hasMany(EcoleSortie, { foreignKey: "sortieId" });
+EcoleSortie.belongsTo(Sortie, { foreignKey: "sortieId" });
+Ecole.hasMany(EcoleSortie, { foreignKey: "ecoleeId" });
+EcoleSortie.belongsTo(Ecole, { foreignKey: "ecoleeId" });
+EcolePrincipal.hasMany(EcoleSortie, { foreignKey: "ecoleId" });
+EcoleSortie.belongsTo(EcolePrincipal, { foreignKey: "ecoleId" });
 
 
 //service et poste :

@@ -16,7 +16,7 @@ const Article = db.define('Article', {
         type: DataTypes.STRING,
         allowNull: false
     },
-    magasinier: {
+    magasin: {
         type: DataTypes.STRING,
         allowNull: false
     },
@@ -32,13 +32,19 @@ const Article = db.define('Article', {
             key: 'id'
         }
     },
-    actif: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: true
-    },
     date_creation: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW
+    },
+    archiver: { 
+        type: DataTypes.INTEGER,
+        defaultValue: 0, 
+        validate: {
+          isIn: {
+            args: [[0, 1, 2]], 
+            msg: "La valeur de 'archiver' doit être 0, 1 ou 2."
+          }
+        }
     }
 }, {
     timestamps: false,

@@ -6,9 +6,15 @@ export const getCategories = async (req, res) => {
         const ecoleId = req.user.ecoleId;
         const ecoleeId = req.user.ecoleeId;
         const roles = req.user.roles;
+        const { magasin } = req.query;
 
         const isAdminPrincipal = roles.includes('AdminPrincipal');
         const isAdmin = roles.includes('Admin');
+
+        let whereClause = { 
+            archiver: 0,
+            ...(magasin && { magasin }) // Ajouter le filtre magasin si présent
+        };
 
         let categories;
 
@@ -18,7 +24,7 @@ export const getCategories = async (req, res) => {
                     model: EcoleCategorie,
                     where: { ecoleId }
                 }],
-                where: { actif: true }
+                where: whereClause
             });
         } else if (isAdmin) {
             categories = await Categorie.findAll({
@@ -26,7 +32,7 @@ export const getCategories = async (req, res) => {
                     model: EcoleCategorie,
                     where: { ecoleeId }
                 }],
-                where: { actif: true }
+                where: whereClause
             });
         } else {
             return res.status(403).json({ error: 'Accès non autorisé' });
@@ -40,13 +46,14 @@ export const getCategories = async (req, res) => {
 };
 
 export const createCategorie = async (req, res) => {
-    const { code_categorie, libelle, description, ecoleId, ecoleeId } = req.body;
+    const { code_categorie, libelle, description, magasin, ecoleId, ecoleeId } = req.body;
 
     try {
         const categorie = await Categorie.create({
             code_categorie,
             libelle,
             description,
+            magasin,
             date_creation: new Date()
         });
 
@@ -54,7 +61,6 @@ export const createCategorie = async (req, res) => {
             categorieId: categorie.id,
         };
 
-        // Ajoute seulement si c'est défini et non 'null' (string)
         if (ecoleId && ecoleId !== 'null') associationData.ecoleId = ecoleId;
         if (ecoleeId && ecoleeId !== 'null') associationData.ecoleeId = ecoleeId;
 
@@ -67,15 +73,15 @@ export const createCategorie = async (req, res) => {
     }
 };
 
-
 export const updateCategorie = async (req, res) => {
     const { id } = req.params;
-    const { libelle, description } = req.body;
+    const { libelle, description, magasin } = req.body;
 
     try {
         await Categorie.update({
             libelle,
             description,
+            magasin,
             date_modification: new Date()
         }, {
             where: { id }
@@ -92,7 +98,7 @@ export const deleteCategorie = async (req, res) => {
     const { id } = req.params;
 
     try {
-        await Categorie.update({ actif: false }, { where: { id } });
+        await Categorie.update({ archiver: 1 }, { where: { id } });
         res.json({ message: 'Catégorie archivée' });
     } catch (error) {
         console.error('❌ Erreur suppression :', error);

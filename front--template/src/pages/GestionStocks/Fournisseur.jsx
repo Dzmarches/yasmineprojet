@@ -18,7 +18,7 @@ const GestionFournisseur = () => {
     });
     const [isEdit, setIsEdit] = useState(false);
     const [selectedId, setSelectedId] = useState(null);
-    const [showModal, setShowModal] = useState(false);
+    const [showModalFournisseur, setShowModalFournisseur] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
@@ -57,39 +57,40 @@ const GestionFournisseur = () => {
 
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentItems = filteredFournisseurs.slice(indexOfFirstItem, indexOfLastItem);
+    const currentItemsFournisseur = filteredFournisseurs.slice(indexOfFirstItem, indexOfLastItem);
     const totalPages = Math.ceil(filteredFournisseurs.length / itemsPerPage);
 
     useEffect(() => {
         setCurrentPage(1);
     }, [searchTerm]);
 
-    const handleShowModal = () => {
-        setShowModal(true);
+    const handleShowModalFournisseur = () => {
+        setShowModalFournisseur(true);
         setValues({
             nom: '',
             contact: '',
             email: '',
             adresse: '',
-            telephone: ''
+            telephone: '',
         });
         setIsEdit(false);
     };
 
-    const handleEdit = (fournisseur) => {
+    const handleEditForunisseur = (fournisseur) => {
         setValues({
             nom: fournisseur.nom,
             contact: fournisseur.contact,
             email: fournisseur.email,
             adresse: fournisseur.adresse,
-            telephone: fournisseur.telephone
+            telephone: fournisseur.telephone,
+            magasin: fournisseur.magasin
         });
         setSelectedId(fournisseur.id);
-        setShowModal(true);
+        setShowModalFournisseur(true);
         setIsEdit(true);
     };
 
-    const handleDelete = async (id) => {
+    const handleDeleteFournisseur = async (id) => {
         const token = localStorage.getItem('token');
         if (!window.confirm('Confirmer l\'archivage du fournisseur ?')) return;
         try {
@@ -108,7 +109,7 @@ const GestionFournisseur = () => {
         }
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmitFournisseur = async (e) => {
         e.preventDefault();
         setIsLoading(true);
         const token = localStorage.getItem('token');
@@ -120,30 +121,36 @@ const GestionFournisseur = () => {
         }
 
         try {
+            const fournisseurData = {
+                ...values,
+                magasin: values.magasin || 'pédagogique'
+            };
+        
             if (isEdit) {
-                await axios.put(`http://localhost:5000/fournisseur/${selectedId}`, values, {
+                await axios.put(`http://localhost:5000/fournisseur/${selectedId}`, fournisseurData, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
                 });
                 setSuccess('Fournisseur modifié');
             } else {
-                await axios.post('http://localhost:5000/fournisseur', values, {
+                await axios.post('http://localhost:5000/fournisseur', fournisseurData, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
                 });
                 setSuccess('Fournisseur ajouté');
             }
-
-            setShowModal(false);
+        
+            setShowModalFournisseur(false);
             fetchFournisseurs();
             setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
             console.error(err);
             setError('Erreur lors de l\'enregistrement');
             setTimeout(() => setError(''), 3000);
-        } finally {
+        }
+         finally {
             setIsLoading(false);
         }
     };
@@ -177,7 +184,7 @@ const GestionFournisseur = () => {
                     {success && <div className="alert alert-success">{success}</div>}
 
                     <div className="d-flex align-items-center gap-3 mb-3">
-                        <button className="btn btn-app p-1" onClick={handleShowModal}>
+                        <button className="btn btn-app p-1" onClick={handleShowModalFournisseur}>
                             <img src={add} alt="" width="30px" /><br />
                             Ajouter
                         </button>
@@ -206,7 +213,7 @@ const GestionFournisseur = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {currentItems.map((fournisseur) => (
+                                {currentItemsFournisseur.map((fournisseur) => (
                                     <tr key={fournisseur.id}>
                                         <td>{fournisseur.nom}</td>
                                         <td>{fournisseur.contact}</td>
@@ -214,10 +221,10 @@ const GestionFournisseur = () => {
                                         <td>{fournisseur.telephone}</td>
                                         <td>{fournisseur.adresse}</td>
                                         <td>
-                                            <button onClick={() => handleEdit(fournisseur)} className="btn btn-outline-success">
+                                            <button onClick={() => handleEditForunisseur(fournisseur)} className="btn btn-outline-success">
                                                 <img src={edite} alt="Modifier" width="20px" />
                                             </button>
-                                            <button onClick={() => handleDelete(fournisseur.id)} className="btn btn-outline-danger">
+                                            <button onClick={() => handleDeleteFournisseur(fournisseur.id)} className="btn btn-outline-danger">
                                                 <img src={delet} alt="Archiver" width="20px" />
                                             </button>
                                         </td>
@@ -257,13 +264,13 @@ const GestionFournisseur = () => {
             </div>
 
             {/* Modal */}
-            <div className={`modal fade ${showModal ? 'show' : ''}`} style={{ display: showModal ? 'block' : 'none' }} tabIndex="-1" role="dialog">
+            <div className={`modal fade ${showModalFournisseur ? 'show' : ''}`} style={{ display: showModalFournisseur ? 'block' : 'none' }} tabIndex="-1" role="dialog">
                 <div className="modal-dialog modal-lg modal-custom" role="document">
                     <div className="modal-content modal-custom-content">
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={handleSubmitFournisseur}>
                             <div className="modal-header">
                                 <h5 className="modal-title">{isEdit ? 'Modifier un Fournisseur' : 'Ajouter un Fournisseur'}</h5>
-                                <button type="button" className="close" onClick={() => setShowModal(false)}>
+                                <button type="button" className="close" onClick={() => setShowModalFournisseur(false)}>
                                     <span>&times;</span>
                                 </button>
                             </div>
@@ -336,7 +343,7 @@ const GestionFournisseur = () => {
                                     type="button"
                                     className="btn btn-secondary"
                                     style={{ borderRadius: '50px', padding: '8px 20px' }}
-                                    onClick={() => setShowModal(false)}
+                                    onClick={() => setShowModalFournisseur(false)}
                                 >
                                     Fermer
                                 </button>

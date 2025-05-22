@@ -31,7 +31,6 @@ router.get('/mes-enfants', getEnfantsByParent);
 // Route protégée pour récupérer les détails d'un enfant spécifique
 router.get('/enfant/:eleveId', getEnfantDetails);
 
-
 // Dans votre fichier de routes parent
 router.get('/enfant/:enfantId/devoirs', async (req, res) => {
     try {
@@ -211,7 +210,6 @@ router.post('/presences/:id/justifier', upload.single('fichier'), async (req, re
         res.status(500).json({ message: "Erreur serveur" });
     }
 });
-
 // Dans le routeur parent
 router.post('/presences/:enfantId/absences', async (req, res) => {
     try {
@@ -248,4 +246,5 @@ router.get('/enfant/:eleveId/annee/:anneeId/trimestres', getTrimestresByAnnee);
 
 // Récupérer les notes détaillées pour un trimestre
 router.get('/enfant/:eleveId/trimestre/:trimestreId/notes', getNotesByTrimestre);
+
 export default router;

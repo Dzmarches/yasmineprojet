@@ -1,6 +1,6 @@
 import express from 'express'
 import {Ajouter,ModifierContrat,Liste,Archiver,Find,MidifierPlanning 
-    ,StatePE,ListePlanning,Archiverpp,DashboardCompt,DashboardComptAll,Rappel} from
+    ,StatePE,ListePlanning,Archiverpp,DashboardCompt,DashboardComptAll,Rappel,listePaiementEleve} from
  '../../../controllers/comptabilite/paimentEleve/ContratControl.js'
 
 
@@ -22,9 +22,12 @@ router.get('/stats',StatePE);
 //Dashboard Comptabilité:
 router.post('/dashboard',DashboardCompt)
 router.post('/dashboard/all',DashboardComptAll);
-
 //rappel
 router.post('/ajouterRappel',Rappel);
+
+//recupere le contrat selon id de enfants et id du parent
+router.get('/listePaimentEleve/:eleveId',listePaiementEleve)
+
 
 
 

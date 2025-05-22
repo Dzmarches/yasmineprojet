@@ -7,9 +7,15 @@ export const getArticles = async (req, res) => {
         const ecoleId = req.user.ecoleId;
         const ecoleeId = req.user.ecoleeId;
         const roles = req.user.roles;
+        const { magasin } = req.query;
 
         const isAdminPrincipal = roles.includes('AdminPrincipal');
         const isAdmin = roles.includes('Admin');
+
+        let whereClause = { 
+            archiver: 0,
+            ...(magasin && { magasin }) // Ajouter le filtre magasin si présent
+        };
 
         let articles;
 
@@ -25,7 +31,7 @@ export const getArticles = async (req, res) => {
                         attributes: ['libelle']
                     }
                 ],
-                where: { actif: true }
+                where: whereClause
             });
         } else if (isAdmin) {
             articles = await Article.findAll({
@@ -39,7 +45,7 @@ export const getArticles = async (req, res) => {
                         attributes: ['libelle']
                     }
                 ],
-                where: { actif: true }
+                where: whereClause
             });
         } else {
             return res.status(403).json({ error: 'Accès non autorisé' });
@@ -59,12 +65,12 @@ export const createArticle = async (req, res) => {
         magasinier,
         description,
         categorieId,
+        magasin,
         ecoleId,
         ecoleeId
     } = req.body;
 
     try {
-        // ✅ Vérifie l'existence d'un article avec le même code et libellé
         const existing = await Article.findOne({
             where: {
                 code_article,
@@ -82,6 +88,7 @@ export const createArticle = async (req, res) => {
             magasinier,
             description,
             categorieId,
+            magasin,
             date_creation: new Date()
         });
 
@@ -104,7 +111,8 @@ export const updateArticle = async (req, res) => {
         libelle,
         magasinier,
         description,
-        categorieId
+        categorieId,
+        magasin
     } = req.body;
 
     try {
@@ -112,7 +120,8 @@ export const updateArticle = async (req, res) => {
             libelle,
             magasinier,
             description,
-            categorieId
+            categorieId,
+            magasin
         }, {
             where: { id }
         });
@@ -128,7 +137,7 @@ export const deleteArticle = async (req, res) => {
     const { id } = req.params;
 
     try {
-        await Article.update({ actif: false }, { where: { id } });
+        await Article.update({ archiver: 1 }, { where: { id } });
         res.json({ message: 'Article archivé' });
     } catch (error) {
         console.error('❌ Erreur suppression article :', error);
@@ -139,7 +148,7 @@ export const deleteArticle = async (req, res) => {
 export const getCategoriesForSelect = async (req, res) => {
     try {
         const categories = await Categorie.findAll({
-            where: { actif: true },
+            where: { archiver: 0 },
             attributes: ['id', 'libelle']
         });
         res.json(categories);

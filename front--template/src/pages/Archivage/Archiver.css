@@ -1,11 +1,32 @@
 .cardModule {
   border: solid 2px #d5d5d3;
-  border-radius: 15px;
- 
-}
-.cardModule:hover {
-  background-color: #4e73df;
-  color: white;
-  
+  border-radius: 12px;
+  transition: all 0.3s ease-in-out;
+  background-color: white;
+  padding: 10px; /* réduit l'espace intérieur */
+  max-height: 180px; /* réduit la hauteur */
+  max-width: 240px; /* ✅ limite la largeur */
+  margin: auto; /* ✅ centre les cartes si nécessaire */
 }
 
+.cardModule:hover {
+  border-color: #3e4e7e;
+  transform: scale(1.03);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+}
+
+.cardModule .card-body {
+  padding: 10px !important; /* réduit le padding du corps de la carte */
+}
+
+.cardModule img {
+  width: 45px !important;
+  height: 45px !important;
+  object-fit: contain;
+  margin-bottom: 8px;
+}
+
+.cardModule .card-title {
+  font-size: 1rem;
+  margin-top: 5px;
+}

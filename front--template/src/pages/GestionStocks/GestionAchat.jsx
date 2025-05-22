@@ -27,7 +27,7 @@ const GestionAchat = () => {
     });
     const [isEdit, setIsEdit] = useState(false);
     const [selectedId, setSelectedId] = useState(null);
-    const [showModal, setShowModal] = useState(false);
+    const [showModalAchats, setShowModalAchats] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
@@ -92,11 +92,11 @@ const GestionAchat = () => {
 
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentItems = filteredAchats.slice(indexOfFirstItem, indexOfLastItem);
+    const currentAchat = filteredAchats.slice(indexOfFirstItem, indexOfLastItem);
     const totalPages = Math.ceil(filteredAchats.length / itemsPerPage);
 
-    const handleShowModal = () => {
-        setShowModal(true);
+    const handleShowModalAchats = () => {
+        setShowModalAchats(true);
         setValues({
             articleId: null,
             fournisseurId: null,
@@ -111,7 +111,7 @@ const GestionAchat = () => {
         setIsEdit(false);
     };
 
-    const handleEdit = (achat) => {
+    const handleEditAchats = (achat) => {
         setValues({
             articleId: articles.find(a => a.value === achat.articleId),
             fournisseurId: fournisseurs.find(f => f.value === achat.fournisseurId),
@@ -124,11 +124,11 @@ const GestionAchat = () => {
             description: achat.description
         });
         setSelectedId(achat.id);
-        setShowModal(true);
+        setShowModalAchats(true);
         setIsEdit(true);
     };
 
-    const handleDelete = async (id) => {
+    const handleDeleteAchats = async (id) => {
         if (!window.confirm('Confirmer la suppression ?')) return;
         try {
             const token = localStorage.getItem('token');
@@ -145,7 +145,7 @@ const GestionAchat = () => {
         }
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmitAchats = async (e) => {
         e.preventDefault();
         setIsLoading(true);
         const token = localStorage.getItem('token');
@@ -222,7 +222,7 @@ const GestionAchat = () => {
                     {success && <div className="alert alert-success">{success}</div>}
 
                     <div className="d-flex align-items-center gap-3 mb-3">
-                        <button className="btn btn-app p-1" onClick={handleShowModal}>
+                        <button className="btn btn-app p-1" onClick={handleShowModalAchats}>
                             <img src={add} alt="" width="30px" /><br />
                             Ajouter
                         </button>
@@ -251,7 +251,7 @@ const GestionAchat = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {currentItems.map((achat) => (
+                                {currentAchat.map((achat) => (
                                     <tr key={achat.id}>
                                         <td>{achat.Article?.libelle}</td>
                                         <td>{achat.Fournisseur?.nom}</td>
@@ -259,10 +259,10 @@ const GestionAchat = () => {
                                         <td>{new Date(achat.date_achat).toLocaleDateString()}</td>
                                         <td>{achat.date_peremption ? new Date(achat.date_peremption).toLocaleDateString() : '-'}</td>
                                         <td>
-                                            <button onClick={() => handleEdit(achat)} className="btn btn-outline-success">
+                                            <button onClick={() => handleEditAchats(achat)} className="btn btn-outline-success">
                                                 <img src={edite} alt="Modifier" width="20px" />
                                             </button>
-                                            <button onClick={() => handleDelete(achat.id)} className="btn btn-outline-danger">
+                                            <button onClick={() => handleDeleteAchats(achat.id)} className="btn btn-outline-danger">
                                                 <img src={delet} alt="Supprimer" width="20px" />
                                             </button>
                                         </td>
@@ -302,13 +302,13 @@ const GestionAchat = () => {
             </div>
 
             {/* Modal */}
-            <div className={`modal fade ${showModal ? 'show' : ''}`} style={{ display: showModal ? 'block' : 'none' }} tabIndex="-1" role="dialog">
+            <div className={`modal fade ${showModalAchats ? 'show' : ''}`} style={{ display: showModalAchats ? 'block' : 'none' }} tabIndex="-1" role="dialog">
                 <div className="modal-dialog modal-lg modal-custom" role="document">
                     <div className="modal-content modal-custom-content">
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={handleSubmitAchats}>
                             <div className="modal-header">
                                 <h5 className="modal-title">{isEdit ? 'Modifier un Achat' : 'Ajouter un Achat'}</h5>
-                                <button type="button" className="close" onClick={() => setShowModal(false)}>
+                                <button type="button" className="close" onClick={() => setShowModalAchats(false)}>
                                     <span>&times;</span>
                                 </button>
                             </div>
@@ -550,7 +550,7 @@ const GestionAchat = () => {
                                 <button
                                     type="button"
                                     className="btn btn-secondary"
-                                    onClick={() => setShowModal(false)}
+                                    onClick={() => setShowModalAchats(false)}
                                 >
                                     Fermer
                                 </button>

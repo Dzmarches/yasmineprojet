@@ -35,7 +35,8 @@ import articleRoutes from './Stocks/ArticleRoute.js';
 import FourniteurRoute from './Stocks/FourniteurRoute.js';
 import AchatRoute from './Stocks/AchatRoute.js';
 import eventRoutes from './EventRoutes.js';
-
+import sortieRoute from './Stocks/sortieRoute.js';
+import eleveinterface from './Admin/eleveinterface.js'
 import permissionRoutes from "./PermissionRoutes.js";
 
 import path from 'path';
@@ -100,13 +101,14 @@ app.use('/moyenne', moyenneGeneraleRoutes);
 app.use('/remarques', RemarqueRoute);
 app.use('/communication', communicationRoutes);
 app.use('/parent', ParentEleveRoutes);
+app.use('/elevess', eleveinterface);
 app.use('/devoir', DevoireRoute);
 app.use('/categorie',CategorieRoute);
 app.use('/article', articleRoutes);
 app.use('/fournisseur',FourniteurRoute);
 app.use('/achat',AchatRoute);
 app.use('/events', eventRoutes);
-
+app.use('/sortie',sortieRoute);
 
 app.use("/permissions", permissionRoutes);
 

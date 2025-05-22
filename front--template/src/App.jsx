@@ -95,6 +95,8 @@ import Archiver from "./pages/Archivage/Archiver.jsx";
 import ArchiverModule from "./pages/Archivage/ArchiverModule.jsx";
 
 import InterfaceEleve from "./pages/interface parent et Eleve/interfaceEleve.jsx";
+import EleveInterface from "./pages/interface parent et Eleve/EleveInterface.jsx";
+import DevoireEleve from "./pages/interface parent et Eleve/DevoirEleve.jsx";
 import ListeAbsences from "./pages/GestionAbsenceEleve/ListeAbsences.jsx";
 import GestionDevoir from "./pages/Academiques/PlaningDevoirs.jsx";
 import EmploiDuTempsV2 from "./pages/Academiques/EmploiDuTempsV2.jsx";
@@ -106,6 +108,12 @@ import GestionAchat from "./pages/GestionStocks/GestionAchat.jsx";
 import PlanificationAcadémique from './pages/Academiques/PlanificationAcadémique.jsx';
 import ParamtreEntiteeScolaire from './pages/Academiques/ParametreEntiteeScolaire.jsx';
 import GestionStock from "./pages/GestionStocks/GestionStock.jsx";
+import MagasinPédagogique from './pages/GestionStocks/MagasinPédagogique.jsx';
+import MagasinRestauration from './pages/GestionStocks/MagasinRestauration.jsx';
+import MagasinDivers from './pages/GestionStocks/MagasinDivers.jsx';
+import NotesEleve from "./pages/interface parent et Eleve/NoteEleve.jsx";
+import EmploiEleve from "./pages/interface parent et Eleve/EmploiEleve.jsx";
+
 
 
 
@@ -177,6 +185,11 @@ function App() {
           <Route path="/listeabsence" element={<PrivateRoute><Layoute><ListeAbsences /></Layoute></PrivateRoute>} />
           <Route path="/planingdevoir" element={<PrivateRoute><Layoute><GestionDevoir /></Layoute></PrivateRoute>} />
           <Route path="/EmploiDuTempsEnseignant" element={<PrivateRoute><Layoute><EmploiDuTempEnseignant /></Layoute></PrivateRoute>} />
+          <Route path="/elevesinterface" element={<PrivateRoute><Layoute><EleveInterface /></Layoute></PrivateRoute>} />
+          <Route path="/devoireleve" element={<PrivateRoute><Layoute><DevoireEleve /></Layoute></PrivateRoute>} />
+          <Route path="/noteeleve" element={<PrivateRoute><Layoute><NotesEleve /></Layoute></PrivateRoute>} />
+          <Route path="/emploieleve" element={<PrivateRoute><Layoute><EmploiEleve /></Layoute></PrivateRoute>} />
+
 
           {/* Gestion stocks */}
           <Route path="/categorie" element={<PrivateRoute><Layoute><GestionCategorie /></Layoute></PrivateRoute>} />
@@ -186,6 +199,10 @@ function App() {
           <Route path="/PlanificationAcadémique" element={<PrivateRoute><Layoute><PlanificationAcadémique /></Layoute></PrivateRoute>} />
           <Route path="/ParametreEntiteeScolaire" element={<PrivateRoute><Layoute><ParamtreEntiteeScolaire /></Layoute></PrivateRoute>} />
           <Route path="/gestionstock" element={<PrivateRoute><Layoute><GestionStock /></Layoute></PrivateRoute>} />
+          <Route path="/magasinpedagogique" element={<PrivateRoute><Layoute><MagasinPédagogique /></Layoute></PrivateRoute>} />
+          <Route path="/magasinrestauration" element={<PrivateRoute><Layoute><MagasinRestauration /></Layoute></PrivateRoute>} />
+          <Route path="/magasindivers" element={<PrivateRoute><Layoute><MagasinDivers /></Layoute></PrivateRoute>} />
+
 
 
           <Route path="/RessourcesHumaines" element={<PrivateRoute><Layoute><RessourcesHumaines /></Layoute></PrivateRoute>} />

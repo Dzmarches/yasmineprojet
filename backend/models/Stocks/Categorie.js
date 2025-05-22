@@ -20,10 +20,6 @@ const Categorie = db.define('Categorie', {
         type: DataTypes.TEXT,
         allowNull: true
     },
-    actif: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: true
-    },
     date_creation: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW
@@ -32,6 +28,20 @@ const Categorie = db.define('Categorie', {
         type: DataTypes.DATE,
         allowNull: true
     },
+    magasin: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    archiver: { 
+        type: DataTypes.INTEGER,
+        defaultValue: 0, 
+        validate: {
+          isIn: {
+            args: [[0, 1, 2]], 
+            msg: "La valeur de 'archiver' doit être 0, 1 ou 2."
+          }
+        }
+    }
 }, {
     timestamps: false
 });

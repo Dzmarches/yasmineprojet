@@ -3,11 +3,16 @@ import EcoleFournisseur from '../../models/Stocks/EcoleFournisseur.js';
 
 export const getFournisseurs = async (req, res) => {
     try {
-        // Récupère les infos utilisateur à partir du token
         const { ecoleId, ecoleeId, roles } = req.user;
+        const { magasin } = req.query;
 
         const isAdminPrincipal = roles.includes('AdminPrincipal');
         const isAdmin = roles.includes('Admin');
+
+        let whereClause = {
+            archiver: 0,
+            ...(magasin && { magasin }) // Filtrage optionnel par magasin
+        };
 
         let fournisseurs;
 
@@ -18,7 +23,7 @@ export const getFournisseurs = async (req, res) => {
                     where: { ecoleId },
                     required: true
                 }],
-                where: { archiver: 0 }
+                where: whereClause
             });
         } else if (isAdmin) {
             fournisseurs = await Fournisseur.findAll({
@@ -27,7 +32,7 @@ export const getFournisseurs = async (req, res) => {
                     where: { ecoleeId },
                     required: true
                 }],
-                where: { archiver: 0 }
+                where: whereClause
             });
         } else {
             return res.status(403).json({ error: 'Accès non autorisé' });
@@ -46,7 +51,8 @@ export const createFournisseur = async (req, res) => {
         contact,
         email,
         adresse,
-        telephone
+        telephone,
+        magasin
     } = req.body;
 
     try {
@@ -58,6 +64,7 @@ export const createFournisseur = async (req, res) => {
             email,
             adresse,
             telephone,
+            magasin,
             archiver: 0,  // Nouveau fournisseur non archivé par défaut
             date_creation: new Date()
         });
@@ -86,7 +93,8 @@ export const updateFournisseur = async (req, res) => {
         contact,
         email,
         adresse,
-        telephone
+        telephone,
+        magasin
     } = req.body;
 
     try {
@@ -95,7 +103,8 @@ export const updateFournisseur = async (req, res) => {
             contact,
             email,
             adresse,
-            telephone
+            telephone,
+            magasin
         }, {
             where: { id }
         });

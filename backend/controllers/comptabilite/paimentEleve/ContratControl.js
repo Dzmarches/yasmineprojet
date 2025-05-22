@@ -1484,7 +1484,6 @@ export const DashboardComptAll = async (req, res) => {
 export const Rappel = async (req, res) => {
   try {
     let { planningIds, delai } = req.body;
-
     let dateRappel;
     if (delai) {
       dateRappel = moment()
@@ -1497,7 +1496,6 @@ export const Rappel = async (req, res) => {
       dateRappel = null;
       delai = null;
     }
-
     const [updatedCount] = await PlanningPaiement.update(
       {
         dateRappel: dateRappel,
@@ -1547,3 +1545,34 @@ export const Rappel = async (req, res) => {
     });
   }
 }
+export const listePaiementEleve = async (req, res) => {
+  try {
+    const { eleveId } = req.params; 
+    const today = moment().tz('Africa/Algiers').startOf('day');
+    const contrats = await Contrat.findAll({
+      where: { archiver: 0 ,eleveId},
+      order: [['createdAt', 'DESC']],
+      include: [
+        {model:PlanningPaiement,where:{archiver:0}},
+        { model: Anneescolaire, attributes: ['id', 'datedebut', 'datefin'] },
+        {
+          model: Eleve, attributes: ['id', 'fraixinscription', 'numinscription'],
+          include: [
+            { model: Niveaux, attributes: ['id', 'nomniveau', 'nomniveuarab', 'cycle'] },
+            {
+              model: User, attributes: ['id', 'nom', 'prenom', 'datenaiss', 'adresse'],
+            }
+          ]
+        },
+      ],
+    });
+    res.status(200).json({contrats,today}); 
+  } catch (error) {
+    console.error('Erreur dans la fonction listePaiementEleve:', error);
+    res.status(500).json({
+      message: 'Erreur serveur lors de la récupération des paiements',
+      error: error.message
+    });
+  }
+};
+

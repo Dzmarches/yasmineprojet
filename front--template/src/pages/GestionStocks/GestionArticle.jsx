@@ -20,7 +20,7 @@ const GestionArticle = () => {
     });
     const [isEdit, setIsEdit] = useState(false);
     const [selectedId, setSelectedId] = useState(null);
-    const [showModal, setShowModal] = useState(false);
+    const [showModalArticle, setShowModalArticle] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
@@ -81,6 +81,11 @@ const GestionArticle = () => {
         a.code_article.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (a.produit && a.produit.toLowerCase().includes(searchTerm.toLowerCase()))
     );
+    const filteredAchats = achats.filter(a =>
+        a.Article?.libelle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        a.Fournisseur?.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        a.prix.toString().includes(searchTerm)
+    );
 
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -91,8 +96,8 @@ const GestionArticle = () => {
         setCurrentPage(1);
     }, [searchTerm]);
 
-    const handleShowModal = () => {
-        setShowModal(true);
+    const handleShowModalArticle = () => {
+        setShowModalArticle(true);
         setValues({
             code_article: '',
             libelle: '',
@@ -103,7 +108,7 @@ const GestionArticle = () => {
         setIsEdit(false);
     };
 
-    const handleEdit = (article) => {
+    const handleEditArticle = (article) => {
         setValues({
             code_article: article.code_article,
             libelle: article.libelle,
@@ -112,11 +117,11 @@ const GestionArticle = () => {
             categorieId: categories.find(c => c.value === article.categorieId)
         });
         setSelectedId(article.id);
-        setShowModal(true);
+        setShowModalArticle(true);
         setIsEdit(true);
     };
 
-    const handleDelete = async (id) => {
+    const handleDeleteArticle = async (id) => {
         const token = localStorage.getItem('token');
         if (!window.confirm('Confirmer la suppression ?')) return;
         try {
@@ -135,7 +140,7 @@ const GestionArticle = () => {
         }
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmitArticle = async (e) => {
         e.preventDefault();
         setIsLoading(true);
         const token = localStorage.getItem('token');
@@ -173,7 +178,7 @@ const GestionArticle = () => {
                 setSuccess('Article ajouté');
             }
 
-            setShowModal(false);
+            setShowModalArticle(false);
             fetchArticles();
             setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
@@ -202,7 +207,7 @@ const GestionArticle = () => {
 
     return (
         <>
-            <nav>
+        <nav>
                 <Link to="/dashboard" className="text-primary">Accueil</Link>
                 <span> / </span>
                 <span>Gestion des Articles</span>
@@ -222,7 +227,7 @@ const GestionArticle = () => {
                     {success && <div className="alert alert-success">{success}</div>}
 
                     <div className="d-flex align-items-center gap-3 mb-3">
-                        <button className="btn btn-app p-1" onClick={handleShowModal}>
+                        <button className="btn btn-app p-1" onClick={handleShowModalArticle}>
                             <img src={add} alt="" width="30px" /><br />
                             Ajouter
                         </button>
@@ -257,10 +262,10 @@ const GestionArticle = () => {
                                         <td>{art.Categorie?.libelle}</td>
                                         <td>{art.magasinier}</td>
                                         <td>
-                                            <button onClick={() => handleEdit(art)} className="btn btn-outline-success">
+                                            <button onClick={() => handleEditArticle(art)} className="btn btn-outline-success">
                                                 <img src={edite} alt="Modifier" width="20px" />
                                             </button>
-                                            <button onClick={() => handleDelete(art.id)} className="btn btn-outline-danger">
+                                            <button onClick={() => handleDeleteArticle(art.id)} className="btn btn-outline-danger">
                                                 <img src={delet} alt="Supprimer" width="20px" />
                                             </button>
                                         </td>
@@ -298,15 +303,14 @@ const GestionArticle = () => {
                     </div>
                 </div>
             </div>
-
             {/* Modal */}
-            <div className={`modal fade ${showModal ? 'show' : ''}`} style={{ display: showModal ? 'block' : 'none' }} tabIndex="-1" role="dialog">
+            <div className={`modal fade ${showModalArticle ? 'show' : ''}`} style={{ display: showModalArticle ? 'block' : 'none' }} tabIndex="-1" role="dialog">
                 <div className="modal-dialog modal-lg modal-custom" role="document">
                     <div className="modal-content modal-custom-content">
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={handleSubmitArticle}>
                             <div className="modal-header">
                                 <h5 className="modal-title">{isEdit ? 'Modifier un Article' : 'Ajouter un Article'}</h5>
-                                <button type="button" className="close" onClick={() => setShowModal(false)}>
+                                <button type="button" className="close" onClick={() => setShowModalArticle(false)}>
                                     <span>&times;</span>
                                 </button>
                             </div>
@@ -467,7 +471,7 @@ const GestionArticle = () => {
                                     type="button"
                                     className="btn btn-secondary"
                                     style={{ borderRadius: '50px', padding: '8px 20px' }}
-                                    onClick={() => setShowModal(false)}
+                                    onClick={() => setShowModalArticle(false)}
                                 >
                                     Fermer
                                 </button>
